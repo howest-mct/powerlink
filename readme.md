@@ -1,9 +1,9 @@
 # Titel van project
 
-**VOORNAAM NAAM:** A B
+**VOORNAAM NAAM:** Michiel Gekiere
 
-**Sparringpartner:** C D
+**Sparringpartner:** Chadia Willems
 
-**Projectsamenvatting in max 10 woorden:** E
+**Projectsamenvatting in max 10 woorden:** Slim domoticasysteem voor energiezuinig huis met automatische en handmatige bediening.
 
-**Projecttitel:** F
+**Projecttitel:** PowerLink
