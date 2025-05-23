@@ -24,6 +24,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+# GPIO PINS
 BUTTON = 20
 LED = 21
 
