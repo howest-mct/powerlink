@@ -20,7 +20,7 @@
 *.lgd*
 
 # Python project
-config.py
+config.ini
 *.css
 *.css.map
 
