@@ -6,6 +6,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from repositories.DataRepository import DataRepository
+from models.models import LampStatus, DTOLampStatus
+
+# ----------------------------------------------------
 
 
 # TODO: Add logging
