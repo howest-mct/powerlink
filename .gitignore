@@ -1,4 +1,5 @@
 # TODO: ignore venv
+venv_project_one
 
 # Video files (general rule)
 *.mp4
