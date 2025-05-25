@@ -22,7 +22,6 @@ venv_project_one
 
 # Python project
 config.ini
-*.css
 *.css.map
 
 # Byte-compiled / optimized / DLL files
