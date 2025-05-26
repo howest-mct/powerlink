@@ -1,12 +1,12 @@
 # Projectgegevens
 
-**VOORNAAM NAAM:** A B
+**VOORNAAM NAAM:** Michiel Gekiere
 
-**Sparringpartner:** C D
+**Sparringpartner:** Chadia Willems
 
-**Projectsamenvatting in max 10 woorden:** E
+**Projectsamenvatting in max 10 woorden:** Slim domoticasysteem voor energiezuinig huis met automatische en handmatige bediening.
 
-**Projecttitel:** F
+**Projecttitel:** PowerLink
 
 # Tips voor feedbackgesprekken
 
@@ -32,7 +32,21 @@
 
 # Feedforward gesprekken
 
-## Gesprek 1 (Datum: xx/xx/2024)
+## Gesprek 1 (Datum: 26/05/2025)
+
+Lector: Stijn
+
+Vragen voor dit gesprek:
+
+- vraag 1: Is de database in orde?
+- vraag 2: Moet er een kolom zijn voor batterytracking?
+- vraag 3: Indexen?
+
+Dit is de feedback op mijn vragen.
+
+- feedback 1: G
+
+## Gesprek 2 (Datum: xx/xx/2025)
 
 Lector:
 
@@ -44,19 +58,7 @@ Dit is de feedback op mijn vragen.
 
 - feedback 1: G
 
-## Gesprek 2 (Datum: xx/xx/2024)
-
-Lector:
-
-Vragen voor dit gesprek:
-
-- vraag 1: V
-
-Dit is de feedback op mijn vragen.
-
-- feedback 1: G
-
-## Gesprek 3 (Datum: xx/xx/2024)
+## Gesprek 3 (Datum: xx/xx/2025)
 
 Lector:
 
