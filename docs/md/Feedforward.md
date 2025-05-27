@@ -39,12 +39,18 @@ Lector: Stijn
 Vragen voor dit gesprek:
 
 - vraag 1: Is de database in orde?
-- vraag 2: Moet er een kolom zijn voor batterytracking?
-- vraag 3: Indexen?
+- vraag 2: Hoe best omgaan met tijdschema?
+- vraag 3: Moet er een kolom zijn voor batterytracking?
 
 Dit is de feedback op mijn vragen.
 
-- feedback 1: G
+- feedback 1: Waarom user input bij website? -> niet gebruiken
+- feedback 1: Actuator en sensors in 1 tabel plaatsen -> Componenten
+- feedback 1: Signals & measurements ook samen zetten -> historiek, value hier hangt af van wat je uit uw componenten tabel gebruikt
+- feedback 2: Temp en licht schedule samen zetten
+- feedback 2: Type tabel maken voor temp, airco en licht
+- feedback 2: Database simpeler maken zodat je als er dingen bij komen die niet een aparte tabel nodig hebben
+- feedback 3: Batterij tabel weg
 
 ## Gesprek 2 (Datum: xx/xx/2025)
 
