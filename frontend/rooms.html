@@ -1,155 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>Statistics</title>
+        <meta name="description" content="This is my HTML5 boilerplate.">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="x-ua-compatible" content="ie=edge">
-  <title>Home</title>
-  <meta name="description" content="This is my HTML5 boilerplate.">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
-    rel="stylesheet">
-  <link rel="icon" href="favicon.ico" type="image/x-icon">
-  <link rel="stylesheet" href="styles/global.css">
-  <link rel="stylesheet" href="styles/index.css">
-</head>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+            rel="stylesheet">
+        <link rel="icon" href="favicon.ico" type="image/x-icon">
+        <link rel="stylesheet" href="styles/global.css">
+        <link rel="stylesheet" href="styles/rooms.css">
+    </head>
 
-<body>
-  <header class="c-header">
-    <div class="c-header__home">
-      <img src="img/svg/house-line.svg" alt="House Logo" class="c-logo__32">
-      <p class="c-header__title">My Home</p>
-    </div>
-    <div class="c-header__notifications">
-      <img src="img/svg/bell.svg" alt="Bell logo" class="c-logo__24">
-    </div>
-  </header>
-  <main class="c-main">
-    <article class="c-room">
-      <p>Home battery</p>
-      <div class="c-room__buttons">
-        <div class="c-room__largebutton">
-          <p class="c-room__largebuttontext">72%</p>
-          <div class="c-room__buttoninfo">
-            <p class="c-room__buttontitle">Battery percentage</p>
-            <p class="c-room__buttonmeta">Battery active</p>
-          </div>
-        </div>
-        <div class="c-room__smallbutton">
-          <p class="c-room__smallbuttonlogo">
-            <img src="img/svg/lightning.svg" alt="Lightning logo" class="c-logo__32">
-          </p>
-          <div class="c-room__buttoninfo">
-            <p class="c-room__buttontitle">Daily Usage</p>
-            <p class="c-room__buttonmeta">12 kWH</p>
-          </div>
-        </div>
-        <div class="c-room__smallbutton">
-          <p class="c-room__smallbuttonlogo">
-            <img src="img/svg/lightning.svg" alt="Lightning logo" class="c-logo__32">
-          </p>
-          <div class="c-room__buttoninfo">
-            <p class="c-room__buttontitle">Weekly Usage</p>
-            <p class="c-room__buttonmeta">320 kWH</p>
-          </div>
-        </div>
-      </div>
-    </article>
-    <article class="c-room">
-      <p>Entry</p>
-      <div class="c-room__buttons">
-        <div class="c-room__largebutton">
-          <img src="img/svg/lock-simple.svg" alt="Closed lock logo" class="c-room__largebuttonlogo">
-          <div class="c-room__buttoninfo">
-            <p class="c-room__buttontitle">Front door</p>
-            <p class="c-room__buttonmeta">Locked</p>
-          </div>
-        </div>
-        <div class="c-room__largebutton">
-          <p class="c-room__largebuttontext">Bart</p>
-          <div class="c-room__buttoninfo">
-            <p class="c-room__buttontitle">Last entered</p>
-            <p class="c-room__buttonmeta">Today at 12pm</p>
-          </div>
-        </div>
-      </div>
-    </article>
-    <article class="c-room">
-      <p>Bottom floor</p>
-      <div class="c-room__buttons">
-        <div class="c-room__largebutton">
-          <p class="c-room__largebuttontext">24 C</p>
-          <div class="c-room__buttoninfo">
-            <p class="c-room__buttontitle">Thermostat</p>
-            <p class="c-room__buttonmeta">Heating active</p>
-          </div>
-        </div>
-        <div class="c-room__smallbutton">
-          <p class="c-room__smallbuttonlogo">
-            <img src="img/svg/fan.svg" alt="Fan logo" class="c-logo__32">
-          </p>
-          <div class="c-room__buttoninfo">
-            <p class="c-room__buttontitle">Airco</p>
-            <p class="c-room__buttonmeta">Off</p>
-          </div>
-        </div>
-        <div class="c-room__smallbutton">
-          <p class="c-room__smallbuttonlogo">
-            <img src="img/svg/lightbulb.svg" alt="Bulb logo" class="c-logo__32">
-          </p>
-          <div class="c-room__buttoninfo">
-            <p class="c-room__buttontitle">Lights</p>
-            <p class="c-room__buttonmeta">Off</p>
-          </div>
-        </div>
-      </div>
-    </article>
-    <article class="c-room">
-      <p>Upper floor</p>
-      <div class="c-room__buttons">
-        <div class="c-room__smallbutton">
-          <p class="c-room__smallbuttonlogo">
-            <img src="img/svg/lightbulb.svg" alt="Bulb logo" class="c-logo__32">
-          </p>
-          <div class="c-room__buttoninfo">
-            <p class="c-room__buttontitle">Lights</p>
-            <p class="c-room__buttonmeta">Off</p>
-          </div>
-        </div>
-      </div>
-    </article>
-    <article class="c-room">
-      <p>Outside</p>
-      <div class="c-room__buttons">
-        <div class="c-room__smallbutton">
-          <p class="c-room__smallbuttonlogo">
-            <img src="img/svg/lightbulb.svg" alt="Bulb logo" class="c-logo__32">
-          </p>
-          <div class="c-room__buttoninfo">
-            <p class="c-room__buttontitle">Lights</p>
-            <p class="c-room__buttonmeta">Off</p>
-          </div>
-        </div>
-      </div>
-    </article>
-  </main>
-  <footer class="c-nav">
-    <div class="c-nav__item">
-      <img src="img/svg/door.svg" alt="Door logo" class="c-logo__32 c-page_current">
-      <p>Rooms</p>
-    </div>
-    <div class="c-nav__item">
-      <img src="img/svg/house-line.svg" alt="House logo" class="c-logo__32">
-      <p>Home</p>
-    </div>
-    <div class="c-nav__item">
-      <img src="img/svg/chart-bar.svg" alt="Bar chart logo" class="c-logo__32">
-      <p>Stats</p>
-    </div>
-  </footer>
-</body>
-
+    <body>
+        <header class="c-header">
+        </header>
+        <main class="c-main">
+        </main>
+        <footer class="c-footer">
+        </footer>
+    </body>
 </html>
