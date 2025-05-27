@@ -13,14 +13,14 @@ import serial
 #   - ReedSwitch (reed switch input)
 
 # 2. Displays
-#   - LCD (8-bit LCD via I2C)
+#   - LCD_Display (8-bit LCD via I2C)
 
 # 3. Motors
 #   - DCMotor (DC motor)
 
 # 4. Output devices
 #   - HeatingPad (heating pad)
-#   - Led (LED control)
+#   - LED (LED control)
 #   - SolenoidLock (solenoid control)
 
 # 5. Utilities
@@ -107,7 +107,6 @@ class SR501:
     # PIR motion sensor
     def __init__(self, pin: int):
         self.pin = pin
-        GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.pin, GPIO.IN)
 
     # Checks if motion is detected
@@ -123,7 +122,6 @@ class Button:
     # Button input
     def __init__(self, pin: int):
         self.pin = pin
-        GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
     # Checks if the button is pressed
@@ -139,7 +137,6 @@ class ReedSwitch:
     # Reed switch input
     def __init__(self, pin: int):
         self.pin = pin
-        GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
     # Checks if the reed switch is closed
@@ -154,7 +151,7 @@ class ReedSwitch:
 # DISPLAYS
 
 
-class LCD:
+class LCD_Display:
     # LCD using MPU6050 in 8bit mode
     def __init__(self, i2c_addr, e_pin, rs_pin):
         self.i2c_addr = i2c_addr
@@ -165,7 +162,6 @@ class LCD:
         self.lcd_cmd = 0
         self.e_pulse = 0.0005
         self.e_delay = 0.0005
-        GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.e_pin, GPIO.OUT)
         GPIO.setup(self.rs_pin, GPIO.OUT)
         self.init()
@@ -231,7 +227,6 @@ class DCMotor:
         self.in2_pin = in2_pin
         self.ena_pin = ena_pin
         self.pwm_freq = pwm_freq
-        GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.in1_pin, GPIO.OUT)
         GPIO.setup(self.in2_pin, GPIO.OUT)
         GPIO.setup(self.ena_pin, GPIO.OUT)
@@ -293,7 +288,7 @@ class HeatingPad:
         GPIO.cleanup(self.pwm_pin)
 
 
-class SimpleLED:
+class LED:
     def __init__(self, pwm_pin):
         self.pwm_pin = pwm_pin
         GPIO.setup(self.pwm_pin, GPIO.OUT)
@@ -346,9 +341,9 @@ class SolenoidLock:
 
 class MCP3008:
     # Analog Digital Converter using SPI
-    def __init__(self, par_bus=0, par_device=0):
-        self.bus = par_bus
-        self.device = par_device
+    def __init__(self, bus=0, device=0):
+        self.bus = bus
+        self.device = device
         self.spi = spidev.SpiDev()
         self.spi.open(self.bus, self.device)
         self.spi.max_speed_hz = 10**5
