@@ -4,6 +4,9 @@ import time
 import RPi.GPIO as GPIO
 import serial
 
+# region Legend ---------------------------------
+
+
 # Classes:
 # 1. Sensors
 #   - DS18B20 (temperature sensor)
@@ -29,7 +32,10 @@ import serial
 #   - PCF8574A (I2C GPIO expander)
 
 
-# SENSORS
+# endregion Legend ********************************
+
+
+# region Sensors ---------------------------------
 
 
 class DS18B20:
@@ -148,7 +154,10 @@ class ReedSwitch:
         GPIO.cleanup(self.pin)
 
 
-# DISPLAYS
+# endregion Sensors ********************************
+
+
+# region Displays ---------------------------------
 
 
 class LCD_Display:
@@ -217,52 +226,43 @@ class LCD_Display:
         GPIO.cleanup([self.e_pin, self.rs_pin])
 
 
-# MOTORS
+# endregion Sensors ********************************
+
+
+# region Motors ---------------------------------
 
 
 class DCMotor:
-    # DC motor
-    def __init__(self, in1_pin: int, in2_pin: int, ena_pin: int, pwm_freq=1000):
-        self.in1_pin = in1_pin
-        self.in2_pin = in2_pin
-        self.ena_pin = ena_pin
+    def __init__(self, pwm_pin: int, pwm_freq=1000):
+        self.pwm_pin = pwm_pin
         self.pwm_freq = pwm_freq
-        GPIO.setup(self.in1_pin, GPIO.OUT)
-        GPIO.setup(self.in2_pin, GPIO.OUT)
-        GPIO.setup(self.ena_pin, GPIO.OUT)
-        self.pwm = GPIO.PWM(self.ena_pin, self.pwm_freq)
+
+        # Set up the PWM pin
+        GPIO.setup(self.pwm_pin, GPIO.OUT)
+        self.pwm = GPIO.PWM(self.pwm_pin, self.pwm_freq)
         self.pwm.start(0)
         self.stop()
 
-    # Sets the motor to move forward at a specified speed
-    def forward(self, speed: float):
+    # Sets the motor speed (0 to 100)
+    def set_speed(self, speed: float):
         if not 0 <= speed <= 100:
             raise ValueError("Speed must be between 0 and 100")
-        GPIO.output(self.in1_pin, GPIO.HIGH)
-        GPIO.output(self.in2_pin, GPIO.LOW)
-        self.pwm.ChangeDutyCycle(speed)
-
-    # Sets the motor to move backward at a specified speed
-    def backward(self, speed: float):
-        if not 0 <= speed <= 100:
-            raise ValueError("Speed must be between 0 and 100")
-        GPIO.output(self.in1_pin, GPIO.LOW)
-        GPIO.output(self.in2_pin, GPIO.HIGH)
         self.pwm.ChangeDutyCycle(speed)
 
     # Stops the motor
     def stop(self):
-        GPIO.output(self.in1_pin, GPIO.LOW)
-        GPIO.output(self.in2_pin, GPIO.LOW)
         self.pwm.ChangeDutyCycle(0)
 
-    # Stops PWM and cleans up GPIO resources
+    # Cleans up PWM and GPIO resources
     def cleanup(self):
         self.pwm.stop()
-        GPIO.cleanup([self.in1_pin, self.in2_pin, self.ena_pin])
+        GPIO.cleanup([self.pwm_pin])
 
 
-# OUTPUT DEVICES
+# endregion Sensors ********************************
+
+
+# region Other Devices ---------------------------------
 
 
 class HeatingPad:
@@ -336,7 +336,10 @@ class SolenoidLock:
         GPIO.cleanup(self.control_pin)
 
 
-# UTILITIES
+# endregion Sensors ********************************
+
+
+# region Utilities ---------------------------------
 
 
 class MCP3008:
@@ -470,3 +473,6 @@ class PCF8574A:
             except Exception as e:
                 print(f"Warning: I2C bus close failed: {e}")
             self._bus = None
+
+
+# endregion Sensors ********************************

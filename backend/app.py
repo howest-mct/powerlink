@@ -7,11 +7,14 @@ import logging
 import threading
 from RPi import GPIO
 import time
+import datetime
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
 from repositories.DataRepository import DataRepository
+from models.backend_models import Log, DTOLog, Schedule, DTOSchedule
 
 from models.device_models import (
     DS18B20,
@@ -40,53 +43,55 @@ logger = logging.getLogger(__name__)
 # endregion Setup ********************************
 
 
-# region GPIO Pins ---------------------------------
-MOTION_SENSOR = SR501(26)
-LIGHT_BUTTON = Button(19)
-REED_SWITCH = ReedSwitch(13)
-TEMP_SENSOR = DS18B20()
-
-LCD = LCD_Display(0x38, 5, 6)
-DOOR_LOCK = SolenoidLock(21)
-LIGHTS_OUTDOORS = LED(20)
-LIGHTS_BOTTOM = LED(25)
-LIGHTS_TOP = LED(24)
-HEATING = HeatingPad(16)
-AIRCO = DCMotor(12)
-
-
-SERIAL = SerialComm()
-MCP = MCP3008()
-INA_LIGHTS_BOTTOM = INA219(1, 0x45)
-INA_LIGHTS_TOP = INA219(1, 0x41)
-INA_HEATING = INA219(1, 0x40)
-INA_AIRCO = INA219(1, 0x44)
-
-
-GPIO.setmode(GPIO.BCM)
-
-
-# endregion GPIO Pins ********************************
-
-
 # region App Setup ---------------------------------
-background = None
+
+background_loop = None
 
 
 @asynccontextmanager
 async def lifespan_manager(app: FastAPI):
-    logger.info("GPIO initialised")
+    logger.info("Starting application...")
 
-    global background
-    background = asyncio.get_running_loop()
-    background.create_task()
-    threading.Thread(target=main, daemon=True).start()
+    # Set GPIO mode
+    GPIO.setmode(GPIO.BCM)
 
-    yield
+    try:
+        MOTION_SENSOR = SR501(26)
+        LIGHT_BUTTON = Button(19)
+        REED_SWITCH = ReedSwitch(13)
+        TEMP_SENSOR = DS18B20()
+        LCD = LCD_Display(0x38, 5, 6)
+        DOOR_LOCK = SolenoidLock(21)
+        LIGHTS_OUTDOORS = LED(20)
+        LIGHTS_BOTTOM = LED(25)
+        LIGHTS_TOP = LED(24)
+        HEATING = HeatingPad(16)
+        AIRCO = DCMotor(12)
+        SERIAL = SerialComm()
+        MCP = MCP3008()
+        INA_LIGHTS_BOTTOM = INA219(1, 0x45)
+        INA_LIGHTS_TOP = INA219(1, 0x41)
+        INA_HEATING = INA219(1, 0x40)
+        INA_AIRCO = INA219(1, 0x44)
 
-    GPIO.cleanup()
+        logger.info("GPIO devices initialized successfully")
 
-    logger.info("Bye!")
+        global background_loop
+        background_loop = asyncio.get_running_loop()
+        threading.Thread(target=main, daemon=True).start()
+
+        yield
+
+    finally:
+        logger.info("Shutting down application...")
+        if MOTION_SENSOR:
+            MOTION_SENSOR.cleanup()
+        if LIGHT_BUTTON:
+            LIGHT_BUTTON.cleanup()
+        if REED_SWITCH:
+            REED_SWITCH.cleanup()
+        GPIO.cleanup()
+        logger.info("GPIO cleaned up. Bye!")
 
 
 app = FastAPI(lifespan=lifespan_manager)
@@ -103,71 +108,31 @@ sio_app = socketio.ASGIApp(sio, app)
 
 ENDPOINT = "/api/v1"
 
-# GLOBAL VARIABLES
-
-
 # endregion App Setup ********************************
 
 
 # region Background Tasks ---------------------------------
 
 
-# endregion Background Tasks ****************************
-
-
 def main():
-    """Registreert de knop‑callback en houdt de thread ‘alive’."""
-
-    def button_pressed(channel):
-        global led_state
-        led_state = 1 - led_state
-        DataRepository.update_status_lamp(1, led_state)
-        GPIO.output(LED, led_state)
-        lamp_data = DataRepository.read_status_lamp_by_id(1)
-
-        # ⬇️ We zitten nu in een *andere* thread dan de FastAPI‑event‑loop
-        future = asyncio.run_coroutine_threadsafe(
-            sio.emit("B2F_verandering_lamp", {"lamp": lamp_data}),
-            loop,
-        )
-        # `run_coroutine_threadsafe` post de coroutine naar de hoofd‑event‑loop
-        # en geeft een *Future* terug waarmee je (optioneel) op fouten kunt wachten.
-        logger.debug("Emit scheduled from GPIO thread – future: %s", future)
-
-    GPIO.add_event_detect(BUTTON, GPIO.FALLING, button_pressed, bouncetime=200)
-    logger.info("gpio_keep_alive gestart; wacht op button events…")
-
-    while True:
-        time.sleep(1)  # de thread levend houden
+    pass
 
 
 async def allesuit():
-    print("[allesuit] Gestart. Alles uit!")
-    DataRepository.update_status_alle_lampen(0)
-    global led_state
-    led_state = 0
-    GPIO.output(LED, 0)
-
-    # 1) B2F_alles_uit
-    await sio.emit("B2F_alles_uit", {"status": "connected"})
-
-    # 2) B2F_status_lampen => updated states
-    new_statuses = DataRepository.read_status_lampen()
-    await sio.emit("B2F_status_lampen", {"lampen": new_statuses})
-
-    return {"message": "Alles uit!"}
+    pass
 
 
 async def tweede_thread():
-    # This function is called every 10 seconds to set all lights to OFF
-    # and emit the status to all connected clients.
-    print("[alles_uit] Gestart.")
-    while True:
-        await allesuit()
-        await asyncio.sleep(10)
+    pass
+
+
+# endregion Background Tasks ****************************
 
 
 # region FastAPI Endpoints ---------------------------------
+
+
+# region GET Endpoints ---------------------------------
 
 
 @app.get("/")
@@ -175,27 +140,172 @@ async def root():
     return "Server werkt, maar hier geen API endpoint gevonden."
 
 
-@app.patch(
-    ENDPOINT + "/lampen/{lamp_id}/status/",
-    response_model=LampStatus,
-    summary="Update lamp status",
+@app.get(
+    ENDPOINT + "/logs/",
+    response_model=list[Log],
+    summary="Retrieve all logs",
+    response_description="A list of all available logs",
+    tags=["logs"],
 )
-async def update_lamp_status(lamp_id: int, status: DTOLampStatus):
-    print(f"[RESTAPI] => Lamp {lamp_id} naar {status.nieuwe_status}")
-    DataRepository.update_status_lamp(lamp_id, status.nieuwe_status)
-
-    if lamp_id == 1:
-        global led_state
-        led_state = status.nieuwe_status
-        GPIO.output(LED, led_state)
-
-    lamp_data = DataRepository.read_status_lamp_by_id(lamp_id)
-    print(lamp_data)
-    await sio.emit("B2F_verandering_lamp", {"lamp": lamp_data})
-    return LampStatus(lamp=lamp_id, status=lamp_data["status"])
+async def get_all_logs():
+    data = DataRepository.read_all_logs()
+    if data is None or len(data) == 0:
+        raise HTTPException(status_code=404, detail="No logs found in the database")
+    return data
 
 
-# endregion FastAPI Endpoints *************************
+@app.get(
+    ENDPOINT + "/logs/{id}/all/",
+    response_model=list[Log],
+    summary="Retrieve a log by ID",
+    response_description="The log with the specified ID",
+    tags=["logs"],
+)
+async def get_all_logs_by_component_id(id: int):
+    # Fetch the resource by ID from the repository
+    data = DataRepository.read_all_logs_by_component_id(id)
+    # Check if the resource exists
+    if data is None:
+        raise HTTPException(status_code=404, detail=f"log with ID {id} not found")
+    # Return the resource
+    return data
+
+
+@app.get(
+    ENDPOINT + "/logs/{id}/last/",
+    response_model=Log,
+    summary="Retrieve a log by ID",
+    response_description="The last log with the specified ID",
+    tags=["logs"],
+)
+async def get_last_log_by_id(id: int):
+    # Fetch the resource by ID from the repository
+    data = DataRepository.read_last_log_by_component_id(id)
+    # Check if the resource exists
+    if data is None:
+        raise HTTPException(status_code=404, detail=f"log with ID {id} not found")
+    # Return the resource
+    return data
+
+
+@app.get(
+    ENDPOINT + "/logs/{id}/24h/",
+    response_model=list[Log],
+    summary="Retrieve a last log by ID",
+    response_description="The last 24h logs with the specified ID",
+    tags=["logs"],
+)
+async def get_logs_last_24_hours_by_id(id: int):
+    # Fetch the resource by ID from the repository
+    data = DataRepository.read_logs_last_24_hours_by_component_id(id)
+    # Check if the resource exists
+    if data is None:
+        raise HTTPException(status_code=404, detail=f"last log with ID {id} not found")
+    # Return the resource
+    return data
+
+
+@app.get(
+    ENDPOINT + "/logs/{id}/week/",
+    response_model=list[Log],
+    summary="Retrieve logs last week by ID",
+    response_description="Thr logs last week with the specified ID",
+    tags=["logs"],
+)
+async def get_logs_last_week_by_id(id: int):
+    # Fetch the resource by ID from the repository
+    data = DataRepository.read_logs_last_week_by_component_id(id)
+    # Check if the resource exists
+    if data is None:
+        raise HTTPException(
+            status_code=404, detail=f"logs last week with ID {id} not found"
+        )
+    # Return the resource
+    return data
+
+
+@app.get(
+    ENDPOINT + "/logs/{id}/week2/",
+    response_model=list[Log],
+    summary="Retrieve a logs between 1 and 2 weeks by ID",
+    response_description="The logs between 1 and 2 weeks with the specified ID",
+    tags=["logs"],
+)
+async def get_logs_between_1_and_2_weeks_by_component_id(id: int):
+    # Fetch the resource by ID from the repository
+    data = DataRepository.read_logs_between_1_and_2_weeks_by_component_id(id)
+    # Check if the resource exists
+    if data is None:
+        raise HTTPException(
+            status_code=404, detail=f"logs between 1 and 2 weeks with ID {id} not found"
+        )
+    # Return the resource
+    return data
+
+
+@app.get(
+    ENDPOINT + "/schedules/{id}/",
+    response_model=Schedule,
+    summary="Retrieve a schedule by ID",
+    response_description="The schedule with the specified ID",
+    tags=["schedules"],
+)
+async def get_schedule_by_id(id: int):
+    # Fetch the resource by ID from the repository
+    data = DataRepository.read_schedule_by_id(id)
+    # Check if the resource exists
+    if data is None:
+        raise HTTPException(status_code=404, detail=f"schedule with ID {id} not found")
+
+    # Return the resource
+    return data
+
+
+# endregion GET Endpoints *************************
+
+
+# region POST Endpoints ---------------------------------
+
+
+# endregion PATCH Endpoints *************************
+
+
+@app.put(
+    ENDPOINT + "/schedules/{id}/",
+    response_model=Schedule,
+    summary="Update a schedule",
+    response_description="The updated schedule",
+    tags=["schedules"],
+)
+async def update_schedule(id: int, schedule: DTOSchedule):
+    # Check if the resource exists
+    item_data = DataRepository.read_schedule_by_id(id)
+    if item_data is None:
+        raise HTTPException(status_code=404, detail=f"schedule with ID {id} not found")
+    # Extract fields from the request body
+    column_1 = schedule.start_time
+    column_2 = schedule.end_time
+    column_3 = schedule.value
+    column_4 = schedule.enabled
+    # Update the resource using separate parameters
+    update_result = DataRepository.update_schedule(
+        id, column_1, column_2, column_3, column_4
+    )
+    if update_result == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to update schedule due to invalid data or server error",
+        )
+    return DataRepository.read_schedule_by_id(id)
+
+
+# region PATCH Endpoints ---------------------------------
+
+
+# endregion POST Endpoints *************************
+
+
+# region FastAPI Endpoints *************************
 
 
 # region Socket.IO Handlers ---------------------------------
@@ -203,9 +313,7 @@ async def update_lamp_status(lamp_id: int, status: DTOLampStatus):
 
 @sio.event
 async def connect(sid, environ):
-    print(f"[Socket.IO] Client geconnecteerd: {sid}")
-    lampenstatus = DataRepository.read_status_lampen()
-    await sio.emit("B2F_status_lampen", {"lampen": lampenstatus}, to=sid)
+    pass
 
 
 # endregion Socket.IO Handlers *************************
@@ -219,7 +327,7 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8000,
         log_level="info",
-        reload=True,
+        reload=False,  # False to avoid GPIO conflicts
         reload_dirs=["backend"],
     )
 
