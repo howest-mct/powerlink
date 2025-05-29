@@ -25,7 +25,11 @@ img {
 /*---------------------------------------*/
 /* ELEMENTS                              */
 /*---------------------------------------*/
-
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--background-color);
+    padding: 1rem;
+}
 
 /*---------------------------------------*/
 /* OBJECTS                               */
@@ -35,8 +39,41 @@ img {
 /*---------------------------------------*/
 /* COMPONENTS                            */
 /*---------------------------------------*/
+.c-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+}
 
+.c-main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 5rem;
+}
 
+.c-welcome {
+    font-size: 3rem;
+    line-height: 3.5rem;
+    color: var(--text_main-color);
+}
+
+.c-description {
+    font-size: 1.8rem;
+    line-height: 2rem;
+    color: var(--main-color);
+    text-decoration: none;
+}
+
+.c-description:hover {
+    color: var(--main_hover-color);
+    text-decoration: underline;
+}
 /*---------------------------------------*/
 /* UTILITIES                             */
 /*---------------------------------------*/
