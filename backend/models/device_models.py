@@ -12,8 +12,6 @@ import serial
 #   - DS18B20 (temperature sensor)
 #   - INA219 (voltage/current sensor)
 #   - SR501 (PIR motion sensor)
-#   - Button (button input)
-#   - ReedSwitch (reed switch input)
 
 # 2. Displays
 #   - LCD_Display (8-bit LCD via I2C)
@@ -118,36 +116,6 @@ class SR501:
     # Checks if motion is detected
     def motion_detected(self) -> bool:
         return GPIO.input(self.pin) == GPIO.HIGH
-
-    # Cleans up GPIO resources
-    def cleanup(self):
-        GPIO.cleanup(self.pin)
-
-
-class Button:
-    # Button input
-    def __init__(self, pin: int):
-        self.pin = pin
-        GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
-    # Checks if the button is pressed
-    def is_pressed(self) -> bool:
-        return GPIO.input(self.pin) == GPIO.LOW
-
-    # Cleans up GPIO resources
-    def cleanup(self):
-        GPIO.cleanup(self.pin)
-
-
-class ReedSwitch:
-    # Reed switch input
-    def __init__(self, pin: int):
-        self.pin = pin
-        GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
-    # Checks if the reed switch is closed
-    def is_closed(self) -> bool:
-        return GPIO.input(self.pin) == GPIO.LOW
 
     # Cleans up GPIO resources
     def cleanup(self):

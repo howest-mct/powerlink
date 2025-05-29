@@ -35,7 +35,6 @@ class Schedule(P1BaseModel):
 
 
 class DTOLog(P1BaseModel):
-    log_id: int
     value: float
     component_id: int
 
