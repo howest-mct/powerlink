@@ -28,6 +28,13 @@ class Schedule(P1BaseModel):
     component_id: int
 
 
+class Card(P1BaseModel):
+    inhabitant_id: int
+    first_name: str
+    last_name: str
+    card_id: str
+
+
 # endregion Models ********************************
 
 
@@ -45,6 +52,10 @@ class DTOSchedule(P1BaseModel):
     end_time: str
     value: float
     enabled: int
+
+
+class DTOCard(P1BaseModel):
+    card_id: int
 
 
 # endregion DTOModels ********************************

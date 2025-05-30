@@ -63,6 +63,12 @@ class DataRepository:
         params = [schedule_id]
         return Database.get_one_row(sql, params)
 
+    @staticmethod
+    def read_card_by_id(card_id):
+        sql = "SELECT * FROM inhabitants WHERE card_id = %s"
+        params = [card_id]
+        return Database.get_one_row(sql, params)
+
     # endregion Read ********************************
 
     # region Create ---------------------------------

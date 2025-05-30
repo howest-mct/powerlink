@@ -2,7 +2,7 @@ import smbus
 import spidev
 import time
 import RPi.GPIO as GPIO
-import serial
+from mfrc522 import SimpleMFRC522
 
 # region Legend ---------------------------------
 
@@ -12,6 +12,7 @@ import serial
 #   - DS18B20 (temperature sensor)
 #   - INA219 (voltage/current sensor)
 #   - SR501 (PIR motion sensor)
+#   - RFIDReader (RFID reader)
 
 # 2. Displays
 #   - LCD_Display (8-bit LCD via I2C)
@@ -120,6 +121,23 @@ class SR501:
     # Cleans up GPIO resources
     def cleanup(self):
         GPIO.cleanup(self.pin)
+
+
+class RFIDReader:
+    def __init__(self, callback):
+        self.reader = SimpleMFRC522()
+        self.callback = callback
+
+    def check_tag(self):
+        try:
+            card_id, _ = self.reader.read_no_block()
+            if card_id:
+                self.callback(card_id)
+        except Exception as e:
+            print(f"Error reading tag: {e}")
+
+    def cleanup(self):
+        GPIO.cleanup()
 
 
 # endregion Sensors ********************************
@@ -312,69 +330,26 @@ class SolenoidLock:
 
 class MCP3008:
     # Analog Digital Converter using SPI
-    def __init__(self, bus=0, device=0):
+    def __init__(self, bus=1, device=0):
         self.bus = bus
         self.device = device
         self.spi = spidev.SpiDev()
         self.spi.open(self.bus, self.device)
-        self.spi.max_speed_hz = 10**5
+        self.spi.max_speed_hz = 10**6
+        self.spi.mode = 0b00
 
     # Reads the analog value from the specified channel
     def read_channel(self, ch):
         if not 0 <= ch <= 7:
             raise ValueError("Channel must be between 0 and 7")
         binary = (0b1000 | ch) << 4
-        list_values = self.spi.xfer([1, binary, 0])
+        list_values = self.spi.xfer2([1, binary, 0])
         data = ((list_values[1] & 0b0000011) << 8) | list_values[2]
         return data
 
     # Closes the SPI connection
     def close(self):
         self.spi.close()
-
-
-class SerialComm:
-    # Serial communication
-    def __init__(self, port="/dev/ttyAMA0", baud=9600, timeout=1):
-        self.ser = None
-        try:
-            self.ser = serial.Serial(port, baud, timeout=timeout)
-            time.sleep(0.1)
-        except Exception as e:
-            raise Exception(f"Failed to open serial port {port}: {e}")
-
-    # Writes data to the serial port
-    def write(self, data):
-        if not self.ser or not self.ser.is_open:
-            return False
-        self.ser.write(data if isinstance(data, bytes) else data.encode())
-        self.ser.flush()
-        return True
-
-    # Reads n bytes from the serial port
-    def read(self, n=1):
-        return self.ser.read(n) if self.ser else None
-
-    # Reads a line from the serial port
-    def readline(self, size=-1):
-        return (
-            self.ser.readline(size).decode(errors="ignore").rstrip()
-            if self.ser
-            else None
-        )
-
-    # Reads until a delimiter is found or size is reached
-    def read_until(self, delim="\n", size=1024):
-        return (
-            self.ser.read_until(delim.encode(), size).decode(errors="ignore")
-            if self.ser
-            else None
-        )
-
-    # Closes the serial port
-    def close(self):
-        if self.ser:
-            self.ser.close()
 
 
 class PCF8574A:

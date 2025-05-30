@@ -1,3 +1,8 @@
+### Turn on interfaces
+
+- sudo raspi-config
+- turn on -> I2C, One-wire, SPI
+
 ### I2C
 
 - i2cdetect -y 1 => Scan for I2C devices on bus 1
@@ -10,3 +15,5 @@
 ### SPI
 
 - ls /dev/spidev\* => List SPI devices
+- sudo nano /boot/firmware/config.txt
+- add -> dtoverlay=spi1-2cs
