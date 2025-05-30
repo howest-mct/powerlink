@@ -3,6 +3,7 @@ import spidev
 import time
 import RPi.GPIO as GPIO
 import serial
+from mfrc522 import SimpleMFRC522
 
 # region Legend ---------------------------------
 
@@ -12,6 +13,7 @@ import serial
 #   - DS18B20 (temperature sensor)
 #   - INA219 (voltage/current sensor)
 #   - SR501 (PIR motion sensor)
+#   - RFID (RFID reader)
 
 # 2. Displays
 #   - LCD_Display (8-bit LCD via I2C)
@@ -120,6 +122,25 @@ class SR501:
     # Cleans up GPIO resources
     def cleanup(self):
         GPIO.cleanup(self.pin)
+
+
+class SimpleMFRC522:
+    def __init__(self):
+        self.reader = MFRC522()
+
+    def read(self):
+        (status, TagType) = self.reader.MFRC522_Request(self.reader.PICC_REQIDL)
+        if status == self.reader.MI_OK:
+            (status, uid) = self.reader.MFRC522_Anticoll()
+            if status == self.reader.MI_OK:
+                return self._uid_to_string(uid), "Some text"
+        return None, None
+
+    def _uid_to_string(self, uid):
+        return str(uid[0]) + str(uid[1]) + str(uid[2]) + str(uid[3])
+
+    def cleanup(self):
+        GPIO.cleanup()
 
 
 # endregion Sensors ********************************
@@ -312,12 +333,13 @@ class SolenoidLock:
 
 class MCP3008:
     # Analog Digital Converter using SPI
-    def __init__(self, bus=0, device=0):
+    def __init__(self, bus=1, device=0):
         self.bus = bus
         self.device = device
         self.spi = spidev.SpiDev()
         self.spi.open(self.bus, self.device)
-        self.spi.max_speed_hz = 10**5
+        self.spi.max_speed_hz = 10**6
+        self.spi.mode = 0b00
 
     # Reads the analog value from the specified channel
     def read_channel(self, ch):
@@ -331,50 +353,6 @@ class MCP3008:
     # Closes the SPI connection
     def close(self):
         self.spi.close()
-
-
-class SerialComm:
-    # Serial communication
-    def __init__(self, port="/dev/ttyAMA0", baud=9600, timeout=1):
-        self.ser = None
-        try:
-            self.ser = serial.Serial(port, baud, timeout=timeout)
-            time.sleep(0.1)
-        except Exception as e:
-            raise Exception(f"Failed to open serial port {port}: {e}")
-
-    # Writes data to the serial port
-    def write(self, data):
-        if not self.ser or not self.ser.is_open:
-            return False
-        self.ser.write(data if isinstance(data, bytes) else data.encode())
-        self.ser.flush()
-        return True
-
-    # Reads n bytes from the serial port
-    def read(self, n=1):
-        return self.ser.read(n) if self.ser else None
-
-    # Reads a line from the serial port
-    def readline(self, size=-1):
-        return (
-            self.ser.readline(size).decode(errors="ignore").rstrip()
-            if self.ser
-            else None
-        )
-
-    # Reads until a delimiter is found or size is reached
-    def read_until(self, delim="\n", size=1024):
-        return (
-            self.ser.read_until(delim.encode(), size).decode(errors="ignore")
-            if self.ser
-            else None
-        )
-
-    # Closes the serial port
-    def close(self):
-        if self.ser:
-            self.ser.close()
 
 
 class PCF8574A:
