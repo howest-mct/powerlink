@@ -1,13 +1,12 @@
 # region Setup -----------------------------------------
-
 import asyncio
 import socketio
 import uvicorn
 import logging
-import threading
 from RPi import GPIO
 import time
 import datetime
+import socket
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
@@ -37,12 +36,10 @@ logging.basicConfig(
     force=True,
 )
 logger = logging.getLogger(__name__)
-
 # endregion Setup ********************************
 
 # region Global Variables ---------------------------------
-
-# Database ID's
+# Database IDs
 heater_id = 1
 airco_id = 2
 led_bottom_id = 3
@@ -87,9 +84,11 @@ INA_BAT_OUT = None
 raspi_power = None
 motion = None
 last_motion_time = None
+led_top_last_state = None
 switch_state = False
 last_log_time_switch = 0
 previous_state_switch = False
+last_state_led = None
 temp_id = None
 temp = None
 pot_value = None
@@ -107,34 +106,49 @@ kw_led_bottom = None
 kw_led_top = None
 kw_heating = None
 kw_airco = None
+current_usage = None
+battery_level = None
+ip_address = None
 
 GPIO.setmode(GPIO.BCM)
-
 # endregion Global Variables **************************
 
+
 # region Functions ---------------------------------
-
-
 def lights_button(pin):
-    global switch_state
+    global switch_state, button_lights_id, led_bottom_id
     try:
         switch_state = not switch_state
         DataRepository.create_log(switch_state, button_lights_id)
+        DataRepository.create_log(100, led_bottom_id)
     except Exception as e:
         logger.error(f"Error in lights_button: {e}")
 
 
 def lights_top():
-    global LED_TOP, MOTION_SENSOR, last_motion_time
+    global LED_TOP, MOTION_SENSOR, last_motion_time, led_top_id, motion_sensor_id, led_top_last_state
     try:
         motion_detected = MOTION_SENSOR.motion_detected()
+        current_state = False
         if motion_detected:
             last_motion_time = time.time()
-            LED_TOP.set_brightness(100)
-        if last_motion_time and time.time() - last_motion_time > 5:
-            LED_TOP.set_brightness(0)
+            current_state = True
+        elif last_motion_time and time.time() - last_motion_time > 5:
             last_motion_time = None
-            DataRepository.create_log(100, motion_sensor_id)
+            current_state = False
+        else:
+            current_state = (
+                led_top_last_state if led_top_last_state is not None else False
+            )
+        if current_state != led_top_last_state:
+            if current_state:
+                LED_TOP.set_brightness(100)
+                DataRepository.create_log(100, led_top_id)
+                DataRepository.create_log(1, motion_sensor_id)
+            else:
+                LED_TOP.set_brightness(0)
+                DataRepository.create_log(0, led_top_id)
+            led_top_last_state = current_state
     except Exception as e:
         logger.error(f"Error in lights_top: {e}")
 
@@ -157,105 +171,144 @@ def lights_bottom():
 
 
 def lights_outdoors():
-    global LED_OUTDOORS, MCP
+    global LED_OUTDOORS, MCP, last_state_led, ldr_value, light_sensor_id, led_outdoors_id
     try:
         ldr_value = round((MCP.read_channel(1) * 100) / 1023, 0)
-        if ldr_value > 75:
-            LED_OUTDOORS.set_brightness(100)
+        top_limit = 75
+        low_limit = 70
+        if last_state_led is None or not last_state_led:
+            current_state = ldr_value > top_limit
         else:
-            LED_OUTDOORS.off()
+            current_state = ldr_value >= low_limit
+        if current_state != last_state_led:
+            if current_state:
+                LED_OUTDOORS.set_brightness(100)
+                DataRepository.create_log(100, led_outdoors_id)
+                DataRepository.create_log(ldr_value, light_sensor_id)
+            else:
+                LED_OUTDOORS.off()
+                DataRepository.create_log(0, led_outdoors_id)
+                DataRepository.create_log(ldr_value, light_sensor_id)
+            last_state_led = current_state
     except Exception as e:
         logger.error(f"Error in lights_outdoors: {e}")
 
 
 def handle_tag(card_id):
     global scanned_card
-
     scanned_card = card_id
 
 
-def front_door():
-    global DOOR_LOCK, REED_SWITCH, CARD_READER, scanned_card, door_state
-    global solenoid_lock_id, reed_switch_id, card_reader_id
+async def front_door():
+    global scanned_card, DOOR_LOCK, REED_SWITCH, card_reader_id, solenoid_lock_id, reed_switch_id
+    while True:
+        if scanned_card is not None:
+            try:
+                DataRepository.read_card_by_id(scanned_card)
+                DataRepository.create_log(scanned_card, card_reader_id)
+                DOOR_LOCK.unlock()
+                logger.debug("Door is unlocked")
+                DataRepository.create_log(1, solenoid_lock_id)
+                start_time = time.time()
 
-    door_state = GPIO.input(REED_SWITCH)
+                while GPIO.input(REED_SWITCH) == 1:
+                    if time.time() - start_time > 3:
+                        logger.info("Door did not open in time (3 seconds)")
+                        break
+                    await asyncio.sleep(0.1)
 
-    CARD_READER.check_tag()
+                if GPIO.input(REED_SWITCH) == 0:
+                    logger.debug("Door is opened")
+                    DataRepository.create_log(1, reed_switch_id)
+                    start_time = time.time()
+                    while GPIO.input(REED_SWITCH) == 0:
+                        if time.time() - start_time > 3:
+                            logger.info("Door did not close in time (3 seconds)")
+                            break
+                        await asyncio.sleep(0.1)
 
-    if scanned_card is not None:
+                    if GPIO.input(REED_SWITCH) == 1:
+                        logger.debug("Door is closed")
+                        DataRepository.create_log(0, reed_switch_id)
+                DOOR_LOCK.lock()
+                logger.debug("Door is locked")
+                DataRepository.create_log(0, solenoid_lock_id)
+
+            except Exception as e:
+                logger.error(f"Error: {e}")
+
+            finally:
+                scanned_card = None
+        else:
+            await asyncio.sleep(0.1)
+
+
+def get_ip_address():
+    global ip_address
+    try:
+        hostname = socket.gethostname()
+        ip_address = socket.gethostbyname(hostname)
+        return ip_address
+    except socket.error as e:
+        logger.error(f"Error getting IP address: {e}")
+        return None
+
+
+async def display_lcd():
+    global LCD, lcd_string, ip_address, temp, current_usage, battery_level
+    while True:
         try:
-            DataRepository.read_card_by_id(scanned_card)
-
-            DataRepository.create_log(scanned_card, card_reader_id)
-            DOOR_LOCK.unlock()
-            logger.debug("Door is unlocked")
-            DataRepository.create_log(1, solenoid_lock_id)
-
-            logger.debug("Waiting for door to open")
-            start_time = time.time()
-
-            while GPIO.input(REED_SWITCH) == 1:
-                if time.time() - start_time > 3:
-                    logger.info("Door did not open in time (3 seconds)")
-                    DOOR_LOCK.lock()
-                    DataRepository.create_log(0, solenoid_lock_id)
-                    scanned_card = None
-                    return
-                time.sleep(0.1)
-
-            logger.debug("Door is opened")
-            DataRepository.create_log(1, reed_switch_id)
-
-            logger.debug("Waiting for door to close")
-            start_time = time.time()
-
-            while GPIO.input(REED_SWITCH) == 0:
-                if time.time() - start_time > 3:
-                    logger.info("Door did not close in time (3 seconds)")
-                    DOOR_LOCK.lock()
-                    DataRepository.create_log(0, solenoid_lock_id)
-                    scanned_card = None
-                    return
-                time.sleep(0.1)
-
-            logger.debug("Door is closed")
-            DataRepository.create_log(0, reed_switch_id)
-
-            DOOR_LOCK.lock()
-            logger.debug("Door is locked")
-            DataRepository.create_log(0, solenoid_lock_id)
-
-            scanned_card = None
-
+            LCD.string("IP Address:", 1)
+            LCD.string(get_ip_address(), 2)
+            await asyncio.sleep(2)
+            LCD.string("Current temp:", 1)
+            LCD.string(f"{temp} degrees C", 2)
+            await asyncio.sleep(2)
+            LCD.string("Current usage:", 1)
+            LCD.string(f"{current_usage}W", 2)
+            await asyncio.sleep(2)
+            LCD.string("Battery level:", 1)
+            LCD.string(f"{battery_level}%", 2)
+            await asyncio.sleep(2)
         except Exception as e:
-            logger.error(f"Error: {e}")
-            scanned_card = None
+            logger.error(f"Error in display_lcd: {e}")
+            lcd_string = None
+            await asyncio.sleep(1)
 
 
 # endregion Functions ****************************
 
-# region Background Task ---------------------------------
 
-
-def run_in_loop(loop):
-    global pot_value, temp_id, temp
-    temp_id = TEMP_SENSOR.get_id()
-
+# region Async Wrappers ---------------------------------
+async def run_lights_outdoors():
     while True:
         lights_outdoors()
-        lights_bottom()
+        await asyncio.sleep(0.5)
+
+
+async def run_lights_top():
+    while True:
         lights_top()
-        front_door()
-        # pot_value = MCP.read_channel(0)
-        # temp = TEMP_SENSOR.get_temp(temp_id)
-        time.sleep(0.1)
+        await asyncio.sleep(0.1)
 
 
-# endregion Background Task **********************************
+async def run_lights_bottom():
+    while True:
+        lights_bottom()
+        await asyncio.sleep(0.1)
+
+
+async def run_get_temp():
+    global temp
+    while True:
+        temp = TEMP_SENSOR.get_temp(temp_id)
+        await asyncio.sleep(3)
+
+
+# endregion Async Wrappers ******************************
+
 
 # region App Setup ---------------------------------
-
-
 @asynccontextmanager
 async def lifespan_manager(app: FastAPI):
     logger.info("Starting application...")
@@ -265,6 +318,7 @@ async def lifespan_manager(app: FastAPI):
         global LCD, DOOR_LOCK, LED_OUTDOORS, LED_BOTTOM, LED_TOP
         global HEATING, AIRCO, MCP, INA_LED_BOTTOM, INA_LED_TOP
         global INA_HEATING, INA_AIRCO, INA_BAT_IN, INA_BAT_OUT, CARD_READER
+        global temp_id, ip_address
 
         MOTION_SENSOR = SR501(26)
         LED_BUTTON = 19
@@ -273,7 +327,6 @@ async def lifespan_manager(app: FastAPI):
         GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         TEMP_SENSOR = DS18B20()
         CARD_READER = RFIDReader(handle_tag)
-
         LCD = LCD_Display(0x38, 5, 6)
         DOOR_LOCK = SolenoidLock(21)
         LED_OUTDOORS = LED(20)
@@ -282,14 +335,23 @@ async def lifespan_manager(app: FastAPI):
         HEATING = HeatingPad(16)
         AIRCO = DCMotor(12)
         MCP = MCP3008(bus=0)
-
         INA_LED_BOTTOM = INA219(1, 0x45)
         INA_LED_TOP = INA219(1, 0x41)
         INA_HEATING = INA219(1, 0x40)
         INA_AIRCO = INA219(1, 0x44)
 
-        loop = asyncio.get_running_loop()
-        threading.Thread(target=lambda: run_in_loop(loop), daemon=True).start()
+        temp_id = TEMP_SENSOR.get_id()
+        ip_address = get_ip_address()
+
+        tasks = [
+            asyncio.create_task(run_lights_outdoors()),
+            asyncio.create_task(run_lights_top()),
+            asyncio.create_task(run_lights_bottom()),
+            asyncio.create_task(run_get_temp()),
+            asyncio.create_task(front_door()),
+            asyncio.create_task(display_lcd()),
+        ]
+
         GPIO.add_event_detect(
             LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=150
         )
@@ -298,6 +360,9 @@ async def lifespan_manager(app: FastAPI):
 
     finally:
         logger.info("Shutting down application...")
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
         MOTION_SENSOR.cleanup()
         CARD_READER.cleanup()
         LCD.close()
@@ -329,13 +394,10 @@ sio = socketio.AsyncServer(cors_allowed_origins="*", async_mode="asgi", logger=T
 sio_app = socketio.ASGIApp(sio, app)
 
 ENDPOINT = "/api/v1"
-
 # endregion App Setup ********************************
 
+
 # region FastAPI Endpoints ---------------------------------
-
-
-# region FastAPI GET ---------------------------------
 @app.get("/")
 async def root():
     return "Server werkt, maar hier geen API endpoint gevonden."
@@ -405,11 +467,6 @@ async def get_schedule_by_id(id: int):
     return data
 
 
-# endregion FastAPI GET *************************
-
-# region FastAPI PUT ---------------------------------
-
-
 @app.put(ENDPOINT + "/schedules/{id}/", response_model=Schedule, tags=["schedules"])
 async def update_schedule(id: int, schedule: DTOSchedule):
     existing = DataRepository.read_schedule_by_id(id)
@@ -423,13 +480,10 @@ async def update_schedule(id: int, schedule: DTOSchedule):
     return DataRepository.read_schedule_by_id(id)
 
 
-# endregion FastAPI PUT *************************
-
 # endregion FastAPI Endpoints *************************
 
+
 # region Socket.IO Handlers ---------------------------------
-
-
 @sio.event
 async def connect(sid, environ):
     logger.info(f"Client connected: {sid}")
@@ -438,7 +492,6 @@ async def connect(sid, environ):
 # endregion Socket.IO Handlers *************************
 
 # region Run The App ---------------------------------
-
 if __name__ == "__main__":
     uvicorn.run(
         "app:sio_app",
@@ -448,5 +501,4 @@ if __name__ == "__main__":
         reload=False,
         reload_dirs=["backend"],
     )
-
 # endregion Run The App **************************
