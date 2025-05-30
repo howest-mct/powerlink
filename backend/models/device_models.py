@@ -2,7 +2,6 @@ import smbus
 import spidev
 import time
 import RPi.GPIO as GPIO
-import serial
 from mfrc522 import SimpleMFRC522
 
 # region Legend ---------------------------------
@@ -13,7 +12,7 @@ from mfrc522 import SimpleMFRC522
 #   - DS18B20 (temperature sensor)
 #   - INA219 (voltage/current sensor)
 #   - SR501 (PIR motion sensor)
-#   - RFID (RFID reader)
+#   - RFIDReader (RFID reader)
 
 # 2. Displays
 #   - LCD_Display (8-bit LCD via I2C)
@@ -124,20 +123,18 @@ class SR501:
         GPIO.cleanup(self.pin)
 
 
-class SimpleMFRC522:
-    def __init__(self):
-        self.reader = MFRC522()
+class RFIDReader:
+    def __init__(self, callback):
+        self.reader = SimpleMFRC522()
+        self.callback = callback
 
-    def read(self):
-        (status, TagType) = self.reader.MFRC522_Request(self.reader.PICC_REQIDL)
-        if status == self.reader.MI_OK:
-            (status, uid) = self.reader.MFRC522_Anticoll()
-            if status == self.reader.MI_OK:
-                return self._uid_to_string(uid), "Some text"
-        return None, None
-
-    def _uid_to_string(self, uid):
-        return str(uid[0]) + str(uid[1]) + str(uid[2]) + str(uid[3])
+    def check_tag(self):
+        try:
+            tag_id, _ = self.reader.read_no_block()
+            if tag_id:
+                self.callback(tag_id)
+        except Exception as e:
+            print(f"Error reading tag: {e}")
 
     def cleanup(self):
         GPIO.cleanup()

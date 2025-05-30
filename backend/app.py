@@ -27,7 +27,7 @@ from models.device_models import (
     SolenoidLock,
     MCP3008,
     PCF8574A,
-    RFID,
+    RFIDReader,
 )
 
 logging.basicConfig(
@@ -122,7 +122,7 @@ def lights_button(pin):
         logger.error(f"Error in lights_button: {e}")
 
 
-async def lights_top():
+def lights_top():
     global LED_TOP, MOTION_SENSOR, last_motion_time
     try:
         motion_detected = MOTION_SENSOR.motion_detected()
@@ -138,7 +138,7 @@ async def lights_top():
         logger.error(f"Error in lights_top: {e}")
 
 
-async def lights_bottom():
+def lights_bottom():
     global LED_BOTTOM, switch_state
     try:
         if switch_state:
@@ -151,7 +151,7 @@ async def lights_bottom():
         logger.error(f"Error in lights_bottom: {e}")
 
 
-async def lights_outdoors():
+def lights_outdoors():
     global LED_OUTDOORS, MCP
     try:
         ldr_value = round((MCP.read_channel(1) * 100) / 1023, 0)
@@ -164,16 +164,14 @@ async def lights_outdoors():
         logger.error(f"Error in lights_outdoors: {e}")
 
 
-async def front_door():
+def handle_tag(tag_id):
+    print(f"Registering tag: {tag_id}")
+
+
+def front_door():
     global DOOR_LOCK, REED_SWITCH, CARD_READER
-    try:
-        card_id, text = CARD_READER.read_card()
-        if card_id:
-            logger.debug(f"Card ID: {card_id}, Inhabitant_id: {text}")
-        else:
-            logger.debug("No card detected")
-    except Exception as e:
-        logger.error(f"Error in front_door: {e}")
+
+    CARD_READER.check_tag()
 
 
 # endregion Functions ****************************
@@ -186,15 +184,15 @@ def run_in_loop(loop):
     temp_id = TEMP_SENSOR.get_id()
 
     while True:
-        asyncio.run_coroutine_threadsafe(lights_outdoors(), loop)
-        asyncio.run_coroutine_threadsafe(lights_bottom(), loop)
-        asyncio.run_coroutine_threadsafe(lights_top(), loop)
-        asyncio.run_coroutine_threadsafe(front_door(), loop)
+        lights_outdoors()
+        lights_bottom()
+        lights_top()
+        front_door()
         pot_value = MCP.read_channel(0)
         temp = TEMP_SENSOR.get_temp(temp_id)
         logger.debug(f"Potentiometer Value: {pot_value}")
         logger.debug(f"Temperature: {temp}")
-        time.sleep(1)
+        time.sleep(0.5)
 
 
 # endregion Background Task **********************************
@@ -218,7 +216,7 @@ async def lifespan_manager(app: FastAPI):
         REED_SWITCH = 13
         GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         TEMP_SENSOR = DS18B20()
-        CARD_READER = RFID(rst_pin=23)
+        CARD_READER = RFIDReader(handle_tag)
 
         LCD = LCD_Display(0x38, 5, 6)
         DOOR_LOCK = SolenoidLock(21)
