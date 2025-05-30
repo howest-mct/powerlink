@@ -130,9 +130,9 @@ class RFIDReader:
 
     def check_tag(self):
         try:
-            tag_id, _ = self.reader.read_no_block()
-            if tag_id:
-                self.callback(tag_id)
+            card_id, _ = self.reader.read_no_block()
+            if card_id:
+                self.callback(card_id)
         except Exception as e:
             print(f"Error reading tag: {e}")
 
@@ -343,7 +343,7 @@ class MCP3008:
         if not 0 <= ch <= 7:
             raise ValueError("Channel must be between 0 and 7")
         binary = (0b1000 | ch) << 4
-        list_values = self.spi.xfer([1, binary, 0])
+        list_values = self.spi.xfer2([1, binary, 0])
         data = ((list_values[1] & 0b0000011) << 8) | list_values[2]
         return data
 
