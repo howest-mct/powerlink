@@ -25,15 +25,15 @@ DROP TABLE IF EXISTS `component_logs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `component_logs` (
-  `log_id` int(11) NOT NULL,
+  `log_id` int(11) NOT NULL AUTO_INCREMENT,
   `datetime` datetime NOT NULL DEFAULT current_timestamp(),
-  `value` float NOT NULL DEFAULT 0,
+  `value` float NOT NULL,
   `component_id` int(11) NOT NULL,
   PRIMARY KEY (`log_id`),
   UNIQUE KEY `history_id_UNIQUE` (`log_id`),
   KEY `fk1_component_id_idx` (`component_id`),
   CONSTRAINT `fk1_component_id` FOREIGN KEY (`component_id`) REFERENCES `components` (`component_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=101 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -69,7 +69,7 @@ CREATE TABLE `components` (
 
 LOCK TABLES `components` WRITE;
 /*!40000 ALTER TABLE `components` DISABLE KEYS */;
-INSERT INTO `components` VALUES (1,'heater','power %'),(2,'airco','speed %'),(3,'lights_lower','brightness %'),(4,'lights_upper','brightness %'),(5,'lights_outside','brightness %'),(6,'solenoid_lock','locked/unlocked'),(7,'motion_sensor','moten detected'),(8,'button_lights','off/on'),(9,'reed_switch_door','closed/open'),(10,'rfid','no access/access'),(11,'thermostat','temperature range %'),(12,'light_sensor','light intensity range %'),(13,'wh_lighting_lower','wh'),(14,'wh_lighting_upper','wh'),(15,'wh_heater','wh'),(16,'wh_airco','wh'),(17,'wh_in_battery','wh'),(18,'wh_out_battery','wh');
+INSERT INTO `components` VALUES (1,'heater','power %'),(2,'airco','speed %'),(3,'led_bottom','brightness %'),(4,'led_top','brightness %'),(5,'led_outdoors','brightness %'),(6,'solenoid_lock','locked/unlocked'),(7,'motion_sensor','moten detected'),(8,'button_lights','off/on'),(9,'reed_switch','closed/open'),(10,'rfid','no access/access'),(11,'temp_sensor','temperature range %'),(12,'light_sensor','light intensity range %'),(13,'wh_lighting_lower','wh'),(14,'wh_lighting_upper','wh'),(15,'wh_heater','wh'),(16,'wh_airco','wh'),(17,'wh_in_battery','wh'),(18,'wh_out_battery','wh');
 /*!40000 ALTER TABLE `components` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -84,9 +84,9 @@ CREATE TABLE `inhabitants` (
   `inhabitant_id` int(11) NOT NULL AUTO_INCREMENT,
   `first_name` varchar(45) NOT NULL,
   `last_name` varchar(45) DEFAULT NULL,
-  `badge_id` varchar(45) NOT NULL,
+  `card_id` varchar(45) NOT NULL,
   PRIMARY KEY (`inhabitant_id`),
-  UNIQUE KEY `badge_id_UNIQUE` (`badge_id`),
+  UNIQUE KEY `badge_id_UNIQUE` (`card_id`),
   UNIQUE KEY `inhabitant_id_UNIQUE` (`inhabitant_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -97,7 +97,7 @@ CREATE TABLE `inhabitants` (
 
 LOCK TABLES `inhabitants` WRITE;
 /*!40000 ALTER TABLE `inhabitants` DISABLE KEYS */;
-INSERT INTO `inhabitants` VALUES (1,'Bart','Gekiere','BX7-4923-KL8'),(2,'Els','Verhelst','ZN4-8176-PQ2'),(3,'Michiel','Gekiere','JM9-3051-TY6'),(4,'Margot','Gekiere','HW3-6742-RF9');
+INSERT INTO `inhabitants` VALUES (1,'Bart','Gekiere','246629489228'),(2,'Els','Verhelst','462700356070');
 /*!40000 ALTER TABLE `inhabitants` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -137,8 +137,8 @@ DROP TABLE IF EXISTS `schedules`;
 CREATE TABLE `schedules` (
   `schedule_id` int(11) NOT NULL AUTO_INCREMENT,
   `schedule_name` varchar(45) NOT NULL,
-  `start_time` time NOT NULL,
-  `end_time` time NOT NULL,
+  `start_time` varchar(5) NOT NULL,
+  `end_time` varchar(5) NOT NULL,
   `value` float NOT NULL DEFAULT 0,
   `value_unit` varchar(45) NOT NULL,
   `enabled` tinyint(4) NOT NULL DEFAULT 0,
@@ -159,7 +159,7 @@ CREATE TABLE `schedules` (
 
 LOCK TABLES `schedules` WRITE;
 /*!40000 ALTER TABLE `schedules` DISABLE KEYS */;
-INSERT INTO `schedules` VALUES (1,'heater_schedule','06:00:00','22:00:00',21,'temperature degrees',0,1,1),(2,'airco_schedule','06:00:00','22:00:00',21,'temperature degrees',0,1,2),(3,'lighting_lower_schedule','22:00:00','06:00:00',50,'brightness %',0,2,3),(4,'lighting_upper_schedule','22:00:00','06:00:00',50,'brightness %',0,2,4);
+INSERT INTO `schedules` VALUES (1,'heater_schedule','07:00','21:00',26,'temperature degrees',0,1,1),(2,'airco_schedule','06:00','22:00',21,'temperature degrees',0,1,2),(3,'lighting_lower_schedule','22:00','06:00',50,'brightness %',0,2,3),(4,'lighting_upper_schedule','22:00','06:00',50,'brightness %',0,2,4);
 /*!40000 ALTER TABLE `schedules` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -180,4 +180,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-05-27 18:23:46
+-- Dump completed on 2025-05-30 18:28:36
