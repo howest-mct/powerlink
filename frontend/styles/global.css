@@ -22,6 +22,7 @@ html {
 body {
     min-height: 100vh;
     font-family: 'inter', sans-serif;
+    color: var(--text_main-color);
 }
 
 ol, ul {
