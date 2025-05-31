@@ -25,26 +25,28 @@
         <div class="c-header__nav-container">
             <a href="home.html" class="c-header__logo c-hover-underline">PowerLink</a>
             <svg class="c-list__svg c-hamburger" xmlns="http://www.w3.org/2000/svg" width="32" height="32"
-                fill="#000000" viewBox="0 0 256 256" aria-expanded="false">
+                fill="#000000" viewBox="0 0 256 256" aria-expanded="false" id="hamburgerBtn">
                 <path
                     d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z">
                 </path>
             </svg>
+            <!-- Desktop navigation -->
+            <nav class="c-nav-popup" aria-hidden="false">
+                <svg class="c-nav-popup__close" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000"
+                    viewBox="0 0 256 256" id="closeBtn">
+                    <path
+                        d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z">
+                    </path>
+                </svg>
+                <ul class="c-nav-popup__list">
+                    <li class="c-nav-popup__item"><a href="home.html" class="c-nav-popup__link">My Home</a></li>
+                    <li class="c-nav-popup__item"><a href="schedules.html" class="c-nav-popup__link">Schedules</a></li>
+                    <li class="c-nav-popup__item"><a href="statistics.html" class="c-nav-popup__link">Statistics</a>
+                    </li>
+                </ul>
+            </nav>
         </div>
-        <nav class="c-nav-popup" aria-hidden="true">
-            <svg class="c-nav-popup__close" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000"
-                viewBox="0 0 256 256">
-                <path
-                    d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z">
-                </path>
-            </svg>
-            <ul class="c-nav-popup__list">
-                <li class="c-nav-popup__item"><a href="home.html" class="c-nav-popup__link">My Home</a></li>
-                <li class="c-nav-popup__item"><a href="schedules.html" class="c-nav-popup__link">Schedules</a></li>
-                <li class="c-nav-popup__item"><a href="statistics.html" class="c-nav-popup__link">Statistics</a></li>
-            </ul>
-        </nav>
-        <div class="c-overlay" aria-hidden="true"></div>
+        <div class="c-overlay" aria-hidden="true" id="overlay"></div>
     </header>
     <main class="c-main">
         <section class="c-home-battery">
@@ -111,8 +113,10 @@
                             </path>
                         </svg>
                     </div>
-                    <input type="range" min="0" max="100" value="0" class="c-slider" id="lightSliderLower">
-                    <div class="c-value-display" id="valueDisplayLower">0%</div>
+                    <div class="c-slider-wrapper">
+                        <input type="range" min="0" max="100" value="0" class="c-slider" id="lightSliderLower">
+                        <div class="c-value-display" id="valueDisplayLower">0%</div>
+                    </div>
                 </div>
                 <div class="c-lighting-card__meta">
                     <div class="c-lighting-card__info">
@@ -136,8 +140,10 @@
                             </path>
                         </svg>
                     </div>
-                    <input type="range" min="0" max="100" value="0" class="c-slider" id="lightSliderUpper">
-                    <div class="c-value-display" id="valueDisplayUpper">0%</div>
+                    <div class="c-slider-wrapper">
+                        <input type="range" min="0" max="100" value="0" class="c-slider" id="lightSliderUpper">
+                        <div class="c-value-display" id="valueDisplayUpper">0%</div>
+                    </div>
                 </div>
                 <div class="c-lighting-card__meta">
                     <div class="c-lighting-card__info">
