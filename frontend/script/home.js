@@ -108,11 +108,208 @@ function showDropdown() {
   });
 }
 
+class TemperatureControl {
+  constructor() {
+    this.temperature = 22;
+    this.minTemp = 16;
+    this.maxTemp = 30;
+    this.increment = 0.5;
+    this.totalSegments = 30;
+    this.isEditing = false;
+
+    this.tempDisplay = document.getElementById('tempValue');
+    this.tempContainer = document.getElementById('tempDisplay');
+    this.progressRing = document.getElementById('progressRing');
+    this.decreaseBtn = document.getElementById('decreaseBtn');
+    this.increaseBtn = document.getElementById('increaseBtn');
+
+    this.init();
+  }
+
+  init() {
+    this.createSegments();
+    this.updateDisplay();
+    this.attachEvents();
+  }
+
+  createSegments() {
+    for (let i = 0; i < this.totalSegments; i++) {
+      const segment = document.createElement('div');
+      segment.className = 'c-segment';
+
+      const angle = (i * 180) / (this.totalSegments - 1);
+      segment.style.transform = `rotate(${angle}deg)`;
+      segment.style.left = '50%';
+      segment.style.top = '50%';
+      segment.style.marginLeft = '-2px';
+      segment.style.marginTop = '-125px';
+
+      this.progressRing.appendChild(segment);
+    }
+  }
+
+  updateDisplay() {
+    if (!this.isEditing) {
+      this.tempDisplay.textContent = this.temperature.toFixed(1);
+    }
+
+    this.tempContainer.classList.add('changed');
+    setTimeout(() => {
+      this.tempContainer.classList.remove('changed');
+    }, 300);
+
+    const progress = (this.temperature - this.minTemp) / (this.maxTemp - this.minTemp);
+    const activeSegments = Math.round(progress * this.totalSegments);
+
+    const segments = this.progressRing.querySelectorAll('.c-segment');
+    segments.forEach((segment, index) => {
+      if (index < activeSegments) {
+        segment.className = 'c-segment active';
+      } else {
+        segment.className = 'c-segment inactive';
+      }
+    });
+
+    this.decreaseBtn.style.opacity = this.temperature <= this.minTemp ? '0.3' : '1';
+    this.increaseBtn.style.opacity = this.temperature >= this.maxTemp ? '0.3' : '1';
+  }
+
+  increaseTemp() {
+    if (this.temperature < this.maxTemp) {
+      this.temperature = Math.round((this.temperature + this.increment) * 10) / 10;
+      this.updateDisplay();
+    }
+  }
+
+  decreaseTemp() {
+    if (this.temperature > this.minTemp) {
+      this.temperature = Math.round((this.temperature - this.increment) * 10) / 10;
+      this.updateDisplay();
+    }
+  }
+
+  startEditing() {
+    if (this.isEditing) return;
+
+    this.isEditing = true;
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = this.minTemp;
+    input.max = this.maxTemp;
+    input.step = this.increment;
+    input.value = this.temperature.toFixed(1);
+    input.className = 'c-temp-input';
+
+    input.style.cssText = `
+      background: transparent;
+      border: none;
+      color: #333;
+      font-size: 48px;
+      font-weight: 300;
+      font-family: inherit;
+      text-align: center;
+      width: 150px;
+      letter-spacing: -2px;
+      outline: none;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    `;
+
+    const originalText = this.tempDisplay.textContent;
+
+    this.tempDisplay.textContent = '';
+    this.tempDisplay.appendChild(input);
+
+    input.focus();
+    input.select();
+
+    const finishEditing = () => {
+      if (!this.isEditing) return;
+
+      let newTemp = parseFloat(input.value);
+
+      if (isNaN(newTemp)) {
+        newTemp = this.temperature;
+      } else {
+        newTemp = Math.max(this.minTemp, Math.min(this.maxTemp, newTemp));
+        newTemp = Math.round(newTemp / this.increment) * this.increment;
+        newTemp = Math.round(newTemp * 10) / 10;
+      }
+
+      this.temperature = newTemp;
+      this.isEditing = false;
+
+      input.remove();
+      this.updateDisplay();
+    };
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        finishEditing();
+      } else if (e.key === 'Escape') {
+        this.isEditing = false;
+        input.remove();
+        this.updateDisplay();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const currentValue = parseFloat(input.value) || this.temperature;
+        const newValue = Math.min(this.maxTemp, currentValue + this.increment);
+        input.value = newValue.toFixed(1);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const currentValue = parseFloat(input.value) || this.temperature;
+        const newValue = Math.max(this.minTemp, currentValue - this.increment);
+        input.value = newValue.toFixed(1);
+      }
+    });
+
+    input.addEventListener('blur', finishEditing);
+
+    input.addEventListener('input', () => {
+      const value = parseFloat(input.value);
+      if (!isNaN(value)) {
+        if (value < this.minTemp) {
+          input.style.borderColor = '#ff4444';
+          input.style.border = '1px solid #ff4444';
+        } else if (value > this.maxTemp) {
+          input.style.borderColor = '#ff4444';
+          input.style.border = '1px solid #ff4444';
+        } else {
+          input.style.borderColor = '#4A90E2';
+          input.style.border = '1px solid #4A90E2';
+        }
+      }
+    });
+  }
+
+  attachEvents() {
+    this.increaseBtn.addEventListener('click', () => this.increaseTemp());
+    this.decreaseBtn.addEventListener('click', () => this.decreaseTemp());
+
+    this.tempDisplay.addEventListener('click', () => this.startEditing());
+
+    this.tempDisplay.style.cursor = 'pointer';
+
+    document.addEventListener('keydown', (e) => {
+      if (!this.isEditing) {
+        if (e.key === 'ArrowUp' || e.key === '+') {
+          this.increaseTemp();
+        } else if (e.key === 'ArrowDown' || e.key === '-') {
+          this.decreaseTemp();
+        }
+      }
+    });
+  }
+}
 const init = () => {
   console.info('DOM loaded');
   showSliders('lightSliderLower', 'valueDisplayLower', 'bulbIconLower');
   showSliders('lightSliderUpper', 'valueDisplayUpper', 'bulbIconUpper');
   showDropdown();
+  new TemperatureControl();
+  console.info('All components initialized');
 };
 
 document.addEventListener('DOMContentLoaded', init);
