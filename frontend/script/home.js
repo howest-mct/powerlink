@@ -9,6 +9,10 @@ function showSliders(sliderId, valueDisplayId, bulbIconId) {
     return;
   }
 
+  slider.removeAttribute('title');
+  valueDisplay.removeAttribute('title');
+  bulbIcon.removeAttribute('title');
+
   function updateSliderVisuals(value) {
     const percentage = value;
     slider.style.background = `linear-gradient(to right, var(--main-color) 0%, var(--main-color) ${percentage}%, #e0e0e0 ${percentage}%, #e0e0e0 100%)`;

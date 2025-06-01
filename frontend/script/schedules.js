@@ -9,6 +9,10 @@ function showSliders(sliderId, valueDisplayId, bulbIconId) {
     return;
   }
 
+  slider.removeAttribute('title');
+  valueDisplay.removeAttribute('title');
+  bulbIcon.removeAttribute('title');
+
   function updateSliderVisuals(value) {
     const percentage = value;
     slider.style.background = `linear-gradient(to right, var(--main-color) 0%, var(--main-color) ${percentage}%, #e0e0e0 ${percentage}%, #e0e0e0 100%)`;
@@ -211,18 +215,18 @@ class TemperatureControl {
     input.className = 'c-temp-input';
 
     input.style.cssText = `
-        background: transparent;
-        border: none;
-        color: #333;
-        font-size: 2.025rem;
-        font-family: inherit;
-        text-align: center;
-        width: 6rem;
-        outline: none;
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      `;
+      background: transparent;
+      border: none;
+      color: #333;
+      font-size: 2.025rem;
+      font-family: inherit;
+      text-align: center;
+      width: 6rem;
+      outline: none;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    `;
 
     const originalText = this.tempDisplay.textContent;
 
