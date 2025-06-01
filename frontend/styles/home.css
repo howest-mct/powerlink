@@ -1038,8 +1038,8 @@ body {
 
     .c-lower-card__container {
         display: flex;
-        flex-direction: row;
         gap: 2rem;
+        flex-direction: row-reverse;
     }
 
     .c-lower-card__container>.c-lighting-card {

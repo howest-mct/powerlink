@@ -23,7 +23,7 @@ img {
 
 body {
     font-family: 'Poppins', sans-serif;
-    background-color: var(--background-color);
+    background: linear-gradient(to right,var(--white-color),var(--main-color));
     padding: 1rem;
 }
 
@@ -51,7 +51,8 @@ body {
 .c-welcome {
     font-size: 3rem;
     line-height: 3.5rem;
-    color: var(--text_main-color);
+    color: black;
+    font-family: "Manrope", sans-serif;
 }
 
 .c-description {
