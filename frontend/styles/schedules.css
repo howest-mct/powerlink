@@ -178,7 +178,7 @@ body {
 
 .c-home-battery__container {
     background-color: var(--background-color);
-    padding: 1rem;
+    padding: 1.5rem;
     padding-top: 3rem;
     padding-bottom: 3rem;
 }
@@ -193,13 +193,13 @@ body {
 
 .c-home-battery__components {
     display: flex;
-    gap: 2rem;
+    gap: 1.5rem;
     flex-direction: column;
 }
 
 .c-battery-solar__container {
     background-color: var(--white-color);
-    padding: 1rem;
+    padding: 1.5rem;
     padding-top: 3rem;
     padding-bottom: 3rem;
 }
@@ -336,14 +336,14 @@ body {
 
 .c-downstairs__container {
     background-color: var(--white-color);
-    padding: 1rem;
+    padding: 1.5rem;
     padding-top: 3rem;
     padding-bottom: 3rem;
 }
 
 .c-upstairs__container {
     background-color: var(--background-color);
-    padding: 1rem;
+    padding: 1.5rem;
     padding-top: 3rem;
     padding-bottom: 3rem;
 }
@@ -367,7 +367,7 @@ body {
 .c-lower-card__container {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.5rem;
 }
 
 .c-lighting {
@@ -666,7 +666,7 @@ body {
 
 .c-door-lock__container {
     background-color: var(--white-color);
-    padding: 1rem;
+    padding: 1.5rem;
     padding-top: 3rem;
     padding-bottom: 3rem;
 }
@@ -777,7 +777,7 @@ body {
 
 .c-lighting-outside__container {
     background-color: var(--background-color);
-    padding: 1rem;
+    padding: 1.5rem;
     padding-top: 3rem;
     padding-bottom: 3rem;
 }
@@ -841,7 +841,7 @@ body {
 }
 
 .c-powerlink__container {
-    padding: 1rem;
+    padding: 1.5rem;
     padding-top: 3rem;
     padding-bottom: 3rem;
 }
@@ -1038,8 +1038,8 @@ body {
 
     .c-lower-card__container {
         display: flex;
-        flex-direction: row;
         gap: 2rem;
+        flex-direction: row-reverse;
     }
 
     .c-lower-card__container>.c-lighting-card {
