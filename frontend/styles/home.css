@@ -280,7 +280,7 @@ body {
 }
 
 .c-battery__status {
-.c-battery__status {
+
     font-size: 1rem;
     line-height: 1.5rem;
 }
@@ -398,7 +398,7 @@ body {
     margin: 0 auto;
 }
 
-.c-lower-card__container{
+.c-lower-card__container {
     display: flex;
     flex-direction: column;
     gap: 2rem;
@@ -550,7 +550,7 @@ body {
     box-sizing: border-box;
 }
 
-.c-lower{
+.c-lower {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -558,7 +558,7 @@ body {
     margin: 0 auto;
 }
 
-.c-lighting-card__container{
+.c-lighting-card__container {
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -988,16 +988,17 @@ body {
 }
 
 @media (max-width: 480px) {
- .c-powerlink {
-     flex: 1 1 calc(50% - 0.5rem);
-     max-width: none;
-     min-width: 21.5rem;
- }
- .c-lighting-outside {
-     flex: 1 1 calc(50% - 0.5rem);
-     max-width: none;
-     min-width: 21.5rem;
- }
+    .c-powerlink {
+        flex: 1 1 calc(50% - 0.5rem);
+        max-width: none;
+        min-width: 21.5rem;
+    }
+
+    .c-lighting-outside {
+        flex: 1 1 calc(50% - 0.5rem);
+        max-width: none;
+        min-width: 21.5rem;
+    }
 }
 
 
@@ -1009,6 +1010,7 @@ body {
     .c-header {
         padding: 1.5rem;
     }
+
     .c-header__logo {
         font-size: 1.6rem;
         line-height: 2rem;
@@ -1096,7 +1098,8 @@ body {
         flex-direction: row;
         gap: 1rem;
     }
-    .c-lower-card__container > .c-lighting-card {
+
+    .c-lower-card__container>.c-lighting-card {
         max-height: 11.125rem;
         max-width: none;
         width: 100%;
