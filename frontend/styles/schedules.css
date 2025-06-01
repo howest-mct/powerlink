@@ -151,6 +151,8 @@ body {
     text-decoration: underline;
 }
 
+
+
 .c-overlay {
     position: fixed;
     top: 0;
@@ -293,7 +295,7 @@ body {
 }
 
 .c-lighting-card__status {
-    font-size: 1rem;
+    font-size: 0.875rem;
     line-height: 1.5rem;
     font-weight: 400;
     color: var(--text_main-color);
@@ -315,7 +317,8 @@ body {
     width: fit-content;
     gap: 0.25rem;
     border: solid 0.0625rem var(--border-color);
-    padding: 0.5rem;
+    padding: 0.75rem;
+    font-size: 0.75rem;
 }
 
 
@@ -401,7 +404,6 @@ body {
 
 .c-segment.active {
     background: linear-gradient(45deg, #4A90E2, #5BA7F7);
-    box-shadow: 0 0 0.625rem rgba(74, 144, 226, 0.3);
 }
 
 .c-segment.inactive {

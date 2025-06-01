@@ -148,11 +148,9 @@ body {
 
 .c-nav-popup__link:hover {
     text-decoration: underline;
+    color: var(--main-color);
 }
 
-.c-nav__current {
-    color: var(--main_color);
-}
 
 .c-overlay {
     position: fixed;
@@ -525,7 +523,6 @@ body {
 
 .c-segment.active {
     background: linear-gradient(45deg, #4A90E2, #5BA7F7);
-    box-shadow: 0 0 0.625rem rgba(74, 144, 226, 0.3);
 }
 
 .c-segment.inactive {

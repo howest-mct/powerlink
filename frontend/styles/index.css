@@ -23,7 +23,7 @@ img {
 
 body {
     font-family: 'Poppins', sans-serif;
-    background: linear-gradient(to right,var(--white-color),var(--main-color));
+    background: linear-gradient(to top,var(--white-color),var(--main_light-color));
     padding: 1rem;
 }
 

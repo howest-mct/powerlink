@@ -151,6 +151,7 @@ body {
     text-decoration: underline;
 }
 
+
 .c-overlay {
     position: fixed;
     top: 0;
@@ -547,7 +548,6 @@ body {
 
 .c-segment.active {
     background: linear-gradient(45deg, #4A90E2, #5BA7F7);
-    box-shadow: 0 0 0.625rem rgba(74, 144, 226, 0.3);
 }
 
 .c-segment.inactive {
