@@ -9,12 +9,11 @@ function showSliders(sliderId, valueDisplayId, bulbIconId) {
     return;
   }
 
-  slider.addEventListener('input', function () {
-    const value = parseInt(this.value, 10);
+  function updateSliderVisuals(value) {
     valueDisplay.textContent = `${value}%`;
 
     const percentage = value;
-    this.style.background = `linear-gradient(to right, var(--main-color) 0%, var(--main-color) ${percentage}%, #e0e0e0 ${percentage}%, #e0e0e0 100%)`;
+    slider.style.background = `linear-gradient(to right, var(--main-color) 0%, var(--main-color) ${percentage}%, #e0e0e0 ${percentage}%, #e0e0e0 100%)`;
 
     if (value > 0) {
       bulbSvg.style.fill = '#4A90E2';
@@ -23,14 +22,34 @@ function showSliders(sliderId, valueDisplayId, bulbIconId) {
       bulbSvg.style.fill = '#7B7B7B';
       bulbSvg.style.opacity = '0.5';
     }
+  }
+
+  // Handle input changes - simplified approach
+  slider.addEventListener('input', function() {
+    const value = parseInt(this.value, 10);
+    updateSliderVisuals(value);
   });
 
-  slider.addEventListener('mousedown', () => slider.classList.add('active'));
-  slider.addEventListener('mouseup', () => slider.classList.remove('active'));
-  slider.addEventListener('touchstart', () => slider.classList.add('active'));
-  slider.addEventListener('touchend', () => slider.classList.remove('active'));
+  // Add visual feedback for active state
+  slider.addEventListener('mousedown', function() {
+    this.classList.add('active');
+  });
 
-  slider.dispatchEvent(new Event('input'));
+  slider.addEventListener('mouseup', function() {
+    this.classList.remove('active');
+  });
+
+  slider.addEventListener('touchstart', function() {
+    this.classList.add('active');
+  });
+
+  slider.addEventListener('touchend', function() {
+    this.classList.remove('active');
+  });
+
+  // Initialize slider visuals
+  const initialValue = parseInt(slider.value, 10);
+  updateSliderVisuals(initialValue);
 }
 
 function showDropdown() {
