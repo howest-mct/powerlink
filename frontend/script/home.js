@@ -25,25 +25,25 @@ function showSliders(sliderId, valueDisplayId, bulbIconId) {
   }
 
   // Handle input changes - simplified approach
-  slider.addEventListener('input', function() {
+  slider.addEventListener('input', function () {
     const value = parseInt(this.value, 10);
     updateSliderVisuals(value);
   });
 
   // Add visual feedback for active state
-  slider.addEventListener('mousedown', function() {
+  slider.addEventListener('mousedown', function () {
     this.classList.add('active');
   });
 
-  slider.addEventListener('mouseup', function() {
+  slider.addEventListener('mouseup', function () {
     this.classList.remove('active');
   });
 
-  slider.addEventListener('touchstart', function() {
+  slider.addEventListener('touchstart', function () {
     this.classList.add('active');
   });
 
-  slider.addEventListener('touchend', function() {
+  slider.addEventListener('touchend', function () {
     this.classList.remove('active');
   });
 
@@ -224,12 +224,10 @@ class TemperatureControl {
       background: transparent;
       border: none;
       color: #333;
-      font-size: 48px;
-      font-weight: 300;
+      font-size: 2.025rem;
       font-family: inherit;
       text-align: center;
-      width: 150px;
-      letter-spacing: -2px;
+      width: 6rem;
       outline: none;
       margin: 0;
       padding: 0;
