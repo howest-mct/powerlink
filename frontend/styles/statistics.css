@@ -8,6 +8,12 @@
     box-sizing: border-box;
 }
 
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
     font-family: 'Inter', sans-serif;
     background-color: var(--background-color);
@@ -29,6 +35,10 @@ body {
     top: 0;
     left: 0;
     width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
     z-index: 1100;
 }
 
@@ -37,12 +47,13 @@ body {
     align-items: center;
     justify-content: space-between;
     max-width: 64rem;
+    max-width: 64rem;
     width: 100%;
     margin: 0 auto;
 }
 
 .c-header__logo {
-    font-family: "Poppins", sans-serif;
+    font-family: "Manrope", sans-serif;
     font-size: 1.4238rem;
     line-height: 1.42281rem;
     text-decoration: none;
@@ -65,7 +76,7 @@ body {
     left: 0;
     transform: scaleX(0);
     transform-origin: right;
-    transition: transform 0.4s ease-out;
+    transition: transform 0.2s ease-out;
 }
 
 .c-hover-underline::before {
@@ -81,6 +92,11 @@ body {
 .c-list__svg {
     fill: var(--text_main-color);
     cursor: pointer;
+    transition: fill 0.2s ease;
+}
+
+.c-list__svg:hover {
+    fill: var(--main-color);
     transition: fill 0.2s ease;
 }
 
@@ -116,6 +132,12 @@ body {
 
 .c-nav-popup__close:hover {
     fill: var(--main-color);
+    fill: var(--text_main-color);
+    transition: fill 0.2s ease;
+}
+
+.c-nav-popup__close:hover {
+    fill: var(--main-color);
 }
 
 .c-nav-popup__list {
@@ -134,9 +156,9 @@ body {
 }
 
 .c-nav-popup__link {
-    font-family: "Poppins", sans-serif;
-    font-size: 1.6rem;
-    line-height: 2rem;
+    font-family: "Manrope", sans-serif;
+    font-size: 1.125rem;
+    line-height: 1.5rem;
     color: var(--text_main-color);
     text-decoration: none;
     display: block;
@@ -146,6 +168,7 @@ body {
 
 .c-nav-popup__link:hover {
     color: var(--main-color);
+    text-decoration: underline;
     text-decoration: underline;
 }
 
@@ -177,14 +200,16 @@ body {
 .c-home-battery__container {
     background-color: var(--background-color);
     padding: 1rem;
-    padding-top: 3.5rem;
-    padding-bottom: 3.5rem;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
 }
 
 .c-home-battery {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    max-width: 64rem;
+    margin: 0 auto;
     max-width: 64rem;
     margin: 0 auto;
 }
@@ -198,13 +223,22 @@ body {
 .c-battery-solar__container {
     background-color: var(--white-color);
     padding: 1rem;
-    padding-top: 3.5rem;
-    padding-bottom: 3.5rem;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+}
+
+.c-battery-solar__container {
+    background-color: var(--white-color);
+    padding: 1rem;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
 }
 
 .c-battery-solar {
     display: flex;
     flex-wrap: wrap;
+    max-width: 64rem;
+    margin: 0 auto;
     max-width: 64rem;
     margin: 0 auto;
     gap: 1rem;
@@ -218,13 +252,6 @@ body {
     display: flex;
     width: 100%;
     box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.c-section__title {
-    font-family: "Poppins", sans-serif;
-    font-size: 1.125rem;
-    line-height: 1.5rem;
-    font-weight: 500;
 }
 
 .c-article__battery {
@@ -253,6 +280,7 @@ body {
 }
 
 .c-battery__status {
+
     font-size: 1rem;
     line-height: 1.5rem;
 }
@@ -342,22 +370,46 @@ body {
 .c-downstairs__container {
     background-color: var(--white-color);
     padding: 1rem;
-    padding-top: 3.5rem;
-    padding-bottom: 3.5rem;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
 }
 
 .c-upstairs__container {
     background-color: var(--background-color);
     padding: 1rem;
-    padding-top: 3.5rem;
-    padding-bottom: 3.5rem;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
 }
 
+
+.c-lower {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 64rem;
+    margin: 0 auto;
+}
+
+.c-upper {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 64rem;
+    margin: 0 auto;
+}
+
+.c-lower-card__container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
 
 .c-lighting {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    max-width: 64rem;
+    margin: 0 auto;
     max-width: 64rem;
     margin: 0 auto;
 }
@@ -371,32 +423,27 @@ body {
     gap: 1.5rem;
 }
 
-.c-lighting-card__title {
-    font-family: "Poppins", sans-serif;
-    font-size: 1.125rem;
-    line-height: 1.5rem;
-    font-weight: 500;
-    color: var(--text_main-color);
-}
 
 .c-lighting-card__content {
     display: flex;
     align-items: center;
-}
-
-.c-slider-wrapper {
-    flex: 1;
     position: relative;
 }
+
 
 .c-slider {
     width: 100%;
     height: 3rem;
-    background: var(--background-color);
+    background: #e0e0e0;
     outline: none;
     appearance: none;
     cursor: pointer;
     border: 1px solid var(--border-color);
+    flex: 1;
+}
+
+.c-slider:hover+.c-value-display {
+    opacity: 1;
 }
 
 .c-slider::-webkit-slider-thumb {
@@ -428,6 +475,7 @@ body {
     border-bottom: 1px solid var(--border-color);
     border-top: 1px solid var(--border-color);
     border-left: 1px solid var(--border-color);
+    background-color: var(--white-color);
     background-color: var(--white-color);
 }
 
@@ -480,17 +528,194 @@ body {
     text-decoration: underline;
 }
 
+
+
 .c-value-display {
     position: absolute;
-    right: 0;
-    top: -30px;
+    right: 1rem;
+    top: -2rem;
     background: #333;
     color: white;
     padding: 0.25rem 0.5rem;
     font-size: 0.75rem;
+    border-radius: 4px;
     opacity: 0;
     transition: opacity 0.2s;
     pointer-events: none;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.c-lower {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 64rem;
+    margin: 0 auto;
+}
+
+.c-lighting-card__container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.c-temperature-control {
+    background: var(--background-color);
+    padding: 2rem;
+    text-align: center;
+    position: relative;
+    max-width: 100%;
+    width: 100%;
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.c-circular-progress {
+    position: relative;
+    width: 250px;
+    height: 125px;
+    margin: 0 auto 20px;
+    overflow: hidden;
+}
+
+.c-progress-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 250px;
+    height: 250px;
+    transform: rotate(-90deg);
+}
+
+.c-segment {
+    position: absolute;
+    width: 4px;
+    height: 30px;
+    border-radius: 2px;
+    transform-origin: 2px 125px;
+    transition: all 0.3s ease;
+}
+
+.c-segment.active {
+    background: linear-gradient(45deg, #4A90E2, #5BA7F7);
+    box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+}
+
+.c-segment.inactive {
+    background: var(--border-color);
+}
+
+.c-temperature-display {
+    position: absolute;
+    top: 125px;
+    left: 50%;
+    transform: translate(-50%, -100%);
+    font-size: 48px;
+    font-weight: 300;
+    color: #333;
+    letter-spacing: -2px;
+}
+
+.c-temperature-display .unit {
+    font-size: 24px;
+    vertical-align: top;
+}
+
+.c-controls {
+    position: relative;
+    width: 250px;
+    height: 60px;
+    margin: 10px auto 0;
+    margin-top: 0rem;
+}
+
+.c-control-btn {
+    position: absolute;
+    background: var(--background-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    font-weight: 300;
+    cursor: pointer;
+    user-select: none;
+}
+
+.c-control-btn#decreaseBtn {
+    left: 0;
+    top: 0;
+}
+
+.c-control-btn#increaseBtn {
+    right: 0;
+    top: 0;
+}
+
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.c-temperature-display.changed {
+    animation: pulse 0.3s ease;
+}
+
+.c-temperature-card__meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    justify-content: baseline;
+}
+
+.c-temperature-card__info {
+    display: flex;
+    flex-direction: column;
+}
+
+.c-temperature-card__status {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 400;
+    color: var(--text_main-color);
+    margin: 0;
+}
+
+.c-temperature-card__state {
+    font-size: 0.875rem;
+    line-height: 1rem;
+    color: var(--text_sub-color);
+    margin: 0.125rem 0 0 0;
+}
+
+.c-temperature-card__edit {
+    align-items: flex-end;
+    background: none;
+    font-size: 0.875rem;
+    line-height: 1rem;
+    color: var(--text_sub-color);
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: none;
+}
+
+.c-temperature-card__edit:hover {
+    color: var(--main-color);
+    text-decoration: underline;
 }
 
 .c-slider-wrapper:hover .c-value-display {
@@ -500,8 +725,8 @@ body {
 .c-door-lock__container {
     background-color: var(--white-color);
     padding: 1rem;
-    padding-top: 3.5rem;
-    padding-bottom: 3.5rem;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
 }
 
 .c-door-log-door {
@@ -530,7 +755,7 @@ body {
 }
 
 .c-section__title {
-    font-family: "Poppins", sans-serif;
+    font-family: "Manrope", sans-serif;
     font-size: 1.125rem;
     line-height: 1.5rem;
     font-weight: 500;
@@ -611,8 +836,8 @@ body {
 .c-lighting-outside__container {
     background-color: var(--background-color);
     padding: 1rem;
-    padding-top: 3.5rem;
-    padding-bottom: 3.5rem;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
 }
 
 .c-lighting-outside__wrapper {
@@ -640,6 +865,7 @@ body {
     flex: 1 1 calc(50% - 0.5rem);
     box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1);
     max-width: 50%;
+    min-width: 21.5rem;
 }
 
 .c-lighting-outside__icon {
@@ -653,10 +879,6 @@ body {
     flex-direction: column;
 }
 
-.c-lighting-outside__title {
-    font-size: 1rem;
-    line-height: 1.5rem;
-}
 
 .c-lighting-outside__value-today {
     color: var(--active-color);
@@ -675,8 +897,8 @@ body {
 
 .c-powerlink__container {
     padding: 1rem;
-    padding-top: 3.5rem;
-    padding-bottom: 3.5rem;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
 }
 
 .c-powerlink__double-container {
@@ -753,11 +975,32 @@ body {
     background-color: var(--white-color);
 }
 
+
+.c-hover--shadow {
+    transition: box-shadow 0.3s ease;
+    cursor: pointer;
+}
+
 .c-hover--shadow:hover {
     box-shadow: 0px 4px 8px var(--border-color);
     transition: box-shadow 0.3s ease;
     cursor: pointer;
 }
+
+@media (max-width: 480px) {
+    .c-powerlink {
+        flex: 1 1 calc(50% - 0.5rem);
+        max-width: none;
+        min-width: 21.5rem;
+    }
+
+    .c-lighting-outside {
+        flex: 1 1 calc(50% - 0.5rem);
+        max-width: none;
+        min-width: 21.5rem;
+    }
+}
+
 
 @media (min-width: 768px) {
     body {
@@ -824,7 +1067,7 @@ body {
     }
 
     .c-nav-popup__link {
-        font-size: 1rem;
+        font-size: 1.125rem;
         padding: 0;
     }
 
@@ -847,6 +1090,22 @@ body {
     }
 
     .c-lighting-card {
+        max-width: 50%;
+    }
+
+    .c-lower-card__container {
+        display: flex;
+        flex-direction: row;
+        gap: 1rem;
+    }
+
+    .c-lower-card__container>.c-lighting-card {
+        max-height: 11.125rem;
+        max-width: none;
+        width: 100%;
+    }
+
+    .c-temperature-control {
         max-width: 50%;
     }
 }
