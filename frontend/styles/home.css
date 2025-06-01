@@ -197,13 +197,6 @@ body {
     flex-direction: column;
 }
 
-.c-battery-solar__container {
-    background-color: var(--white-color);
-    padding: 1.5rem;
-    padding-top: 3rem;
-    padding-bottom: 3rem;
-}
-
 .c-battery-solar {
     display: flex;
     flex-wrap: wrap;
@@ -312,11 +305,6 @@ body {
     box-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.1);
 }
 
-.c-usage__icon {
-    width: 2rem;
-    height: 2rem;
-}
-
 .c-usage__title {
     font-size: 1rem;
     line-height: 1.5rem;
@@ -368,14 +356,6 @@ body {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-}
-
-.c-lighting {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    max-width: 64rem;
-    margin: 0 auto;
 }
 
 .c-lighting-card {
@@ -501,12 +481,6 @@ body {
     opacity: 0;
     transition: opacity 0.2s;
     pointer-events: none;
-}
-
-.c-lighting-card__container {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
 }
 
 .c-temperature-control {
@@ -660,10 +634,6 @@ body {
     text-decoration: underline;
 }
 
-.c-slider-wrapper:hover .c-value-display {
-    opacity: 1;
-}
-
 .c-door-lock__container {
     background-color: var(--white-color);
     padding: 1.5rem;
@@ -759,11 +729,6 @@ body {
     color: var(--main-color);
 }
 
-.c-door__meta {
-    display: flex;
-    flex-direction: column;
-}
-
 .c-door__lock {
     font-size: 1rem;
     line-height: 1.5rem;
@@ -821,23 +786,19 @@ body {
     flex-direction: column;
 }
 
+.c-lighting-outside__title {
+    font-size: 1rem;
+    line-height: 1.5rem;
+}
+
 .c-lighting-outside__value-today {
     color: var(--active-color);
     font-size: 0.875rem;
     line-height: 1rem;
 }
 
-.c-lighting-outside__value-week {
-    font-size: 0.875rem;
-    line-height: 1rem;
-}
-
 .c-active {
     color: var(--main-color);
-}
-
-.c-edit {
-    font-size: 0.75rem;
 }
 
 .c-powerlink__container {
@@ -890,11 +851,6 @@ body {
 }
 
 .c-powerlink__value-today {
-    font-size: 0.875rem;
-    line-height: 1rem;
-}
-
-.c-powerlink__value-week {
     font-size: 0.875rem;
     line-height: 1rem;
 }
@@ -1021,7 +977,6 @@ body {
     }
 
     .c-header,
-    .c-battery-solar__container,
     .c-home-battery__container,
     .c-downstairs__container,
     .c-upstairs__container,

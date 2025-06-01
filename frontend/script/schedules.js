@@ -10,8 +10,6 @@ function showSliders(sliderId, valueDisplayId, bulbIconId) {
   }
 
   function updateSliderVisuals(value) {
-    valueDisplay.textContent = `${value}%`;
-
     const percentage = value;
     slider.style.background = `linear-gradient(to right, var(--main-color) 0%, var(--main-color) ${percentage}%, #e0e0e0 ${percentage}%, #e0e0e0 100%)`;
 
@@ -24,13 +22,11 @@ function showSliders(sliderId, valueDisplayId, bulbIconId) {
     }
   }
 
-  // Handle input changes - simplified approach
   slider.addEventListener('input', function () {
     const value = parseInt(this.value, 10);
     updateSliderVisuals(value);
   });
 
-  // Add visual feedback for active state
   slider.addEventListener('mousedown', function () {
     this.classList.add('active');
   });
@@ -47,7 +43,6 @@ function showSliders(sliderId, valueDisplayId, bulbIconId) {
     this.classList.remove('active');
   });
 
-  // Initialize slider visuals
   const initialValue = parseInt(slider.value, 10);
   updateSliderVisuals(initialValue);
 }
@@ -171,11 +166,6 @@ class TemperatureControl {
     if (!this.isEditing) {
       this.tempDisplay.textContent = this.temperature.toFixed(1);
     }
-
-    this.tempContainer.classList.add('changed');
-    setTimeout(() => {
-      this.tempContainer.classList.remove('changed');
-    }, 300);
 
     const progress = (this.temperature - this.minTemp) / (this.maxTemp - this.minTemp);
     const activeSegments = Math.round(progress * this.totalSegments);
