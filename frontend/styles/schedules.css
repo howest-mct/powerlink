@@ -177,14 +177,14 @@ body {
 }
 
 .c-downstairs__container {
-    background-color: var(--white-color);
+    background-color: var(--background-color);
     padding: 1.5rem;
     padding-top: 3rem;
     padding-bottom: 3rem;
 }
 
 .c-upstairs__container {
-    background-color: var(--background-color);
+    background-color: var(--white-color);
     padding: 1.5rem;
     padding-top: 3rem;
     padding-bottom: 3rem;
@@ -298,6 +298,7 @@ body {
     font-weight: 400;
     color: var(--text_main-color);
     margin: 0;
+    text-align: left;
 }
 
 .c-lighting-card__schedule{
@@ -307,21 +308,16 @@ body {
     font-size: 0.875rem;
 }
 
-.c-lighting-card__schedule-to{
+.c-lighting-card__schedule-from,
+.c-lighting-card__schedule-to {
     display: flex;
     flex-direction: row;
+    width: fit-content;
     gap: 0.25rem;
     border: solid 0.0625rem var(--border-color);
     padding: 0.5rem;
 }
 
-.c-lighting-card__schedule-from {
-    display: flex;
-    flex-direction: row;
-    gap: 0.25rem;
-    border: solid 0.0625rem var(--border-color);
-    padding: 0.5rem;
-}
 
 .c-lighting-card__state {
     font-size: 0.875rem;
@@ -362,8 +358,12 @@ body {
     pointer-events: none;
 }
 
+.c-schedule-card__title{
+    display: flex;
+}
+
 .c-temperature-control {
-    background: var(--background-color);
+    background: var(--white-color);
     padding: 2rem;
     text-align: center;
     position: relative;
@@ -376,7 +376,8 @@ body {
     position: relative;
     width: 15.625rem;
     height: 7.8125rem;
-    margin: 0 auto 1.25rem;
+    margin: 0 auto 0.5rem;
+    margin-top: 1.5rem;
     overflow: hidden;
 }
 
@@ -431,7 +432,7 @@ body {
 
 .c-control-btn {
     position: absolute;
-    background: var(--background-color);
+    background: var(--white-color);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -539,6 +540,14 @@ body {
     cursor: pointer;
 }
 
+.c-white-background{
+    background-color: var(--white-color);
+}
+
+.c-grey-background {
+    background-color: var(--background-color);
+}
+
 @media (min-width: 48rem) {
     body {
         padding-top: 5rem;
@@ -606,12 +615,12 @@ body {
 
     .c-lower-card__container {
         display: flex;
+        flex-direction: row-reverse;
         gap: 2rem;
     }
 
     .c-lower-card__container>.c-lighting-card {
-        max-height: 11.125rem;
-        max-width: none;
+        max-height: 15.23875rem;
         width: 100%;
     }
 

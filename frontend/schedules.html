@@ -17,6 +17,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="styles/global.css">
     <link rel="stylesheet" href="styles/schedules.css">
+    <link rel="stylesheet" href="styles/footer.css">
     <script src="script/schedules.js" defer></script>
 </head>
 
@@ -39,6 +40,7 @@
                 </svg>
                 <ul class="c-nav-popup__list">
                     <li class="c-nav-popup__item"><a href="home.html" class="c-nav-popup__link">My Home</a></li>
+                    <li class="c-nav-popup__item "><a href="schedules.html" class="c-nav-popup__link c-nav__current">Schedules</a></li>
                     <li class="c-nav-popup__item"><a href="insights.html" class="c-nav-popup__link">Insights</a>
                     </li>
                 </ul>
@@ -48,45 +50,40 @@
     </header>
 
     <main class="c-main">
-        <div class="c-upstairs__container">
-            <section class="c-upper lighting-upper">
-                <h3 class="c-section__title">Bedroom & Bathroom lighting schedule</h3>
-                <div class="c-lighting-card c-hover--shadow">
-                    <div class="c-lighting-card__content">
-                        <div class="c-bulb-icon" id="bulbIconLower">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
-                                <path
-                                    d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z">
-                                </path>
-                            </svg>
+        <div class="c-downstairs__container">
+            <section class="c-lower lighting-lower">
+                <h2 class="c-section__title">Living room & Kitchen</h2>
+                <div class="c-lower-card__container">
+                    <div class="c-lighting-card c-hover--shadow c-white-background">
+                        <h4 class="c-schedule-card__title">Lighting schedule</h4>
+                        <div class="c-lighting-card__content">
+                            <div class="c-bulb-icon" id="bulbIconLower">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000"
+                                    viewBox="0 0 256 256">
+                                    <path
+                                        d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z">
+                                    </path>
+                                </svg>
+                            </div class="c-hover--shadow">
+                            <input type="range" min="0" max="100" value="0" class="c-slider" id="lightSliderLower">
+                            <div class="c-value-display" id="valueDisplayLower">0%</div>
                         </div>
-                        <input type="range" min="0" max="100" value="0" class="c-slider" id="lightSliderLower">
-                        <div class="c-value-display" id="valueDisplayLower">0%</div>
-                    </div>
-                    <div class="c-lighting-card__meta">
                         <div class="c-lighting-card__info">
                             <p class="c-lighting-card__status">Dim lights automatically</p>
                             <div class="c-lighting-card__schedule">
                                 <div class="c-lighting-card__schedule-from">
                                     <p>FROM</p>
-                                    <input class="js-lighting-card__from" value="9 PM"></input>
+                                    <input class="c-lighting-card__from js-lighting-card__from" value="9:00 PM"></input>
                                 </div>
                                 <div class="c-lighting-card__schedule-to">
                                     <p>TO</p>
-                                    <input class="js-lighting-card__to" value="6 AM"></input>
+                                    <input class="c-lighting-card__to js-lighting-card__to" value="6:00 AM"></input>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </section>
-        </div>
-
-        <div class="c-downstairs__container">
-            <section class="c-lower lighting-lower">
-                <h2 class="c-section__title">Living room & Kitchen climate schedule</h2>
-                <div class="c-lower-card__container">
                     <div class="c-temperature-control c-hover--shadow">
+                        <h4 class="c-schedule-card__title">Climate schedule</h4>
                         <div class="c-circular-progress">
                             <div class="c-progress-ring" id="progressRing"></div>
                             <div class="c-temperature-display" id="tempDisplay">
@@ -94,12 +91,12 @@
                             </div>
                         </div>
                         <div class="c-controls">
-                            <svg class="c-control-btn" id="decreaseBtn" xmlns="http://www.w3.org/2000/svg" width="32"
-                                height="32" fill="#000000" viewBox="0 0 256 256">
+                            <svg class="c-control-btn" id="decreaseBtn" xmlns="http://www.w3.org/2000/svg" width="32" height="32"
+                                fill="#000000" viewBox="0 0 256 256">
                                 <path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z"></path>
                             </svg>
-                            <svg class="c-control-btn" id="increaseBtn" xmlns="http://www.w3.org/2000/svg" width="32"
-                                height="32" fill="#000000" viewBox="0 0 256 256">
+                            <svg class="c-control-btn" id="increaseBtn" xmlns="http://www.w3.org/2000/svg" width="32" height="32"
+                                fill="#000000" viewBox="0 0 256 256">
                                 <path
                                     d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z">
                                 </path>
@@ -111,11 +108,11 @@
                                 <div class="c-lighting-card__schedule">
                                     <div class="c-lighting-card__schedule-from">
                                         <p>FROM</p>
-                                        <p class="js-lighting-card__from">9PM</p>
+                                        <p class="js-lighting-card__from"> 9:00 PM</p>
                                     </div>
                                     <div class="c-lighting-card__schedule-to">
                                         <p>TO</p>
-                                        <p class="js-lighting-card__to">6AM</p>
+                                        <p class="js-lighting-card__to"> 6:00 AM</p>
                                     </div>
                                 </div>
                             </div>
@@ -124,15 +121,14 @@
                 </div>
             </section>
         </div>
-
         <div class="c-upstairs__container">
             <section class="c-upper lighting-upper">
-                <h3 class="c-section__title">Bedroom & Bathroom lighting schedule</h3>
-                <div class="c-lighting-card c-hover--shadow">
+                <h3 class="c-section__title">Living room & Kitchen</h3>
+                <div class="c-lighting-card c-grey-background c-hover--shadow">
+                    <h4 class="c-schedule-card__title">Lighting schedule</h4>
                     <div class="c-lighting-card__content">
                         <div class="c-bulb-icon" id="bulbIconUpper">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000"
-                                viewBox="0 0 256 256">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
                                 <path
                                     d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z">
                                 </path>
@@ -147,11 +143,11 @@
                             <div class="c-lighting-card__schedule">
                                 <div class="c-lighting-card__schedule-from">
                                     <p>FROM</p>
-                                    <input class="js-lighting-card__from" value="9 PM"></input>
+                                    <input class="js-lighting-card__from" value="9:00 PM"></input>
                                 </div>
                                 <div class="c-lighting-card__schedule-to">
                                     <p>TO</p>
-                                    <input class="js-lighting-card__to" value="6 AM"></input>
+                                    <input class="js-lighting-card__to" value="6:00 AM"></input>
                                 </div>
                             </div>
                         </div>
@@ -159,7 +155,69 @@
                 </div>
             </section>
         </div>
-    <footer class="c-footer">
+    </main>
+
+    <footer class="c-footer c-grey-background">
+        <div class="c-footer-content">
+            <div class="c-footer-grid">
+                <div class="c-project-info">
+                    <h3>PowerLink</h3>
+                    <p class="c-project-tagline">Multimedia & Creatieve Technologie Project One</p>
+                    <p class="c-project-description">
+                        A smart home control system built on a microcontroller, enabling manual and automated management
+                        of
+                        residential
+                        devices for enhanced energy efficiency. Features include sensor-driven lighting, temperature
+                        regulation, secure
+                        access control, and real-time energy monitoring via a web application, with data displayed on an
+                        integrated screen.
+                    </p>
+                    <div class="c-social-links">
+                        <a href="https://github.com/MichielGekiere" class="c-social-link">GitHub</a>
+                        <a href="https://www.instagram.com/michielgekiere" class="c-social-link">Instagram</a>
+                    </div>
+                </div>
+                <div class="c-footer-section">
+                    <h4>Technologies Used</h4>
+                    <ul class="c-footer-list">
+                        <li class="c-footer-list-item"><a href="https://www.python.org"
+                                class="c-footer-list-link">Python</a></li>
+                        <li class="c-footer-list-item"><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
+                                class="c-footer-list-link">JavaScript</a></li>
+                        <li class="c-footer-list-item"><a href="https://developer.mozilla.org/en-US/docs/Web/HTML"
+                                class="c-footer-list-link">HTML</a></li>
+                        <li class="c-footer-list-item"><a href="https://developer.mozilla.org/en-US/docs/Web/CSS"
+                                class="c-footer-list-link">CSS</a></li>
+                        <li class="c-footer-list-item"><a href="https://fastapi.tiangolo.com"
+                                class="c-footer-list-link">FastAPI</a></li>
+                        <li class="c-footer-list-item"><a href="https://socket.io"
+                                class="c-footer-list-link">Socket.IO</a>
+                        </li>
+                        <li class="c-footer-list-item"><a href="https://github.com/sarnold/RPi.GPIO"
+                                class="c-footer-list-link">RPi.GPIO</a></li>
+                        <li class="c-footer-list-item"><a href="https://github.com/ondryaso/pi-rc522"
+                                class="c-footer-list-link">MFRC522</a></li>
+                        <li class="c-footer-list-item"><a href="https://www.raspberrypi.org"
+                                class="c-footer-list-link">Raspberry Pi</a></li>
+                        <li class="c-footer-list-item"><a href="https://www.mysql.com"
+                                class="c-footer-list-link">MySQL</a>
+                        </li>
+                        <li class="c-footer-list-item"><a href="https://www.uvicorn.org"
+                                class="c-footer-list-link">Uvicorn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="c-footer-bottom">
+                <div class="c-footer-bottom-links">
+                    <a href="#">Source Code</a>
+                    <a href="#">Documentation</a>
+                    <a href="mailto:michiel.gekiere@student.howest.com">Contact</a>
+                </div>
+                <div class="c-copyright">
+                    <p class="c-footer__copyright">© 2025 Michiel Gekiere - PowerLink</p>
+                </div>
+            </div>
+        </div>
     </footer>
 </body>
 

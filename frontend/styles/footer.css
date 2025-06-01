@@ -1,0 +1,147 @@
+
+.c-footer {
+    background: var(--background-color);
+    padding: 3rem 1.5rem 3rem 1.5rem;
+}
+
+.c-footer-content {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.c-footer-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.c-project-info h3 {
+    color: var(--main-color);
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.c-project-tagline {
+    color: var(--text_sub-color);
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+}
+
+.c-project-description {
+    color: var(--text_main-color);
+    line-height: 1.6;
+    font-size: 0.9rem;
+}
+
+.c-footer-section h4 {
+    color: var(--main-color);
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.8rem;
+}
+
+.c-footer-list {
+    list-style: none;
+    padding: 0;
+}
+
+.c-footer-list-item {
+    margin-bottom: 0.4rem;
+}
+
+.c-footer-list-link {
+    color: var(--text_sub-color);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+}
+
+.c-footer-list-link:hover {
+    color: var(--main-color);
+    text-decoration: underline;
+}
+
+.c-footer-bottom {
+    border-top: 1px solid var(--border-color);
+    padding-top: 3rem;
+    text-align: center;
+}
+
+.c-footer-bottom-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.c-footer-bottom-links a {
+    color: var(--text_sub-color);
+    text-decoration: none;
+    font-size: 0.85rem;
+    transition: color 0.3s ease;
+}
+
+.c-footer-bottom-links a:hover {
+    color: var(--main-color);
+    text-decoration: underline;
+}
+
+.c-copyright {
+    color: var(--text_sub-color);
+    font-size: 0.85rem;
+}
+
+.c-social-links {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.c-social-link {
+    color: var(--text_sub-color);
+    text-decoration: none;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.5rem 0.5rem 0rem;
+    transition: color 0.3s ease;
+}
+
+.c-social-link:hover {
+    color: var(--main-color);
+    text-decoration: underline;
+}
+
+.c-footer__copyright {
+    padding: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+@media (min-width: 48rem) {
+    .c-footer {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .c-footer-grid {
+        grid-template-columns: 2fr 1fr;
+        gap: 16rem;
+        text-align: left;
+    }
+
+    .c-footer-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: left;
+    }
+
+    .c-footer-bottom-links {
+        margin-bottom: 0;
+    }
+}

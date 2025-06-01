@@ -147,8 +147,11 @@ body {
 }
 
 .c-nav-popup__link:hover {
-    color: var(--main-color);
     text-decoration: underline;
+}
+
+.c-nav__current {
+    color: var(--main_color);
 }
 
 .c-overlay {
@@ -497,7 +500,8 @@ body {
     position: relative;
     width: 15.625rem;
     height: 7.8125rem;
-    margin: 0 auto 1.25rem;
+    margin: 0 auto 0.5rem;
+    margin-top: 1.5rem;
     overflow: hidden;
 }
 
@@ -886,6 +890,7 @@ body {
     transition: box-shadow 0.3s ease;
     cursor: pointer;
 }
+
 
 @media (max-width: 30rem) {
     .c-powerlink {

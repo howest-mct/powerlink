@@ -16,7 +16,8 @@
         href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="styles/global.css">
-    <link rel="stylesheet" href="styles/home.css">
+    <link rel="stylesheet" href="styles/footer.css">
+    <link rel="stylesheet" href="styles/insights.css">
     <script src="script/home.js" defer></script>
 </head>
 
@@ -39,7 +40,8 @@
                 </svg>
                 <ul class="c-nav-popup__list">
                     <li class="c-nav-popup__item"><a href="home.html" class="c-nav-popup__link">My Home</a></li>
-                    <li class="c-nav-popup__item"><a href="schedules.html" class="c-nav-popup__link">Schedules</a>
+                    <li class="c-nav-popup__item"><a href="schedules.html" class="c-nav-popup__link">Schedules</a></li>
+                    <li class="c-nav-popup__item"><a href="insights.html" class="c-nav-popup__link c-nav__current">Insights</a>
                     </li>
                 </ul>
             </nav>
@@ -47,11 +49,10 @@
         <div class="c-overlay" aria-hidden="true" id="overlay"></div>
     </header>
 
-
     <main class="c-main">
         <div class="c-home-battery__container">
             <section class="c-home-battery">
-                <h2 class="c-section__title">Home Battery</h2>
+                <h2 class="c-section__title">Home Battery </h2>
                 <div class="c-home-battery__components">
                     <section class="c-battery-solar">
                         <article class="c-article__battery c-white-background c-hover--shadow"
@@ -106,7 +107,6 @@
                 </div>
             </section>
         </div>
-
         <div class="c-downstairs__container">
             <section class="c-lower lighting-lower">
                 <h2 class="c-section__title">Living room & Kitchen</h2>
@@ -162,10 +162,9 @@
                 </div>
             </section>
         </div>
-
         <div class="c-upstairs__container">
             <section class="c-upper lighting-upper">
-                <h3 class="c-section__title">Bedroom and Bathroom</h3>
+                <h3 class="c-section__title">Bedroom & Bathroom</h3>
                 <div class="c-lighting-card c-hover--shadow">
                     <div class="c-lighting-card__content">
                         <div class="c-bulb-icon" id="bulbIconUpper">
@@ -189,7 +188,6 @@
                 </div>
             </section>
         </div>
-
         <div class="c-door-lock__container">
             <section class="c-door-log-door">
                 <h2 class="c-section__title">Front door</h2>
@@ -221,7 +219,6 @@
                 </div>
             </section>
         </div>
-
         <div class="c-lighting-outside__container">
             <section class="c-lighting-outside__wrapper">
                 <h2 class="c-section__title">Outside Lighting</h2>
@@ -241,28 +238,67 @@
                 </div>
             </section>
         </div>
-
-        <div class="c-powerlink__container c-white-background">
-            <section class="c-powerlink__double-container">
-                <h2 class="c-section__title">Power Link</h2>
-                <div class="c-powerlink__items">
-                    <article class="c-powerlink c-hover--shadow">
-                        <svg class="c-powerlink__icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32"
-                            fill="#000000" viewBox="0 0 256 256">
-                            <path
-                                d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM88,160a8,8,0,1,1-8,8A8,8,0,0,1,88,160ZM48,48H80v97.38a24,24,0,1,0,16,0V115.31l48,48V208H48ZM208,208H160V160a8,8,0,0,0-2.34-5.66L96,92.69V48h32V72a8,8,0,0,0,2.34,5.66l16,16A23.74,23.74,0,0,0,144,104a24,24,0,1,0,24-24,23.74,23.74,0,0,0-10.34,2.35L144,68.69V48h64V208ZM168,96a8,8,0,1,1-8,8A8,8,0,0,1,168,96Z">
-                            </path>
-                        </svg>
-                        <div class="c-powerlink__meta">
-                            <p class="c-powerlink__title">PowerLink</p>
-                            <p class="c-powerlink__value-today c-active">Active</p>
-                        </div>
-                    </article>
-                </div>
-            </section>
-        </div>
     </main>
+    
     <footer class="c-footer">
+        <div class="c-footer-content">
+            <div class="c-footer-grid">
+                <div class="c-project-info">
+                    <h3>PowerLink</h3>
+                    <p class="c-project-tagline">Multimedia & Creatieve Technologie Project One</p>
+                    <p class="c-project-description">
+                        A smart home control system built on a microcontroller, enabling manual and automated management of
+                        residential
+                        devices for enhanced energy efficiency. Features include sensor-driven lighting, temperature
+                        regulation, secure
+                        access control, and real-time energy monitoring via a web application, with data displayed on an
+                        integrated screen.
+                    </p>
+                    <div class="c-social-links">
+                        <a href="https://github.com/MichielGekiere" class="c-social-link">GitHub</a>
+                        <a href="https://www.instagram.com/michielgekiere" class="c-social-link">Instagram</a>
+                    </div>
+                </div>
+    
+                <div class="c-footer-section">
+                    <h4>Technologies Used</h4>
+                    <ul class="c-footer-list">
+                        <li class="c-footer-list-item"><a href="https://www.python.org"
+                                class="c-footer-list-link">Python</a></li>
+                        <li class="c-footer-list-item"><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
+                                class="c-footer-list-link">JavaScript</a></li>
+                        <li class="c-footer-list-item"><a href="https://developer.mozilla.org/en-US/docs/Web/HTML"
+                                class="c-footer-list-link">HTML</a></li>
+                        <li class="c-footer-list-item"><a href="https://developer.mozilla.org/en-US/docs/Web/CSS"
+                                class="c-footer-list-link">CSS</a></li>
+                        <li class="c-footer-list-item"><a href="https://fastapi.tiangolo.com"
+                                class="c-footer-list-link">FastAPI</a></li>
+                        <li class="c-footer-list-item"><a href="https://socket.io" class="c-footer-list-link">Socket.IO</a>
+                        </li>
+                        <li class="c-footer-list-item"><a href="https://github.com/sarnold/RPi.GPIO"
+                                class="c-footer-list-link">RPi.GPIO</a></li>
+                        <li class="c-footer-list-item"><a href="https://github.com/ondryaso/pi-rc522"
+                                class="c-footer-list-link">MFRC522</a></li>
+                        <li class="c-footer-list-item"><a href="https://www.raspberrypi.org"
+                                class="c-footer-list-link">Raspberry Pi</a></li>
+                        <li class="c-footer-list-item"><a href="https://www.mysql.com" class="c-footer-list-link">MySQL</a>
+                        </li>
+                        <li class="c-footer-list-item"><a href="https://www.uvicorn.org"
+                                class="c-footer-list-link">Uvicorn</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="c-footer-bottom">
+                <div class="c-footer-bottom-links">
+                    <a href="#">Source Code</a>
+                    <a href="#">Documentation</a>
+                    <a href="mailto:michiel.gekiere@student.howest.com">Contact</a>
+                </div>
+                <div class="c-copyright">
+                    <p class="c-footer__copyright">© 2025 Michiel Gekiere - PowerLink</p>
+                </div>
+            </div>
+        </div>
     </footer>
 </body>
 
