@@ -17,7 +17,6 @@ from models.backend_models import Log, DTOLog, Schedule, DTOSchedule, Card, DTOC
 
 from models.device_models import (
     DS18B20,
-    INA219,
     SR501,
     LCD_Display,
     DCMotor,
@@ -73,12 +72,7 @@ LED_TOP = None
 HEATING = None
 AIRCO = None
 MCP = None
-INA_LED_BOTTOM = None
-INA_LED_TOP = None
-INA_HEATING = None
-INA_AIRCO = None
-INA_BAT_IN = None
-INA_BAT_OUT = None
+I2C_EXPANDER = None
 
 # Values and States
 raspi_power = None
@@ -276,6 +270,12 @@ async def display_lcd():
             await asyncio.sleep(1)
 
 
+async def get_wattage():
+    global I2C_EXPANDER
+    data = I2C_EXPANDER.read_all()
+    print(data)
+
+
 # endregion Functions ****************************
 
 
@@ -316,8 +316,7 @@ async def lifespan_manager(app: FastAPI):
     try:
         global MOTION_SENSOR, LED_BUTTON, REED_SWITCH, TEMP_SENSOR
         global LCD, DOOR_LOCK, LED_OUTDOORS, LED_BOTTOM, LED_TOP
-        global HEATING, AIRCO, MCP, INA_LED_BOTTOM, INA_LED_TOP
-        global INA_HEATING, INA_AIRCO, INA_BAT_IN, INA_BAT_OUT, CARD_READER
+        global HEATING, AIRCO, MCP, CARD_READER
         global temp_id, ip_address
 
         MOTION_SENSOR = SR501(26)
@@ -334,11 +333,8 @@ async def lifespan_manager(app: FastAPI):
         LED_TOP = LED(24)
         HEATING = HeatingPad(16)
         AIRCO = DCMotor(12)
-        MCP = MCP3008(bus=0)
-        INA_LED_BOTTOM = INA219(1, 0x45)
-        INA_LED_TOP = INA219(1, 0x41)
-        INA_HEATING = INA219(1, 0x40)
-        INA_AIRCO = INA219(1, 0x44)
+        MCP = MCP3008(1)
+        I2C_EXPANDER = PCF8574A()
 
         temp_id = TEMP_SENSOR.get_id()
         ip_address = get_ip_address()
@@ -350,6 +346,7 @@ async def lifespan_manager(app: FastAPI):
             asyncio.create_task(run_get_temp()),
             asyncio.create_task(front_door()),
             asyncio.create_task(display_lcd()),
+            asyncio.create_task(get_wattage()),
         ]
 
         GPIO.add_event_detect(
@@ -373,10 +370,6 @@ async def lifespan_manager(app: FastAPI):
         HEATING.cleanup()
         AIRCO.cleanup()
         MCP.close()
-        INA_LED_BOTTOM.close()
-        INA_LED_TOP.close()
-        INA_HEATING.close()
-        INA_AIRCO.close()
         GPIO.cleanup()
         logger.info("GPIO cleaned up. Bye!")
 

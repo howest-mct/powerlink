@@ -10,7 +10,6 @@ from mfrc522 import SimpleMFRC522
 # Classes:
 # 1. Sensors
 #   - DS18B20 (temperature sensor)
-#   - INA219 (voltage/current sensor)
 #   - SR501 (PIR motion sensor)
 #   - RFIDReader (RFID reader)
 
@@ -66,46 +65,6 @@ class DS18B20:
             return temp_celsius
         except Exception as e:
             raise Exception(f"Error reading file {sensor_file}: {e}")
-
-
-class INA219:
-    # INA219 voltage/current sensor
-    def __init__(self, bus: int = 1, address: int = 0x40):
-        self.address = address
-        self.bus = smbus.SMBus(bus)
-        self._configure()
-
-    # Write a 16-bit value to a given register (big-endian)
-    def _write_register(self, reg, value):
-        high = (value >> 8) & 0xFF
-        low = value & 0xFF
-        self.bus.write_i2c_block_data(self.address, reg, [high, low])
-
-    # Read a 16-bit value from a given register (big-endian)
-    def _read_register(self, reg):
-        data = self.bus.read_i2c_block_data(self.address, reg, 2)
-        return (data[0] << 8) | data[1]
-
-    # Configure the INA219 sensor with default settings and calibration
-    def _configure(self):
-        config = 0x019F
-        self._write_register(0x00, config)
-
-        self.calibration_value = 4096
-        self._write_register(0x05, self.calibration_value)
-
-        self.current_lsb = 0.0025  # 2.5 mA/bit
-
-        self.power_lsb = self.current_lsb * 20
-
-    # Read power (wattage) from INA219 power register
-    def read_wattage(self) -> float:
-        raw_power = self._read_register(0x03)
-        return raw_power * self.power_lsb
-
-    # Close the I2C bus when done
-    def close(self):
-        self.bus.close()
 
 
 class SR501:
@@ -354,10 +313,7 @@ class MCP3008:
 
 class PCF8574A:
     # PCF8574A 8-bit I2C I/O expander
-    base_address = 0x38
-
-    # Initialize PCF8574A with I2C bus and address
-    def __init__(self, i2c_bus=1, address=0x38):
+    def __init__(self, i2c_bus=1, address=0x70):
         self.i2c_bus = i2c_bus
         self.address = address
         self._state = 0xFF  # All pins high (input/pull-up)
