@@ -144,6 +144,7 @@ def motion_sensor_callback(pin):
     if GPIO.input(pin):
         motion_detected = True
         last_motion_time = time.time()
+        print("Motion detected!")
 
 
 async def lights_top():
@@ -197,7 +198,6 @@ def lights_outdoors():
     global LED_OUTDOORS, MCP, last_state_led, ldr_value, light_sensor_id, led_outdoors_id
     try:
         ldr_value = round((MCP.read_channel(1) * 100) / 1023, 0)
-        print("LDR Value:", ldr_value)
         top_limit = 75
         low_limit = 70
         if last_state_led is None or not last_state_led:
@@ -218,14 +218,18 @@ def lights_outdoors():
         logger.error(f"Error in lights_outdoors: {e}")
 
 
-def handle_tag(card_id):
-    global scanned_card
-    scanned_card = card_id
+async def read_gpio_async(pin):
+    return await asyncio.to_thread(GPIO.input, pin)
+
+
+async def create_log_async(value, component_id):
+    return await asyncio.to_thread(DataRepository.create_log, value, component_id)
 
 
 async def front_door():
     global scanned_card, DOOR_LOCK, REED_SWITCH, card_reader_id, solenoid_lock_id, reed_switch_id
     while True:
+        scanned_card = await CARD_READER.read_tag_async()
         if scanned_card is not None:
             print("scanned card", scanned_card)
             try:
@@ -236,23 +240,23 @@ async def front_door():
                 DataRepository.create_log(1, solenoid_lock_id)
                 start_time = time.time()
 
-                while GPIO.input(REED_SWITCH) == 1:
+                while (await read_gpio_async(REED_SWITCH)) == 1:
                     if time.time() - start_time > 3:
                         logger.info("Door did not open in time (3 seconds)")
                         break
                     await asyncio.sleep(0.1)
 
-                if GPIO.input(REED_SWITCH) == 0:
+                if (await read_gpio_async(REED_SWITCH)) == 0:
                     logger.debug("Door is opened")
                     DataRepository.create_log(1, reed_switch_id)
                     start_time = time.time()
-                    while GPIO.input(REED_SWITCH) == 0:
+                    while (await read_gpio_async(REED_SWITCH)) == 0:
                         if time.time() - start_time > 3:
                             logger.info("Door did not close in time (3 seconds)")
                             break
                         await asyncio.sleep(0.1)
 
-                    if GPIO.input(REED_SWITCH) == 1:
+                    if (await read_gpio_async(REED_SWITCH)) == 1:
                         logger.debug("Door is closed")
                         DataRepository.create_log(0, reed_switch_id)
                 DOOR_LOCK.lock()
@@ -260,12 +264,12 @@ async def front_door():
                 DataRepository.create_log(0, solenoid_lock_id)
 
             except Exception as e:
-                logger.error(f"Error: {e}")
+                logger.error(f"Error in front_door: {e}", exc_info=True)
 
             finally:
                 scanned_card = None
         else:
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.2)
 
 
 def get_ip_address():
@@ -365,7 +369,7 @@ async def get_wattage():
                 try:
                     power_monitor.close()
                 except:
-                    pass
+                    print("fuck off")
                 power_monitor = None
 
         await asyncio.sleep(3)
@@ -388,9 +392,11 @@ async def run_lights_bottom():
 
 
 async def run_get_temp():
-    global temp
+    global temp, pot_value
     while True:
         temp = TEMP_SENSOR.get_temp(temp_id)
+        pot_value = MCP.read_channel(0)
+        print("Potentiometer value:", pot_value)
         print("Current temperature:", temp)
         await asyncio.sleep(3)
 
@@ -403,14 +409,15 @@ async def run_get_temp():
 async def lifespan_manager(app: FastAPI):
     logger.info("Starting application...")
     GPIO.setmode(GPIO.BCM)
+
+    tasks = []
+
     try:
         global MOTION_SENSOR, LED_BUTTON, REED_SWITCH, TEMP_SENSOR
         global LCD, DOOR_LOCK, LED_OUTDOORS, LED_BOTTOM, LED_TOP
         global HEATING, AIRCO, MCP, CARD_READER
         global temp_id, ip_address
 
-        MOTION_SENSOR = 26
-        GPIO.setup(MOTION_SENSOR, GPIO.IN)
         LED_BUTTON = 13
         GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         POWER_BUTTON = 27
@@ -418,7 +425,7 @@ async def lifespan_manager(app: FastAPI):
         REED_SWITCH = 22
         GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         TEMP_SENSOR = DS18B20()
-        CARD_READER = RFIDReader(handle_tag)
+        # CARD_READER = RFIDReader()
         LCD = LCD_Display(0x38, 5, 6)
         DOOR_LOCK = SolenoidLock(15)
         LED_OUTDOORS = LED(14)
@@ -426,7 +433,7 @@ async def lifespan_manager(app: FastAPI):
         LED_TOP = LED(24)
         HEATING = HeatingPad(16)
         AIRCO = DCMotor(12)
-        MCP = MCP3008(0)
+        MCP = MCP3008(1)
         I2C_EXPANDER = TCA9548A()
 
         temp_id = TEMP_SENSOR.get_id()
@@ -434,12 +441,11 @@ async def lifespan_manager(app: FastAPI):
 
         tasks = [
             asyncio.create_task(run_lights_outdoors()),
-            # asyncio.create_task(lights_top()),
-            # asyncio.create_task(run_lights_bottom()),
-            # asyncio.create_task(run_get_temp()),
-            # asyncio.create_task(front_door()), !!!!!
-            # asyncio.create_task(display_lcd()),
-            # asyncio.create_task(get_wattage()),
+            asyncio.create_task(run_lights_bottom()),
+            asyncio.create_task(run_get_temp()),
+            # asyncio.create_task(front_door()),
+            asyncio.create_task(display_lcd()),
+            asyncio.create_task(get_wattage()),
         ]
 
         GPIO.add_event_detect(
@@ -447,10 +453,6 @@ async def lifespan_manager(app: FastAPI):
         )
         GPIO.add_event_detect(
             POWER_BUTTON, GPIO.FALLING, callback=power_button, bouncetime=150
-        )
-
-        GPIO.add_event_detect(
-            MOTION_SENSOR, GPIO.FALLING, callback=motion_sensor_callback, bouncetime=150
         )
 
         yield
@@ -471,6 +473,7 @@ async def lifespan_manager(app: FastAPI):
         MCP.close()
         GPIO.cleanup()
         I2C_EXPANDER.close()
+        CARD_READER.cleanup()
         power_monitor.close()
         logger.info("GPIO cleaned up. Bye!")
 

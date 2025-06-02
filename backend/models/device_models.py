@@ -2,7 +2,9 @@ import smbus
 import spidev
 import time
 import RPi.GPIO as GPIO
-from mfrc522 import SimpleMFRC522
+import asyncio
+from pirc522 import RFID
+
 
 # region Legend ---------------------------------
 
@@ -69,20 +71,50 @@ class DS18B20:
 
 
 class RFIDReader:
-    def __init__(self, callback):
-        self.reader = SimpleMFRC522()
-        self.callback = callback
+    def __init__(self):
+        self.reader = RFID()
 
-    def check_tag(self):
+    def read_tag(self):
+
+        print("Waiting for RFID tag...")
         try:
-            card_id, _ = self.reader.read_no_block()
-            if card_id:
-                self.callback(card_id)
+            self.reader.wait_for_tag()
+            (error, tag_type) = self.reader.request()
+            if error:
+                print("No tag detected")
+                return None
+
+            print("Tag detected")
+            (error, uid) = self.reader.anticoll()
+            if error:
+                print("Failed to read UID")
+                return None
+
+            print("UID: " + str(uid))
+            if self.reader.select_tag(uid):
+                print("Failed to select tag")
+                return None
+
+            if self.reader.card_auth(
+                self.reader.auth_a, 10, [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF], uid
+            ):
+                print("Authentication failed")
+                return None
+
+            data = self.reader.read(10)
+            print("Reading block 10: " + str(data))
+            self.reader.stop_crypto()
+            return uid
+
         except Exception as e:
-            print(f"Error reading tag: {e}")
+            print(f"Error reading RFID tag: {e}")
+            return None
+
+    async def read_tag_async(self):
+        return await asyncio.to_thread(self.read_tag)
 
     def cleanup(self):
-        GPIO.cleanup()
+        self.reader.cleanup()
 
 
 class INA219:
@@ -382,22 +414,22 @@ class SolenoidLock:
 
 class MCP3008:
     # Analog Digital Converter using SPI
-    def __init__(self, bus=0, device=0):
+    def __init__(self, bus=1, device=0):
         self.bus = bus
         self.device = device
         self.spi = spidev.SpiDev()
         self.spi.open(self.bus, self.device)
-        self.spi.max_speed_hz = 10000000
+        self.spi.max_speed_hz = 1000000
         self.spi.mode = 0b00
 
     # Reads the analog value from the specified channel
     def read_channel(self, ch):
         if not 0 <= ch <= 7:
             raise ValueError("Channel must be between 0 and 7")
-        binary = (0b1000 | ch) << 4
-        list_values = self.spi.xfer2([1, binary, 0])
-        data = ((list_values[1] & 0b0000011) << 8) | list_values[2]
-        return data
+        command = [1, (8 + ch) << 4, 0]
+        result = self.spi.xfer2(command)
+        adc_out = ((result[1] & 0x03) << 8) | result[2]
+        return adc_out
 
     # Closes the SPI connection
     def close(self):
