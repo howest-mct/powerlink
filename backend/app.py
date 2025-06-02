@@ -78,9 +78,11 @@ I2C_EXPANDER = None
 
 # Values and States
 raspi_power = None
-motion_detected = None
-prev_state_motion = False
+motion_detected = False
+last_motion_time = 0
+light_duration = 10
 last_motion_time = None
+prev_state_motion = False
 led_top_last_state = None
 switch_state = False
 switch_state_power = False
@@ -137,32 +139,26 @@ def power_button(pin):
         logger.error(f"Error in power_button: {e}")
 
 
-def motion_callback(pin):
-    global LED_TOP, motion_sensor_id, led_top_id
-
-    try:
-        if GPIO.input(pin) == GPIO.LOW:
-            LED_TOP.set_brightness(100)
-            DataRepository.create_log(100, led_top_id)
-            DataRepository.create_log(1, motion_sensor_id)
-            print("Motion detected: LED TOP ON")
-        else:
-            LED_TOP.set_brightness(0)
-            DataRepository.create_log(0, led_top_id)
-            DataRepository.create_log(0, motion_sensor_id)
-            print("No motion: LED TOP OFF")
-    except Exception as e:
-        logger.error(f"Error in motion_callback: {e}")
+def motion_sensor_callback(pin):
+    global motion_detected, last_motion_time
+    if GPIO.input(pin):
+        motion_detected = True
+        last_motion_time = time.time()
 
 
 async def lights_top():
-    global LED_TOP, MOTION_SENSOR, led_top_id, motion_sensor_id, prev_state_motion, motion_detected
+    global LED_TOP, led_top_id, motion_sensor_id, prev_state_motion, motion_detected, last_motion_time
+
     while True:
         try:
-            motion_detected = MOTION_SENSOR.motion_detected()
+            current_time = time.time()
 
-            if motion_detected != prev_state_motion:
-                if motion_detected:
+            motion_active = (
+                last_motion_time is not None and (current_time - last_motion_time) <= 3
+            )
+
+            if motion_active != prev_state_motion:
+                if motion_active:
                     LED_TOP.set_brightness(100)
                     DataRepository.create_log(100, led_top_id)
                     DataRepository.create_log(1, motion_sensor_id)
@@ -171,12 +167,13 @@ async def lights_top():
                     LED_TOP.set_brightness(0)
                     DataRepository.create_log(0, led_top_id)
                     print("LED TOP: OFF")
-                prev_state_motion = motion_detected
+
+                prev_state_motion = motion_active
 
         except Exception as e:
             logger.error(f"Error in lights_top: {e}")
 
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.1)
 
 
 def lights_bottom():
@@ -200,6 +197,7 @@ def lights_outdoors():
     global LED_OUTDOORS, MCP, last_state_led, ldr_value, light_sensor_id, led_outdoors_id
     try:
         ldr_value = round((MCP.read_channel(1) * 100) / 1023, 0)
+        print("LDR Value:", ldr_value)
         top_limit = 75
         low_limit = 70
         if last_state_led is None or not last_state_led:
@@ -397,7 +395,7 @@ async def run_get_temp():
         await asyncio.sleep(3)
 
 
-# endregion Async Wrappers ******************************
+# endregion Async Containers ******************************
 
 
 # region App Setup ---------------------------------
@@ -413,9 +411,6 @@ async def lifespan_manager(app: FastAPI):
 
         MOTION_SENSOR = 26
         GPIO.setup(MOTION_SENSOR, GPIO.IN)
-        GPIO.add_event_detect(
-            MOTION_SENSOR, GPIO.BOTH, callback=motion_callback, bouncetime=300
-        )
         LED_BUTTON = 13
         GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         POWER_BUTTON = 27
@@ -431,16 +426,16 @@ async def lifespan_manager(app: FastAPI):
         LED_TOP = LED(24)
         HEATING = HeatingPad(16)
         AIRCO = DCMotor(12)
-        MCP = MCP3008(1)
+        MCP = MCP3008(0)
         I2C_EXPANDER = TCA9548A()
 
         temp_id = TEMP_SENSOR.get_id()
         ip_address = get_ip_address()
 
         tasks = [
-            # asyncio.create_task(run_lights_outdoors()), !!!!
+            asyncio.create_task(run_lights_outdoors()),
             # asyncio.create_task(lights_top()),
-            asyncio.create_task(run_lights_bottom()),
+            # asyncio.create_task(run_lights_bottom()),
             # asyncio.create_task(run_get_temp()),
             # asyncio.create_task(front_door()), !!!!!
             # asyncio.create_task(display_lcd()),
@@ -452,6 +447,10 @@ async def lifespan_manager(app: FastAPI):
         )
         GPIO.add_event_detect(
             POWER_BUTTON, GPIO.FALLING, callback=power_button, bouncetime=150
+        )
+
+        GPIO.add_event_detect(
+            MOTION_SENSOR, GPIO.FALLING, callback=motion_sensor_callback, bouncetime=150
         )
 
         yield

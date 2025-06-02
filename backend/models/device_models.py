@@ -382,12 +382,12 @@ class SolenoidLock:
 
 class MCP3008:
     # Analog Digital Converter using SPI
-    def __init__(self, bus=1, device=0):
+    def __init__(self, bus=0, device=0):
         self.bus = bus
         self.device = device
         self.spi = spidev.SpiDev()
         self.spi.open(self.bus, self.device)
-        self.spi.max_speed_hz = 10**6
+        self.spi.max_speed_hz = 10000000
         self.spi.mode = 0b00
 
     # Reads the analog value from the specified channel
