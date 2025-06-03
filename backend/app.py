@@ -377,12 +377,13 @@ async def get_wattage():
             DataRepository.create_log(battery_in_power, wh_bat_in_id)
             DataRepository.create_log(battery_out_power, wh_bat_out_id)
 
-            logger.debug(
-                f"Power readings - LED Bottom: {kw_led_bottom:.3f}W, "
-                f"LED Top: {kw_led_top:.3f}W, Heating: {kw_heating:.3f}W, "
-                f"Airco: {kw_airco:.3f}W, Total: {current_usage:.3f}W, "
-                f"Battery: {battery_level:.1f}%"
-            )
+            logger.debug(f"LED Bottom: {kw_led_bottom:.3f}W")
+            logger.debug(f"LED Top: {kw_led_top:.3f}W")
+            logger.debug(f"Heating: {kw_heating:.3f}W")
+            logger.debug(f"Airco: {kw_airco:.3f}W")
+            logger.debug(f"Total: {current_usage:.3f}W")
+            logger.debug(f"Battery In: {battery_in_power:.1f}%")
+            logger.debug(f"Battery Out: {battery_out_power:.1f}%")
 
         except Exception as e:
             logger.error(f"Error in get_wattage: {e}")
