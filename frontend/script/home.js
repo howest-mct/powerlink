@@ -614,6 +614,7 @@ const init = () => {
   showSliders('lightSliderUpper', 'valueDisplayUpper', 'bulbIconUpper');
   showDropdown();
   tempControl = new TemperatureControl();
+
   getBatteryIn();
   getEnergyToday();
   getEnergyWeek();

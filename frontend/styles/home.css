@@ -855,19 +855,6 @@ body {
     line-height: 1rem;
 }
 
-.c-powerlink:hover {
-    background-color: var(--warning-color);
-    color: var(--white-color);
-}
-
-.c-powerlink:hover .c-powerlink__value-today {
-    color: var(--white-color);
-}
-
-.c-powerlink:hover .c-powerlink__icon {
-    fill: var(--white-color);
-}
-
 .c-grey-background {
     background-color: var(--background-color);
 }
