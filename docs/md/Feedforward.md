@@ -52,25 +52,22 @@ Dit is de feedback op mijn vragen.
 - feedback 2: Database simpeler maken zodat je als er dingen bij komen die niet een aparte tabel nodig hebben
 - feedback 3: Batterij tabel weg
 
-## Gesprek 2 (Datum: xx/xx/2025)
+## Toermoment 1 (Datum: 03/06/2025)
 
-Lector:
+- Bij paar testen batterijverbruik kunnen inschatten
+- Paar grafieken maken
+- Feedforward ok
+- Toggle ok
+- Database ok
+- Geen branches -> moet echt bv. backend & frontent
 
-Vragen voor dit gesprek:
+## Gesprek 2 (Datum: 03/06/2025)
 
-- vraag 1: V
-
-Dit is de feedback op mijn vragen.
-
-- feedback 1: G
-
-## Gesprek 3 (Datum: xx/xx/2025)
-
-Lector:
+Lector: Hans
 
 Vragen voor dit gesprek:
 
-- [x] vraag 1: V
+- vraag 1: Hoe kan ik mijn SPI problemen oplossen
 
 Dit is de feedback op mijn vragen.
 

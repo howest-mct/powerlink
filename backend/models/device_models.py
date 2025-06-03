@@ -3,7 +3,7 @@ import spidev
 import time
 import RPi.GPIO as GPIO
 import asyncio
-from pirc522 import RFID
+from mfrc522 import SimpleMFRC522
 
 
 # region Legend ---------------------------------
@@ -72,49 +72,14 @@ class DS18B20:
 
 class RFIDReader:
     def __init__(self):
-        self.reader = RFID()
+        self.reader = SimpleMFRC522(0, 0, 23)
 
-    def read_tag(self):
-
-        print("Waiting for RFID tag...")
-        try:
-            self.reader.wait_for_tag()
-            (error, tag_type) = self.reader.request()
-            if error:
-                print("No tag detected")
-                return None
-
-            print("Tag detected")
-            (error, uid) = self.reader.anticoll()
-            if error:
-                print("Failed to read UID")
-                return None
-
-            print("UID: " + str(uid))
-            if self.reader.select_tag(uid):
-                print("Failed to select tag")
-                return None
-
-            if self.reader.card_auth(
-                self.reader.auth_a, 10, [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF], uid
-            ):
-                print("Authentication failed")
-                return None
-
-            data = self.reader.read(10)
-            print("Reading block 10: " + str(data))
-            self.reader.stop_crypto()
-            return uid
-
-        except Exception as e:
-            print(f"Error reading RFID tag: {e}")
-            return None
-
-    async def read_tag_async(self):
-        return await asyncio.to_thread(self.read_tag)
+    def read(self):
+        id, _ = self.reader.read()
+        return id
 
     def cleanup(self):
-        self.reader.cleanup()
+        GPIO.cleanup()
 
 
 class INA219:
@@ -418,6 +383,16 @@ class MCP3008:
         self.bus = bus
         self.device = device
         self.spi = spidev.SpiDev()
+        # print(f"Initializing MCP3008 on SPI bus {self.bus}, device {self.device}")
+        try:
+            self.spi.open(self.bus, self.device)
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to open SPI bus {self.bus}, device {self.device}: {e}"
+            )
+        # print(
+        # f"MCP3008 opened successfully on SPI bus {self.bus}, device {self.device}"
+        # )
         self.spi.open(self.bus, self.device)
         self.spi.max_speed_hz = 1000000
         self.spi.mode = 0b00
@@ -427,7 +402,7 @@ class MCP3008:
         if not 0 <= ch <= 7:
             raise ValueError("Channel must be between 0 and 7")
         command = [1, (8 + ch) << 4, 0]
-        result = self.spi.xfer2(command)
+        result = self.spi.xfer(command)
         adc_out = ((result[1] & 0x03) << 8) | result[2]
         return adc_out
 
@@ -552,18 +527,16 @@ class PowerMonitoringSystem:
 
         # Define sensor mapping to TCA channels
         self.sensors = {
-            "led_bottom": 8,
-            "led_top": 7,
-            "heating": 6,
-            "airco": 5,
-            "battery_in": 4,
-            "battery_out": 3,
+            "led_bottom": 7,
+            "led_top": 6,
+            "heating": 5,
+            "airco": 4,
+            "battery_in": 3,
+            "battery_out": 2,
         }
 
         # Test each channel by trying to initialize INA219
         self._test_sensors()
-
-        print("Power monitoring system with TCA9548A initialized")
 
     def _test_sensors(self):
         # Test each sensor channel

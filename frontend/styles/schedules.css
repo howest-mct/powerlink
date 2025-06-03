@@ -314,11 +314,12 @@ body {
 .c-lighting-card__schedule-to {
     display: flex;
     flex-direction: row;
+    align-items: center;
     width: fit-content;
     gap: 0.25rem;
     border: solid 0.0625rem var(--border-color);
-    padding: 0.75rem;
-    font-size: 0.75rem;
+    padding: 0.5rem;
+    font-size: 0.875rem;
 }
 
 
@@ -330,6 +331,45 @@ body {
 }
 
 .c-lighting-card__edit {
+    align-items: flex-end;
+    background: none;
+    font-size: 0.875rem;
+    line-height: 1rem;
+    color: var(--text_sub-color);
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: none;
+}
+
+.c-temperature-card__schedule {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.c-temperature-card__schedule-from,
+.c-temperature-card__schedule-to {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: fit-content;
+    gap: 0.25rem;
+    border: solid 0.0625rem var(--border-color);
+    padding: 0.5rem;
+    font-size: 0.875rem;
+}
+
+
+.c-temperature-card__state {
+    font-size: 0.875rem;
+    line-height: 1rem;
+    color: var(--text_sub-color);
+    margin: 0.125rem 0 0 0;
+}
+
+.c-temperature-card__edit {
     align-items: flex-end;
     background: none;
     font-size: 0.875rem;
@@ -482,14 +522,17 @@ body {
 .c-temperature-card__info {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
 }
 
 .c-temperature-card__status {
-    font-size: 1rem;
+    font-size: 0.875rem;
     line-height: 1.5rem;
     font-weight: 400;
     color: var(--text_main-color);
-    margin: 0;
+    margin: 0rem;
+    text-align: left;
 }
 
 .c-temperature-card__state {

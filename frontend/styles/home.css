@@ -601,6 +601,7 @@ body {
 .c-temperature-card__info {
     display: flex;
     flex-direction: column;
+    text-align: left;
 }
 
 .c-temperature-card__status {
@@ -779,7 +780,6 @@ body {
 .c-lighting-outside__icon {
     width: 2rem;
     height: 2rem;
-    fill: var(--main-color);
 }
 
 .c-lighting-outside__meta {
@@ -793,7 +793,6 @@ body {
 }
 
 .c-lighting-outside__value-today {
-    color: var(--active-color);
     font-size: 0.875rem;
     line-height: 1rem;
 }
@@ -854,19 +853,6 @@ body {
 .c-powerlink__value-today {
     font-size: 0.875rem;
     line-height: 1rem;
-}
-
-.c-powerlink:hover {
-    background-color: var(--warning-color);
-    color: var(--white-color);
-}
-
-.c-powerlink:hover .c-powerlink__value-today {
-    color: var(--white-color);
-}
-
-.c-powerlink:hover .c-powerlink__icon {
-    fill: var(--white-color);
 }
 
 .c-grey-background {

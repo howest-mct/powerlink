@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <title>My Home</title>
+    <title>PowerLink - My Home</title>
     <meta name="description" content="This is my HTML5 boilerplate.">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,6 +18,9 @@
     <link rel="stylesheet" href="styles/global.css">
     <link rel="stylesheet" href="styles/home.css">
     <link rel="stylesheet" href="styles/footer.css">
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"
+        integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
+        crossorigin="anonymous"></script>
     <script src="script/home.js" defer></script>
 </head>
 
@@ -69,10 +72,10 @@
                         <article class="c-article__solar c-white-background c-hover--shadow"
                             onclick="window.location.href='/frontend/insights.html'">
                             <div class="c-solar">
-                                <h3 class="c-solar_kw">8kW</h3>
+                                <h3 class="c-solar_kw js-solar_value">8kW</h3>
                                 <div class="c-solar__meta">
                                     <p class="c-solar__status">Solar panels</p>
-                                    <p class="c-solar__capacity">Charging battery</p>
+                                    <p class="c-solar__capacity js-solar_state">Charging battery</p>
                                 </div>
                             </div>
                         </article>
@@ -82,14 +85,14 @@
                             onclick="window.location.href='/frontend/insights.html'">
                             <div class="c-usage__meta">
                                 <p class="c-usage__title">Today's Energy</p>
-                                <p class="c-usage__value-today">12.5 kWh</p>
+                                <p class="c-usage__value-today js-energy_today_value">12.5 kWh</p>
                             </div>
                         </article>
                         <article class="c-usage c-hover--shadow"
                             onclick="window.location.href='/frontend/insights.html'">
                             <div class="c-usage__meta">
                                 <p class="c-usage__title">Week's Energy</p>
-                                <p class="c-usage__value-week">240 kWh</p>
+                                <p class="c-usage__value-week js-energy_week_value">240 kWh</p>
                             </div>
                         </article>
                     </section>
@@ -115,7 +118,7 @@
                         <div class="c-lighting-card__meta">
                             <div class="c-lighting-card__info">
                                 <p class="c-lighting-card__status">Lighting</p>
-                                <p class="c-lighting-card__state">Schedule inactive</p>
+                                <p class="c-lighting-card__state js-schedule_lower">Schedule inactive</p>
                             </div>
                             <a href="schedules.html" class="c-lighting-card__edit c-edit">Edit Schedule</a>
                         </div>
@@ -124,7 +127,7 @@
                         <div class="c-circular-progress">
                             <div class="c-progress-ring" id="progressRing"></div>
                             <div class="c-temperature-display" id="tempDisplay">
-                                <span id="tempValue">24</span><span class="unit">°C</span>
+                                <span class="js-temperature_value" id="tempValue">24</span><span class="unit">°C</span>
                             </div>
                         </div>
                         <div class="c-controls">
@@ -142,7 +145,7 @@
                         <div class="c-temperature-card__meta">
                             <div class="c-temperature-card__info">
                                 <p class="c-temperature-card__status">Climate Control</p>
-                                <p class="c-temperature-card__state">Schedule inactive</p>
+                                <p class="c-temperature-card__state js-temperature_schedule">Schedule inactive</p>
                             </div>
                             <a href="schedules.html" class="c-temperature-card__edit c-edit">Edit Schedule</a>
                         </div>
@@ -169,7 +172,7 @@
                     <div class="c-lighting-card__meta">
                         <div class="c-lighting-card__info">
                             <p class="c-lighting-card__status">Lighting</p>
-                            <p class="c-lighting-card__state c-active">Schedule active</p>
+                            <p class="c-lighting-card__state js-schedule_upper">Schedule active</p>
                         </div>
                         <a href="schedules.html" class="c-lighting-card__edit c-edit">Edit Schedule</a>
                     </div>
@@ -183,24 +186,26 @@
                     <article class="c-article__door-log c-hover--shadow c-grey-background"
                         onclick="window.location.href='/frontend/insights.html'">
                         <div class="c-door-log">
-                            <p class="c-door__name">Michiel</p>
+                            <p class="c-door__name js-last_inhabitant">Michiel</p>
                             <div class="c-door__meta">
                                 <p class="c-door__last">Last entered</p>
-                                <p class="c-door__date">Today at 11:00 AM</p>
+                                <p class="c-door__date js-last_inhabitant_date">Today at 11:00 AM</p>
                             </div>
                         </div>
                     </article>
                     <article class="c-article__door c-hover--shadow c-grey-background">
                         <div class="c-door">
-                            <svg class="c-door__lock-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48"
-                                fill="#000000" viewBox="0 0 256 256">
-                                <path
-                                    d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Z">
-                                </path>
-                            </svg>
+                            <div class="js-door_state_icon">
+                                <svg class="c-door__lock-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48"
+                                    fill="#000000" viewBox="0 0 256 256">
+                                    <path
+                                        d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Z">
+                                    </path>
+                                </svg>
+                            </div>
                             <div class="c-door__meta">
                                 <p class="c-door__lock">Door lock</p>
-                                <p class="c-door__state">Locked</p>
+                                <p class="c-door__state js-door_state">Locked</p>
                             </div>
                         </div>
                     </article>
@@ -212,15 +217,17 @@
                 <h2 class="c-section__title">Outside lighting</h2>
                 <div class="c-lighting-outside__items">
                     <article class="c-lighting-outside c-hover--shadow">
-                        <svg class="c-lighting-outside__icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32"
-                            fill="#000000" viewBox="0 0 256 256">
-                            <path
-                                d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z">
-                            </path>
-                        </svg>
+                        <div class="js-lighting_outside_icon">
+                            <svg class="c-lighting-outside__icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32"
+                                fill="#000000" viewBox="0 0 256 256">
+                                <path
+                                    d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z">
+                                </path>
+                            </svg>
+                        </div>
                         <div class="c-lighting-outside__meta">
                             <p class="c-lighting-outside__title">Lights</p>
-                            <p class="c-lighting-outside__value-today c-active">On</p>
+                            <p class="c-lighting-outside__value-today js-lighting_outside_state">Off</p>
                         </div>
                     </article>
                 </div>
@@ -231,7 +238,7 @@
                 <h2 class="c-section__title">PowerLink System</h2>
                 <div class="c-powerlink__items">
                     <article class="c-powerlink c-hover--shadow">
-                        <svg class="c-powerlink__icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32"
+                        <svg class="js-door__lock-icon" class="c-powerlink__icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32"
                             fill="#000000" viewBox="0 0 256 256">
                             <path
                                 d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM88,160a8,8,0,1,1-8,8A8,8,0,0,1,88,160ZM48,48H80v97.38a24,24,0,1,0,16,0V115.31l48,48V208H48ZM208,208H160V160a8,8,0,0,0-2.34-5.66L96,92.69V48h32V72a8,8,0,0,0,2.34,5.66l16,16A23.74,23.74,0,0,0,144,104a24,24,0,1,0,24-24,23.74,23.74,0,0,0-10.34,2.35L144,68.69V48h64V208ZM168,96a8,8,0,1,1-8,8A8,8,0,0,1,168,96Z">

@@ -69,6 +69,11 @@ class DataRepository:
         params = [card_id]
         return Database.get_one_row(sql, params)
 
+    def read_inhabitant_by_card_id(card_id):
+        sql = "SELECT * FROM inhabitants WHERE card_id = %s"
+        params = [card_id]
+        return Database.get_one_row(sql, params)
+
     # endregion Read ********************************
 
     # region Create ---------------------------------
