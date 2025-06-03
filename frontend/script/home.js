@@ -272,9 +272,22 @@ const showLockState = (json) => {
     doorStateDisplay.classList.remove('c-active');
   } else {
     doorStateIcon.innerHTML = `
-      <svg class="c-door__lock-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#000000" viewBox="0 0 256 256"><path d="M208,80H96V56a32,32,0,0,1,32-32c15.37,0,29.2,11,32.16,25.59a8,8,0,0,0,15.68-3.18C171.32,24.15,151.2,8,128,8A48.05,48.05,0,0,0,80,56V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm0,128H48V96H208V208Z"></path></svg>`;
+      <svg class="c-door__lock-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#4A90E2" viewBox="0 0 256 256"><path d="M208,80H96V56a32,32,0,0,1,32-32c15.37,0,29.2,11,32.16,25.59a8,8,0,0,0,15.68-3.18C171.32,24.15,151.2,8,128,8A48.05,48.05,0,0,0,80,56V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm0,128H48V96H208V208Z"></path></svg>`;
     doorStateDisplay.innerHTML = 'Unlocked';
     doorStateDisplay.classList.add('c-active');
+  }
+};
+
+const showLightingOutside = (json) => {
+  const lightingOutsideDisplay = document.querySelector('.js-lighting_outside_icon');
+  const lightingOutsideState = document.querySelector('.js-lighting_outside_state');
+  const lightingOutsideValue = parseFloat(json.value);
+  if (json.value === '0') {
+    lightingOutsideDisplay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256"><path d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z"></path></svg>`;
+    lightingOutsideState.innerHTML = 'Off';
+  } else {
+    lightingOutsideDisplay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#4A90E2" viewBox="0 0 256 256"><path d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z"></path></svg>`;
+    lightingOutsideState.innerHTML = 'On';
   }
 };
 
@@ -298,7 +311,7 @@ const formatDateTime = (isoString) => {
 
 class TemperatureControl {
   constructor() {
-    this.temperature = 22;
+    this.temperature = 21;
     this.minTemp = 16;
     this.maxTemp = 30;
     this.increment = 0.5;
@@ -580,6 +593,12 @@ const getLockState = async () => {
   showLockState(json);
 };
 
+const getLightingOutside = async () => {
+  const url = ENDPOINT + `/logs/5/last/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  showLightingOutside(json);
+};
 // #endregion
 
 // #region ***  Event Listeners - listenTo___            ***********
@@ -605,6 +624,7 @@ const init = () => {
   getLightingUpperSchedule();
   getLastDoor();
   getLockState();
+  getLightingOutside();
 };
 
 document.addEventListener('DOMContentLoaded', init);

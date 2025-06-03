@@ -400,8 +400,8 @@ async def run_get_temp():
     while True:
         temp = float(TEMP_SENSOR.get_temp(temp_id))
         pot_value = float(MCP.read_channel(0))
-        DataRepository.create_log(temp, temp_sensor_id)
-        DataRepository.create_log(pot_value, pot_id)
+        # DataRepository.create_log(temp, temp_sensor_id)
+        # DataRepository.create_log(pot_value, pot_id)
         await asyncio.sleep(3)
 
 
