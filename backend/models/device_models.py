@@ -3,7 +3,7 @@ import spidev
 import time
 import RPi.GPIO as GPIO
 import asyncio
-from pirc522 import RFID
+from mfrc522 import SimpleMFRC522
 
 
 # region Legend ---------------------------------
@@ -72,49 +72,14 @@ class DS18B20:
 
 class RFIDReader:
     def __init__(self):
-        self.reader = RFID()
+        self.reader = SimpleMFRC522()
 
-    def read_tag(self):
-
-        print("Waiting for RFID tag...")
-        try:
-            self.reader.wait_for_tag()
-            (error, tag_type) = self.reader.request()
-            if error:
-                print("No tag detected")
-                return None
-
-            print("Tag detected")
-            (error, uid) = self.reader.anticoll()
-            if error:
-                print("Failed to read UID")
-                return None
-
-            print("UID: " + str(uid))
-            if self.reader.select_tag(uid):
-                print("Failed to select tag")
-                return None
-
-            if self.reader.card_auth(
-                self.reader.auth_a, 10, [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF], uid
-            ):
-                print("Authentication failed")
-                return None
-
-            data = self.reader.read(10)
-            print("Reading block 10: " + str(data))
-            self.reader.stop_crypto()
-            return uid
-
-        except Exception as e:
-            print(f"Error reading RFID tag: {e}")
-            return None
-
-    async def read_tag_async(self):
-        return await asyncio.to_thread(self.read_tag)
+    def read(self):
+        id, _ = self.reader.read()
+        return id
 
     def cleanup(self):
-        self.reader.cleanup()
+        GPIO.cleanup()
 
 
 class INA219:
@@ -562,8 +527,6 @@ class PowerMonitoringSystem:
 
         # Test each channel by trying to initialize INA219
         self._test_sensors()
-
-        print("Power monitoring system with TCA9548A initialized")
 
     def _test_sensors(self):
         # Test each sensor channel

@@ -7,6 +7,7 @@ from RPi import GPIO
 import time
 import datetime
 import socket
+import threading
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
@@ -118,6 +119,14 @@ GPIO.setmode(GPIO.BCM)
 
 
 # region Functions ---------------------------------
+def gpio_keep_alive():
+    front_door()
+    lights_outdoors()
+
+    while True:
+        time.sleep(1)
+
+
 def lights_button(pin):
     global switch_state, button_lights_id, led_bottom_id
     try:
@@ -218,58 +227,70 @@ def lights_outdoors():
         logger.error(f"Error in lights_outdoors: {e}")
 
 
-async def read_gpio_async(pin):
-    return await asyncio.to_thread(GPIO.input, pin)
+def handle_tag(card_id):
+    global scanned_card
+
+    scanned_card = card_id
 
 
-async def create_log_async(value, component_id):
-    return await asyncio.to_thread(DataRepository.create_log, value, component_id)
+def front_door():
+    global DOOR_LOCK, REED_SWITCH, CARD_READER
+    global DOOR_LOCK, REED_SWITCH, CARD_READER, scanned_card, door_state
+    global solenoid_lock_id, reed_switch_id, card_reader_id
 
+    door_state = GPIO.input(REED_SWITCH)
 
-async def front_door():
-    global scanned_card, DOOR_LOCK, REED_SWITCH, card_reader_id, solenoid_lock_id, reed_switch_id
-    while True:
-        scanned_card = await CARD_READER.read_tag_async()
-        if scanned_card is not None:
-            print("scanned card", scanned_card)
-            try:
-                DataRepository.read_card_by_id(scanned_card)
-                DataRepository.create_log(scanned_card, card_reader_id)
-                DOOR_LOCK.unlock()
-                logger.debug("Door is unlocked")
-                DataRepository.create_log(1, solenoid_lock_id)
-                start_time = time.time()
+    scanned_card = CARD_READER.read()
 
-                while (await read_gpio_async(REED_SWITCH)) == 1:
-                    if time.time() - start_time > 3:
-                        logger.info("Door did not open in time (3 seconds)")
-                        break
-                    await asyncio.sleep(0.1)
+    if scanned_card is not None:
+        print(f"Scanned card: {scanned_card}")
+        try:
+            DataRepository.read_card_by_id(scanned_card)
 
-                if (await read_gpio_async(REED_SWITCH)) == 0:
-                    logger.debug("Door is opened")
-                    DataRepository.create_log(1, reed_switch_id)
-                    start_time = time.time()
-                    while (await read_gpio_async(REED_SWITCH)) == 0:
-                        if time.time() - start_time > 3:
-                            logger.info("Door did not close in time (3 seconds)")
-                            break
-                        await asyncio.sleep(0.1)
+            DataRepository.create_log(scanned_card, card_reader_id)
+            DOOR_LOCK.unlock()
+            logger.debug("Door is unlocked")
+            DataRepository.create_log(1, solenoid_lock_id)
 
-                    if (await read_gpio_async(REED_SWITCH)) == 1:
-                        logger.debug("Door is closed")
-                        DataRepository.create_log(0, reed_switch_id)
-                DOOR_LOCK.lock()
-                logger.debug("Door is locked")
-                DataRepository.create_log(0, solenoid_lock_id)
+            logger.debug("Waiting for door to open")
+            start_time = time.time()
 
-            except Exception as e:
-                logger.error(f"Error in front_door: {e}", exc_info=True)
+            while GPIO.input(REED_SWITCH) == 1:
+                if time.time() - start_time > 3:
+                    logger.info("Door did not open in time (3 seconds)")
+                    DOOR_LOCK.lock()
+                    DataRepository.create_log(0, solenoid_lock_id)
+                    scanned_card = None
+                    return
+                time.sleep(0.1)
 
-            finally:
-                scanned_card = None
-        else:
-            await asyncio.sleep(0.2)
+            logger.debug("Door is opened")
+            DataRepository.create_log(1, reed_switch_id)
+
+            logger.debug("Waiting for door to close")
+            start_time = time.time()
+
+            while GPIO.input(REED_SWITCH) == 0:
+                if time.time() - start_time > 3:
+                    logger.info("Door did not close in time (3 seconds)")
+                    DOOR_LOCK.lock()
+                    DataRepository.create_log(0, solenoid_lock_id)
+                    scanned_card = None
+                    return
+                time.sleep(0.1)
+
+            logger.debug("Door is closed")
+            DataRepository.create_log(0, reed_switch_id)
+
+            DOOR_LOCK.lock()
+            logger.debug("Door is locked")
+            DataRepository.create_log(0, solenoid_lock_id)
+
+            scanned_card = None
+
+        except Exception as e:
+            logger.error(f"Error: {e}")
+            scanned_card = None
 
 
 def get_ip_address():
@@ -379,10 +400,6 @@ async def get_wattage():
 
 
 # region Async Containers ---------------------------------
-async def run_lights_outdoors():
-    while True:
-        lights_outdoors()
-        await asyncio.sleep(0.5)
 
 
 async def run_lights_bottom():
@@ -425,7 +442,7 @@ async def lifespan_manager(app: FastAPI):
         REED_SWITCH = 22
         GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         TEMP_SENSOR = DS18B20()
-        # CARD_READER = RFIDReader()
+        CARD_READER = RFIDReader()
         LCD = LCD_Display(0x38, 5, 6)
         DOOR_LOCK = SolenoidLock(15)
         LED_OUTDOORS = LED(14)
@@ -436,14 +453,17 @@ async def lifespan_manager(app: FastAPI):
         MCP = MCP3008(1)
         I2C_EXPANDER = TCA9548A()
 
+        threading.Thread(
+            target=gpio_keep_alive,
+            daemon=True,
+        ).start()
+
         temp_id = TEMP_SENSOR.get_id()
         ip_address = get_ip_address()
 
         tasks = [
-            asyncio.create_task(run_lights_outdoors()),
             asyncio.create_task(run_lights_bottom()),
             asyncio.create_task(run_get_temp()),
-            # asyncio.create_task(front_door()),
             asyncio.create_task(display_lcd()),
             asyncio.create_task(get_wattage()),
         ]
