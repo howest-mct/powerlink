@@ -17,16 +17,15 @@ from models.backend_models import Log, DTOLog, Schedule, DTOSchedule, Card, DTOC
 
 from models.device_models import (
     DS18B20,
-    INA219,
-    SR501,
     LCD_Display,
     DCMotor,
     HeatingPad,
     LED,
     SolenoidLock,
     MCP3008,
-    PCF8574A,
+    TCA9548A,
     RFIDReader,
+    PowerMonitoringSystem,
 )
 
 logging.basicConfig(
@@ -58,10 +57,12 @@ wh_heater_id = 15
 wh_airco_id = 16
 wh_bat_in_id = 17
 wh_bat_out_id = 18
+button_power_id = 19
 
 # Devices
 MOTION_SENSOR = None
 LED_BUTTON = None
+POWER_BUTTON = None
 REED_SWITCH = None
 TEMP_SENSOR = None
 CARD_READER = None
@@ -73,19 +74,18 @@ LED_TOP = None
 HEATING = None
 AIRCO = None
 MCP = None
-INA_LED_BOTTOM = None
-INA_LED_TOP = None
-INA_HEATING = None
-INA_AIRCO = None
-INA_BAT_IN = None
-INA_BAT_OUT = None
+I2C_EXPANDER = None
 
 # Values and States
 raspi_power = None
-motion = None
+motion_detected = False
+last_motion_time = 0
+light_duration = 10
 last_motion_time = None
+prev_state_motion = False
 led_top_last_state = None
 switch_state = False
+switch_state_power = False
 last_log_time_switch = 0
 previous_state_switch = False
 last_state_led = None
@@ -102,10 +102,13 @@ led_top_brightness = None
 heating_value = None
 airco_value = None
 serial_string = None
-kw_led_bottom = None
-kw_led_top = None
-kw_heating = None
-kw_airco = None
+power_monitor = None
+current_usage = 0.0
+battery_level = 0.0
+kw_led_bottom = 0.0
+kw_led_top = 0.0
+kw_heating = 0.0
+kw_airco = 0.0
 current_usage = None
 battery_level = None
 ip_address = None
@@ -121,36 +124,57 @@ def lights_button(pin):
         switch_state = not switch_state
         DataRepository.create_log(switch_state, button_lights_id)
         DataRepository.create_log(100, led_bottom_id)
+        print("Button pressed, switch state:", switch_state)
     except Exception as e:
         logger.error(f"Error in lights_button: {e}")
 
 
-def lights_top():
-    global LED_TOP, MOTION_SENSOR, last_motion_time, led_top_id, motion_sensor_id, led_top_last_state
+def power_button(pin):
+    global switch_state_power, button_power_id
     try:
-        motion_detected = MOTION_SENSOR.motion_detected()
-        current_state = False
-        if motion_detected:
-            last_motion_time = time.time()
-            current_state = True
-        elif last_motion_time and time.time() - last_motion_time > 5:
-            last_motion_time = None
-            current_state = False
-        else:
-            current_state = (
-                led_top_last_state if led_top_last_state is not None else False
-            )
-        if current_state != led_top_last_state:
-            if current_state:
-                LED_TOP.set_brightness(100)
-                DataRepository.create_log(100, led_top_id)
-                DataRepository.create_log(1, motion_sensor_id)
-            else:
-                LED_TOP.set_brightness(0)
-                DataRepository.create_log(0, led_top_id)
-            led_top_last_state = current_state
+        switch_state_power = not switch_state_power
+        DataRepository.create_log(switch_state_power, button_power_id)
+        print("Button pressed, switch state:", switch_state_power)
     except Exception as e:
-        logger.error(f"Error in lights_top: {e}")
+        logger.error(f"Error in power_button: {e}")
+
+
+def motion_sensor_callback(pin):
+    global motion_detected, last_motion_time
+    if GPIO.input(pin):
+        motion_detected = True
+        last_motion_time = time.time()
+        print("Motion detected!")
+
+
+async def lights_top():
+    global LED_TOP, led_top_id, motion_sensor_id, prev_state_motion, motion_detected, last_motion_time
+
+    while True:
+        try:
+            current_time = time.time()
+
+            motion_active = (
+                last_motion_time is not None and (current_time - last_motion_time) <= 3
+            )
+
+            if motion_active != prev_state_motion:
+                if motion_active:
+                    LED_TOP.set_brightness(100)
+                    DataRepository.create_log(100, led_top_id)
+                    DataRepository.create_log(1, motion_sensor_id)
+                    print("LED TOP: ON")
+                else:
+                    LED_TOP.set_brightness(0)
+                    DataRepository.create_log(0, led_top_id)
+                    print("LED TOP: OFF")
+
+                prev_state_motion = motion_active
+
+        except Exception as e:
+            logger.error(f"Error in lights_top: {e}")
+
+        await asyncio.sleep(0.1)
 
 
 def lights_bottom():
@@ -194,15 +218,20 @@ def lights_outdoors():
         logger.error(f"Error in lights_outdoors: {e}")
 
 
-def handle_tag(card_id):
-    global scanned_card
-    scanned_card = card_id
+async def read_gpio_async(pin):
+    return await asyncio.to_thread(GPIO.input, pin)
+
+
+async def create_log_async(value, component_id):
+    return await asyncio.to_thread(DataRepository.create_log, value, component_id)
 
 
 async def front_door():
     global scanned_card, DOOR_LOCK, REED_SWITCH, card_reader_id, solenoid_lock_id, reed_switch_id
     while True:
+        scanned_card = await CARD_READER.read_tag_async()
         if scanned_card is not None:
+            print("scanned card", scanned_card)
             try:
                 DataRepository.read_card_by_id(scanned_card)
                 DataRepository.create_log(scanned_card, card_reader_id)
@@ -211,23 +240,23 @@ async def front_door():
                 DataRepository.create_log(1, solenoid_lock_id)
                 start_time = time.time()
 
-                while GPIO.input(REED_SWITCH) == 1:
+                while (await read_gpio_async(REED_SWITCH)) == 1:
                     if time.time() - start_time > 3:
                         logger.info("Door did not open in time (3 seconds)")
                         break
                     await asyncio.sleep(0.1)
 
-                if GPIO.input(REED_SWITCH) == 0:
+                if (await read_gpio_async(REED_SWITCH)) == 0:
                     logger.debug("Door is opened")
                     DataRepository.create_log(1, reed_switch_id)
                     start_time = time.time()
-                    while GPIO.input(REED_SWITCH) == 0:
+                    while (await read_gpio_async(REED_SWITCH)) == 0:
                         if time.time() - start_time > 3:
                             logger.info("Door did not close in time (3 seconds)")
                             break
                         await asyncio.sleep(0.1)
 
-                    if GPIO.input(REED_SWITCH) == 1:
+                    if (await read_gpio_async(REED_SWITCH)) == 1:
                         logger.debug("Door is closed")
                         DataRepository.create_log(0, reed_switch_id)
                 DOOR_LOCK.lock()
@@ -235,12 +264,12 @@ async def front_door():
                 DataRepository.create_log(0, solenoid_lock_id)
 
             except Exception as e:
-                logger.error(f"Error: {e}")
+                logger.error(f"Error in front_door: {e}", exc_info=True)
 
             finally:
                 scanned_card = None
         else:
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.2)
 
 
 def get_ip_address():
@@ -264,7 +293,7 @@ async def display_lcd():
             LCD.string("Current temp:", 1)
             LCD.string(f"{temp} degrees C", 2)
             await asyncio.sleep(2)
-            LCD.string("Current usage:", 1)
+            LCD.string("Current Watt:", 1)
             LCD.string(f"{current_usage}W", 2)
             await asyncio.sleep(2)
             LCD.string("Battery level:", 1)
@@ -276,20 +305,84 @@ async def display_lcd():
             await asyncio.sleep(1)
 
 
+def initialize_power_monitoring():
+    global power_monitor
+
+    try:
+        power_monitor = PowerMonitoringSystem(tca_address=0x70, ina_address=0x40)
+        logger.info("Power monitoring system with TCA9548A initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize power monitoring: {e}")
+        power_monitor = None
+
+
+async def get_wattage():
+    global power_monitor, current_usage, battery_level
+    global kw_led_bottom, kw_led_top, kw_heating, kw_airco
+
+    while True:
+        try:
+            if power_monitor is None:
+                logger.warning(
+                    "Power monitor not initialized, attempting to reinitialize..."
+                )
+                initialize_power_monitoring()
+                await asyncio.sleep(5)
+                continue
+
+            readings = power_monitor.read_all_sensors()
+
+            kw_led_bottom = readings.get("led_bottom", 0.0)
+            kw_led_top = readings.get("led_top", 0.0)
+            kw_heating = readings.get("heating", 0.0)
+            kw_airco = readings.get("airco", 0.0)
+
+            battery_in_power = readings.get("battery_in", 0.0)
+            battery_out_power = readings.get("battery_out", 0.0)
+
+            current_usage = kw_led_bottom + kw_led_top + kw_heating + kw_airco
+
+            if battery_out_power > 0.1:
+                battery_level = max(
+                    0, min(100, (battery_in_power / battery_out_power) * 100)
+                )
+            else:
+                battery_level = 100.0
+
+            DataRepository.create_log(kw_led_bottom, wh_led_bottom_id)
+            DataRepository.create_log(kw_led_top, wh_led_top_id)
+            DataRepository.create_log(kw_heating, wh_heater_id)
+            DataRepository.create_log(kw_airco, wh_airco_id)
+            DataRepository.create_log(battery_in_power, wh_bat_in_id)
+            DataRepository.create_log(battery_out_power, wh_bat_out_id)
+
+            logger.debug(
+                f"Power readings - LED Bottom: {kw_led_bottom:.3f}W, "
+                f"LED Top: {kw_led_top:.3f}W, Heating: {kw_heating:.3f}W, "
+                f"Airco: {kw_airco:.3f}W, Total: {current_usage:.3f}W, "
+                f"Battery: {battery_level:.1f}%"
+            )
+
+        except Exception as e:
+            logger.error(f"Error in get_wattage: {e}")
+            if power_monitor:
+                try:
+                    power_monitor.close()
+                except:
+                    print("fuck off")
+                power_monitor = None
+
+        await asyncio.sleep(3)
+
+
 # endregion Functions ****************************
 
 
-# region Async Wrappers ---------------------------------
+# region Async Containers ---------------------------------
 async def run_lights_outdoors():
     while True:
         lights_outdoors()
         await asyncio.sleep(0.5)
-
-
-async def run_lights_top():
-    while True:
-        lights_top()
-        await asyncio.sleep(0.1)
 
 
 async def run_lights_bottom():
@@ -299,13 +392,16 @@ async def run_lights_bottom():
 
 
 async def run_get_temp():
-    global temp
+    global temp, pot_value
     while True:
         temp = TEMP_SENSOR.get_temp(temp_id)
+        pot_value = MCP.read_channel(0)
+        print("Potentiometer value:", pot_value)
+        print("Current temperature:", temp)
         await asyncio.sleep(3)
 
 
-# endregion Async Wrappers ******************************
+# endregion Async Containers ******************************
 
 
 # region App Setup ---------------------------------
@@ -313,47 +409,50 @@ async def run_get_temp():
 async def lifespan_manager(app: FastAPI):
     logger.info("Starting application...")
     GPIO.setmode(GPIO.BCM)
+
+    tasks = []
+
     try:
         global MOTION_SENSOR, LED_BUTTON, REED_SWITCH, TEMP_SENSOR
         global LCD, DOOR_LOCK, LED_OUTDOORS, LED_BOTTOM, LED_TOP
-        global HEATING, AIRCO, MCP, INA_LED_BOTTOM, INA_LED_TOP
-        global INA_HEATING, INA_AIRCO, INA_BAT_IN, INA_BAT_OUT, CARD_READER
+        global HEATING, AIRCO, MCP, CARD_READER
         global temp_id, ip_address
 
-        MOTION_SENSOR = SR501(26)
-        LED_BUTTON = 19
+        LED_BUTTON = 13
         GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        REED_SWITCH = 13
+        POWER_BUTTON = 27
+        GPIO.setup(POWER_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        REED_SWITCH = 22
         GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         TEMP_SENSOR = DS18B20()
-        CARD_READER = RFIDReader(handle_tag)
+        # CARD_READER = RFIDReader()
         LCD = LCD_Display(0x38, 5, 6)
-        DOOR_LOCK = SolenoidLock(21)
-        LED_OUTDOORS = LED(20)
+        DOOR_LOCK = SolenoidLock(15)
+        LED_OUTDOORS = LED(14)
         LED_BOTTOM = LED(25)
         LED_TOP = LED(24)
         HEATING = HeatingPad(16)
         AIRCO = DCMotor(12)
-        MCP = MCP3008(bus=0)
-        INA_LED_BOTTOM = INA219(1, 0x45)
-        INA_LED_TOP = INA219(1, 0x41)
-        INA_HEATING = INA219(1, 0x40)
-        INA_AIRCO = INA219(1, 0x44)
+        MCP = MCP3008(1)
+        I2C_EXPANDER = TCA9548A()
 
         temp_id = TEMP_SENSOR.get_id()
         ip_address = get_ip_address()
 
         tasks = [
             asyncio.create_task(run_lights_outdoors()),
-            asyncio.create_task(run_lights_top()),
             asyncio.create_task(run_lights_bottom()),
             asyncio.create_task(run_get_temp()),
-            asyncio.create_task(front_door()),
+            # asyncio.create_task(front_door()),
             asyncio.create_task(display_lcd()),
+            asyncio.create_task(get_wattage()),
         ]
 
         GPIO.add_event_detect(
             LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=150
+        )
+        GPIO.add_event_detect(
+            POWER_BUTTON, GPIO.FALLING, callback=power_button, bouncetime=150
         )
 
         yield
@@ -363,7 +462,6 @@ async def lifespan_manager(app: FastAPI):
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
-        MOTION_SENSOR.cleanup()
         CARD_READER.cleanup()
         LCD.close()
         DOOR_LOCK.cleanup()
@@ -373,11 +471,10 @@ async def lifespan_manager(app: FastAPI):
         HEATING.cleanup()
         AIRCO.cleanup()
         MCP.close()
-        INA_LED_BOTTOM.close()
-        INA_LED_TOP.close()
-        INA_HEATING.close()
-        INA_AIRCO.close()
         GPIO.cleanup()
+        I2C_EXPANDER.close()
+        CARD_READER.cleanup()
+        power_monitor.close()
         logger.info("GPIO cleaned up. Bye!")
 
 
