@@ -488,7 +488,7 @@ async def lifespan_manager(app: FastAPI):
         DOOR_LOCK = SolenoidLock(18)
         LED_OUTDOORS = LED(14)
         LED_BOTTOM = LED(25)
-        LED_TOP = LED(24)
+        LED_TOP = LED(21)
         HEATING = HeatingPad(20)
         AIRCO = DCMotor(12)
         MCP = MCP3008(0, 1)
@@ -616,6 +616,25 @@ async def get_logs_between_1_and_2_weeks_by_component_id(id: int):
         raise HTTPException(
             status_code=404, detail=f"No logs between 1-2 weeks for component ID {id}"
         )
+    return data
+
+
+@app.get(
+    ENDPOINT + "/schedules/",
+    response_model=list[Schedule],
+    summary="Retrieve all schedules",
+    response_description="A list of all available schedules",
+    tags=["schedules"],
+)
+async def get_all_schedules():
+    # Fetch all resources from the repository
+    data = DataRepository.read_all_schedules()
+    # Check if resources exist
+    if data is None or len(data) == 0:
+        raise HTTPException(
+            status_code=404, detail=f"No schedules found in the database"
+        )
+    # Return the list of resources
     return data
 
 

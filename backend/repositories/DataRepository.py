@@ -58,6 +58,16 @@ class DataRepository:
         return Database.get_rows(sql, params)
 
     @staticmethod
+    def read_all_schedules():
+        sql = """
+            SELECT schedules.*, rooms.room_name, schedule_types.type_name 
+            FROM schedules 
+            JOIN rooms ON schedules.room_id = rooms.room_id 
+            JOIN schedule_types ON schedules.type_id = schedule_types.type_id;
+        """
+        return Database.get_rows(sql)
+
+    @staticmethod
     def read_schedule_by_id(schedule_id):
         sql = "SELECT * FROM schedules WHERE schedule_id = %s"
         params = [schedule_id]

@@ -26,6 +26,9 @@ class Schedule(P1BaseModel):
     enabled: int
     type_id: int
     component_id: int
+    room_id: int
+    room_name: str
+    type_name: str
 
 
 class Card(P1BaseModel):
