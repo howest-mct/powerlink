@@ -8,6 +8,8 @@ import time
 import datetime
 import socket
 import threading
+import re
+import subprocess
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
@@ -124,7 +126,7 @@ def gpio_keep_alive():
     lights_outdoors()
 
     while True:
-        time.sleep(1)
+        time.sleep(0.5)
 
 
 def lights_button(pin):
@@ -211,12 +213,6 @@ def lights_outdoors():
         logger.error(f"Error in lights_outdoors: {e}")
 
 
-def handle_tag(card_id):
-    global scanned_card
-
-    scanned_card = card_id
-
-
 def front_door():
     global DOOR_LOCK, REED_SWITCH, CARD_READER
     global DOOR_LOCK, REED_SWITCH, CARD_READER, scanned_card, door_state
@@ -277,33 +273,39 @@ def front_door():
             scanned_card = None
 
 
-def get_ip_address():
-    global ip_address
+def get_ip(interface):
     try:
-        hostname = socket.gethostname()
-        ip_address = socket.gethostbyname(hostname)
-        return ip_address
-    except socket.error as e:
-        logger.error(f"Error getting IP address: {e}")
-        return None
+        output = subprocess.check_output(["ip", "a", "show", interface]).decode()
+        match = re.search(r"inet (\d+\.\d+\.\d+\.\d+)", output)
+        if match:
+            return match.group(1)
+        else:
+            return "Geen IP"
+    except subprocess.CalledProcessError:
+        return "Interface fout"
 
 
 async def display_lcd():
     global LCD, lcd_string, ip_address, temp, current_usage, battery_level
     while True:
         try:
-            LCD.string("IP Address:", 1)
-            LCD.string(get_ip_address(), 2)
-            await asyncio.sleep(2)
+            eth0_ip = get_ip("eth0")
+            wlan0_ip = get_ip("wlan0")
+            LCD.string("IP ETH0:", 1)
+            LCD.string(eth0_ip, 2)
+            await asyncio.sleep(3)
+            LCD.string("IP WLAN0:", 1)
+            LCD.string(wlan0_ip, 2)
+            await asyncio.sleep(3)
             LCD.string("Current temp:", 1)
             LCD.string(f"{temp} degrees C", 2)
-            await asyncio.sleep(2)
+            await asyncio.sleep(3)
             LCD.string("Current Watt:", 1)
             LCD.string(f"{current_usage}W", 2)
-            await asyncio.sleep(2)
+            await asyncio.sleep(3)
             LCD.string("Battery level:", 1)
             LCD.string(f"{battery_level}%", 2)
-            await asyncio.sleep(2)
+            await asyncio.sleep(3)
         except Exception as e:
             logger.error(f"Error in display_lcd: {e}")
             lcd_string = None
@@ -361,21 +363,13 @@ async def get_wattage():
             DataRepository.create_log(battery_in_power, wh_bat_in_id)
             DataRepository.create_log(battery_out_power, wh_bat_out_id)
 
-            logger.debug(f"LED Bottom: {kw_led_bottom:.3f}W")
-            logger.debug(f"LED Top: {kw_led_top:.3f}W")
-            logger.debug(f"Heating: {kw_heating:.3f}W")
-            logger.debug(f"Airco: {kw_airco:.3f}W")
-            logger.debug(f"Total: {current_usage:.3f}W")
-            logger.debug(f"Battery In: {battery_in_power:.1f}%")
-            logger.debug(f"Battery Out: {battery_out_power:.1f}%")
-
         except Exception as e:
             logger.error(f"Error in get_wattage: {e}")
             if power_monitor:
                 try:
                     power_monitor.close()
                 except:
-                    print("fuck off")
+                    print("Error closing power monitor")
                 power_monitor = None
 
         await asyncio.sleep(3)
@@ -398,9 +392,7 @@ async def run_get_temp():
     while True:
         temp = TEMP_SENSOR.get_temp(temp_id)
         pot_value = MCP.read_channel(0)
-        print("Potentiometer value:", pot_value)
-        print("Current temperature:", temp)
-        await asyncio.sleep(3)
+        await asyncio.sleep(1)
 
 
 # endregion Async Containers ******************************
@@ -437,7 +429,7 @@ async def lifespan_manager(app: FastAPI):
         LED_TOP = LED(24)
         HEATING = HeatingPad(16)
         AIRCO = DCMotor(12)
-        MCP = MCP3008(1)
+        MCP = MCP3008(0, 1)
         I2C_EXPANDER = TCA9548A()
 
         threading.Thread(
@@ -446,7 +438,6 @@ async def lifespan_manager(app: FastAPI):
         ).start()
 
         temp_id = TEMP_SENSOR.get_id()
-        ip_address = get_ip_address()
 
         tasks = [
             asyncio.create_task(run_lights_bottom()),

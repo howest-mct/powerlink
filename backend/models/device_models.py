@@ -72,7 +72,7 @@ class DS18B20:
 
 class RFIDReader:
     def __init__(self):
-        self.reader = SimpleMFRC522()
+        self.reader = SimpleMFRC522(0, 0, 23)
 
     def read(self):
         id, _ = self.reader.read()
@@ -383,6 +383,16 @@ class MCP3008:
         self.bus = bus
         self.device = device
         self.spi = spidev.SpiDev()
+        # print(f"Initializing MCP3008 on SPI bus {self.bus}, device {self.device}")
+        try:
+            self.spi.open(self.bus, self.device)
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to open SPI bus {self.bus}, device {self.device}: {e}"
+            )
+        # print(
+        # f"MCP3008 opened successfully on SPI bus {self.bus}, device {self.device}"
+        # )
         self.spi.open(self.bus, self.device)
         self.spi.max_speed_hz = 1000000
         self.spi.mode = 0b00
@@ -392,7 +402,7 @@ class MCP3008:
         if not 0 <= ch <= 7:
             raise ValueError("Channel must be between 0 and 7")
         command = [1, (8 + ch) << 4, 0]
-        result = self.spi.xfer2(command)
+        result = self.spi.xfer(command)
         adc_out = ((result[1] & 0x03) << 8) | result[2]
         return adc_out
 
@@ -517,12 +527,12 @@ class PowerMonitoringSystem:
 
         # Define sensor mapping to TCA channels
         self.sensors = {
-            "led_bottom": 8,
-            "led_top": 7,
-            "heating": 6,
-            "airco": 5,
-            "battery_in": 4,
-            "battery_out": 3,
+            "led_bottom": 7,
+            "led_top": 6,
+            "heating": 5,
+            "airco": 4,
+            "battery_in": 3,
+            "battery_out": 2,
         }
 
         # Test each channel by trying to initialize INA219
