@@ -464,6 +464,7 @@ async def lifespan_manager(app: FastAPI):
 
         tasks = [
             asyncio.create_task(run_lights_bottom()),
+            asyncio.create_task(lights_top()),
             asyncio.create_task(run_get_temp()),
             asyncio.create_task(display_lcd()),
             asyncio.create_task(get_wattage()),
