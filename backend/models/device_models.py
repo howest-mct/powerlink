@@ -346,28 +346,80 @@ class LED:
 
 
 class SolenoidLock:
-    def __init__(self, control_pin):
+    def __init__(self, control_pin, freq=1000):
         self.control_pin = control_pin
+        self.freq = freq
+        self.unlocked = False
+        GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.control_pin, GPIO.OUT)
-        self.locked = False
+        self.pwm = GPIO.PWM(self.control_pin, self.freq)
+        self.pwm_started = False
 
-    # Locks the solenoid by setting the control pin high
+    # Unlocks the door by powering the solenoid
+    def unlock(self, pull_duty=5, hold_duty=5, pull_time=0.1):
+        if not self.pwm_started:
+            self.pwm.start(pull_duty)
+            self.pwm_started = True
+        else:
+            self.pwm.ChangeDutyCycle(pull_duty)
+        time.sleep(pull_time)
+        self.pwm.ChangeDutyCycle(hold_duty)
+        self.unlocked = True
+
+    # Locks the door by cutting power
     def lock(self):
-        GPIO.output(self.control_pin, GPIO.HIGH)
-        self.locked = True
-
-    # Unlocks the solenoid by setting the control pin low
-    def unlock(self):
+        if self.pwm_started:
+            self.pwm.stop()
+            self.pwm_started = False
         GPIO.output(self.control_pin, GPIO.LOW)
-        self.locked = False
+        self.unlocked = False
 
-    # Toggles the solenoid state
-    def is_locked(self):
-        return self.locked
+    def is_unlocked(self):
+        return self.unlocked
 
-    # Cleans up the GPIO resources
     def cleanup(self):
-        GPIO.output(self.control_pin, GPIO.LOW)
+        self.lock()
+        GPIO.cleanup(self.control_pin)
+
+
+import RPi.GPIO as GPIO
+import time
+
+
+class ServoLock:
+    def __init__(self, control_pin, freq=50):
+        self.control_pin = control_pin
+        self.freq = freq
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.control_pin, GPIO.OUT)
+
+        self.pwm = GPIO.PWM(self.control_pin, self.freq)
+        self.pwm.start(0)
+        self.unlocked = False
+
+    def _angle_to_duty_cycle(self, angle):
+        return 2.5 + (angle / 180.0) * 10
+
+    def unlock(self):
+        duty = self._angle_to_duty_cycle(180)
+        self.pwm.ChangeDutyCycle(duty)
+        time.sleep(0.5)
+        self.pwm.ChangeDutyCycle(0)
+        self.unlocked = True
+
+    def lock(self):
+        duty = self._angle_to_duty_cycle(0)
+        self.pwm.ChangeDutyCycle(duty)
+        time.sleep(0.5)
+        self.pwm.ChangeDutyCycle(0)
+        self.unlocked = False
+
+    def is_unlocked(self):
+        return self.unlocked
+
+    def cleanup(self):
+        self.lock()
+        self.pwm.stop()
         GPIO.cleanup(self.control_pin)
 
 

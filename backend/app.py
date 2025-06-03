@@ -95,6 +95,7 @@ previous_state_switch = False
 last_state_led = None
 temp_id = None
 temp = None
+target_temp = None
 pot_value = None
 ldr_value = None
 scanned_card = None
@@ -241,7 +242,8 @@ def front_door():
                 return
 
             DataRepository.create_log(snipped_card, card_reader_id)
-            DOOR_LOCK.unlock()
+
+            DOOR_LOCK.unlock(pull_duty=100, hold_duty=40, pull_time=0.1)
             logger.debug("Door is unlocked")
             DataRepository.create_log(1, solenoid_lock_id)
 
@@ -364,6 +366,13 @@ async def get_wattage():
             else:
                 battery_level = 100.0
 
+            print(
+                f"LED Bottom: {kw_led_bottom}W, LED Top: {kw_led_top}W, "
+                f"Heater: {kw_heating}W, Airco: {kw_airco}W, "
+                f"Battery In: {battery_in_power}W, Battery Out: {battery_out_power}W, "
+                f"Current Usage: {current_usage}W, Battery Level: {battery_level}%"
+            )
+
             # DataRepository.create_log(kw_led_bottom, wh_led_bottom_id)
             # DataRepository.create_log(kw_led_top, wh_led_top_id)
             # DataRepository.create_log(kw_heating, wh_heater_id)
@@ -376,11 +385,63 @@ async def get_wattage():
             if power_monitor:
                 try:
                     power_monitor.close()
-                except:
-                    print("Error closing power monitor")
+                except Exception as e:
+                    logger.error(f"Error closing power monitor: {e}")
                 power_monitor = None
 
         await asyncio.sleep(3)
+
+
+async def climate_control(target_temp, temp_id):
+    global HEATING, AIRCO, temp
+    hysteresis = 0.5
+    max_range = 2.0
+    lower_bound = target_temp - hysteresis / 2
+    upper_bound = target_temp + hysteresis / 2
+    max_lower = target_temp - max_range
+    max_upper = target_temp + max_range
+    min_heater_power = 20
+    min_fan_speed = 80
+
+    try:
+        while True:
+            current_temp = TEMP_SENSOR.get_temp(temp_id)
+            print(f"Current temperature: {current_temp}°C")
+
+            if current_temp < lower_bound:
+                if current_temp <= max_lower:
+                    heater_power = 100
+                else:
+
+                    heater_power = min_heater_power + (100 - min_heater_power) * (
+                        lower_bound - current_temp
+                    ) / (lower_bound - max_lower)
+                HEATING.set_power(max(0, min(100, heater_power)))
+                AIRCO.stop()
+                print(f"Heater power: {heater_power:.1f}%, Fan off")
+
+            elif current_temp > upper_bound:
+                if current_temp >= max_upper:
+                    fan_speed = 100
+
+                else:
+                    fan_speed = min_fan_speed + (100 - min_fan_speed) * (
+                        current_temp - upper_bound
+                    ) / (max_upper - upper_bound)
+                AIRCO.set_speed(max(0, min(100, fan_speed)))
+                HEATING.off()
+                print(f"Fan speed: {fan_speed:.1f}%, Heater off")
+
+            else:
+                print("Within hysteresis band: no changes")
+                pass
+
+            temp = current_temp
+
+            await asyncio.sleep(1)
+
+    except Exception as e:
+        logger.error(f"Error in climate_control: {e}")
 
 
 # endregion Functions ****************************
@@ -393,16 +454,6 @@ async def run_lights_bottom():
     while True:
         lights_bottom()
         await asyncio.sleep(0.1)
-
-
-async def run_get_temp():
-    global temp, pot_value, temp_id, pot_id, temp_sensor_id
-    while True:
-        temp = float(TEMP_SENSOR.get_temp(temp_id))
-        pot_value = float(MCP.read_channel(0))
-        # DataRepository.create_log(temp, temp_sensor_id)
-        # DataRepository.create_log(pot_value, pot_id)
-        await asyncio.sleep(3)
 
 
 # endregion Async Containers ******************************
@@ -431,13 +482,14 @@ async def lifespan_manager(app: FastAPI):
         REED_SWITCH = 22
         GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         TEMP_SENSOR = DS18B20()
+        temp_id = TEMP_SENSOR.get_id()
         CARD_READER = RFIDReader()
         LCD = LCD_Display(0x38, 5, 6)
-        DOOR_LOCK = SolenoidLock(15)
+        DOOR_LOCK = SolenoidLock(18)
         LED_OUTDOORS = LED(14)
         LED_BOTTOM = LED(25)
         LED_TOP = LED(24)
-        HEATING = HeatingPad(16)
+        HEATING = HeatingPad(20)
         AIRCO = DCMotor(12)
         MCP = MCP3008(0, 1)
         I2C_EXPANDER = TCA9548A()
@@ -447,14 +499,12 @@ async def lifespan_manager(app: FastAPI):
             daemon=True,
         ).start()
 
-        temp_id = TEMP_SENSOR.get_id()
-
         tasks = [
             asyncio.create_task(run_lights_bottom()),
             asyncio.create_task(lights_top()),
-            asyncio.create_task(run_get_temp()),
             asyncio.create_task(display_lcd()),
             asyncio.create_task(get_wattage()),
+            # asyncio.create_task(climate_control(25.0, temp_id)),
         ]
 
         GPIO.add_event_detect(
