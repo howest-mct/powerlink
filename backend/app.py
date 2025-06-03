@@ -161,27 +161,11 @@ async def lights_top():
 
     while True:
         try:
-            current_time = time.time()
-
-            motion_active = (
-                last_motion_time is not None and (current_time - last_motion_time) <= 3
-            )
-
-            if motion_active != prev_state_motion:
-                if motion_active:
-                    LED_TOP.set_brightness(100)
-                    DataRepository.create_log(100, led_top_id)
-                    DataRepository.create_log(1, motion_sensor_id)
-                    print("LED TOP: ON")
-                else:
-                    LED_TOP.set_brightness(0)
-                    DataRepository.create_log(0, led_top_id)
-                    print("LED TOP: OFF")
-
-                prev_state_motion = motion_active
-
+            if motion_detected == True:
+                print("Motion detected, turning on LED_TOP")
         except Exception as e:
             logger.error(f"Error in lights_top: {e}")
+            motion_detected = False
 
         await asyncio.sleep(0.1)
 
@@ -436,6 +420,8 @@ async def lifespan_manager(app: FastAPI):
         global HEATING, AIRCO, MCP, CARD_READER
         global temp_id, ip_address
 
+        MOTION_SENSOR = 26
+        GPIO.setup(MOTION_SENSOR, GPIO.IN)
         LED_BUTTON = 13
         GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         POWER_BUTTON = 27
@@ -475,6 +461,10 @@ async def lifespan_manager(app: FastAPI):
         )
         GPIO.add_event_detect(
             POWER_BUTTON, GPIO.FALLING, callback=power_button, bouncetime=150
+        )
+
+        GPIO.add_event_detect(
+            MOTION_SENSOR, GPIO.FALLING, callback=motion_sensor_callback, bouncetime=150
         )
 
         yield
