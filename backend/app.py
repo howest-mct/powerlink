@@ -358,12 +358,12 @@ async def get_wattage():
             else:
                 battery_level = 100.0
 
-            DataRepository.create_log(kw_led_bottom, wh_led_bottom_id)
-            DataRepository.create_log(kw_led_top, wh_led_top_id)
-            DataRepository.create_log(kw_heating, wh_heater_id)
-            DataRepository.create_log(kw_airco, wh_airco_id)
-            DataRepository.create_log(battery_in_power, wh_bat_in_id)
-            DataRepository.create_log(battery_out_power, wh_bat_out_id)
+            # DataRepository.create_log(kw_led_bottom, wh_led_bottom_id)
+            # DataRepository.create_log(kw_led_top, wh_led_top_id)
+            # DataRepository.create_log(kw_heating, wh_heater_id)
+            # DataRepository.create_log(kw_airco, wh_airco_id)
+            # DataRepository.create_log(battery_in_power, wh_bat_in_id)
+            # DataRepository.create_log(battery_out_power, wh_bat_out_id)
 
         except Exception as e:
             logger.error(f"Error in get_wattage: {e}")
@@ -599,7 +599,7 @@ async def connect(sid, environ):
 if __name__ == "__main__":
     uvicorn.run(
         "app:sio_app",
-        host="127.0.0.1",
+        host="0.0.0.0",
         port=8000,
         log_level="info",
         reload=False,

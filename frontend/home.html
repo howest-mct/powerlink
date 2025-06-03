@@ -18,6 +18,9 @@
     <link rel="stylesheet" href="styles/global.css">
     <link rel="stylesheet" href="styles/home.css">
     <link rel="stylesheet" href="styles/footer.css">
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"
+        integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
+        crossorigin="anonymous"></script>
     <script src="script/home.js" defer></script>
 </head>
 
@@ -69,7 +72,7 @@
                         <article class="c-article__solar c-white-background c-hover--shadow"
                             onclick="window.location.href='/frontend/insights.html'">
                             <div class="c-solar">
-                                <h3 class="c-solar_kw">8kW</h3>
+                                <h3 class="c-solar_kw js-solar_value">8kW</h3>
                                 <div class="c-solar__meta">
                                     <p class="c-solar__status">Solar panels</p>
                                     <p class="c-solar__capacity">Charging battery</p>
@@ -82,14 +85,14 @@
                             onclick="window.location.href='/frontend/insights.html'">
                             <div class="c-usage__meta">
                                 <p class="c-usage__title">Today's Energy</p>
-                                <p class="c-usage__value-today">12.5 kWh</p>
+                                <p class="c-usage__value-today js-energy_today_value">12.5 kWh</p>
                             </div>
                         </article>
                         <article class="c-usage c-hover--shadow"
                             onclick="window.location.href='/frontend/insights.html'">
                             <div class="c-usage__meta">
                                 <p class="c-usage__title">Week's Energy</p>
-                                <p class="c-usage__value-week">240 kWh</p>
+                                <p class="c-usage__value-week js-energy_week_value">240 kWh</p>
                             </div>
                         </article>
                     </section>
@@ -124,7 +127,7 @@
                         <div class="c-circular-progress">
                             <div class="c-progress-ring" id="progressRing"></div>
                             <div class="c-temperature-display" id="tempDisplay">
-                                <span id="tempValue">24</span><span class="unit">°C</span>
+                                <span class="js-temperature_value" id="tempValue">24</span><span class="unit">°C</span>
                             </div>
                         </div>
                         <div class="c-controls">
@@ -183,7 +186,7 @@
                     <article class="c-article__door-log c-hover--shadow c-grey-background"
                         onclick="window.location.href='/frontend/insights.html'">
                         <div class="c-door-log">
-                            <p class="c-door__name">Michiel</p>
+                            <p class="c-door__name js-door_name">Michiel</p>
                             <div class="c-door__meta">
                                 <p class="c-door__last">Last entered</p>
                                 <p class="c-door__date">Today at 11:00 AM</p>

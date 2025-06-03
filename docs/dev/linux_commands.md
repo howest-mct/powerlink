@@ -17,3 +17,7 @@
 - ls /dev/spidev\* => List SPI devices
 - sudo nano /boot/firmware/config.txt
 - add -> dtoverlay=spi1-2cs
+
+### RPI Monitoring
+
+- RPI CPU temp => vcgencmd measure_temp

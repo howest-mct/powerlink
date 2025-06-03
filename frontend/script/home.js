@@ -1,55 +1,12 @@
-function showSliders(sliderId, valueDisplayId, bulbIconId) {
-  const slider = document.getElementById(sliderId);
-  const valueDisplay = document.getElementById(valueDisplayId);
-  const bulbIcon = document.getElementById(bulbIconId);
-  const bulbSvg = bulbIcon?.querySelector('svg');
+'use strict';
+const lanIP = `http://192.168.168.169:8000`;
+const socketio = io(lanIP);
+const ENDPOINT = 'http://192.168.168.169:8000/api/v1';
 
-  if (!slider || !valueDisplay || !bulbIcon || !bulbSvg) {
-    console.error(`Slider elements not found: ${sliderId}, ${valueDisplayId}, ${bulbIconId}`);
-    return;
-  }
+// #region ***  DOM references                           ***********
+// #endregion
 
-  slider.removeAttribute('title');
-  valueDisplay.removeAttribute('title');
-  bulbIcon.removeAttribute('title');
-
-  function updateSliderVisuals(value) {
-    const percentage = value;
-    slider.style.background = `linear-gradient(to right, var(--main-color) 0%, var(--main-color) ${percentage}%, #e0e0e0 ${percentage}%, #e0e0e0 100%)`;
-
-    if (value > 0) {
-      bulbSvg.style.fill = '#4A90E2';
-      bulbSvg.style.opacity = '1';
-    } else {
-      bulbSvg.style.fill = '#7B7B7B';
-      bulbSvg.style.opacity = '0.5';
-    }
-  }
-
-  slider.addEventListener('input', function () {
-    const value = parseInt(this.value, 10);
-    updateSliderVisuals(value);
-  });
-
-  slider.addEventListener('mousedown', function () {
-    this.classList.add('active');
-  });
-
-  slider.addEventListener('mouseup', function () {
-    this.classList.remove('active');
-  });
-
-  slider.addEventListener('touchstart', function () {
-    this.classList.add('active');
-  });
-
-  slider.addEventListener('touchend', function () {
-    this.classList.remove('active');
-  });
-
-  const initialValue = parseInt(slider.value, 10);
-  updateSliderVisuals(initialValue);
-}
+// #region ***  Callback-Visualisation - showVisuals         ***********
 
 function showDropdown() {
   const hamburger = document.querySelector('.c-hamburger');
@@ -125,6 +82,105 @@ function showDropdown() {
     }
   });
 }
+
+function showSliders(sliderId, valueDisplayId, bulbIconId) {
+  const slider = document.getElementById(sliderId);
+  const valueDisplay = document.getElementById(valueDisplayId);
+  const bulbIcon = document.getElementById(bulbIconId);
+  const bulbSvg = bulbIcon?.querySelector('svg');
+
+  if (!slider || !valueDisplay || !bulbIcon || !bulbSvg) {
+    console.error(`Slider elements not found: ${sliderId}, ${valueDisplayId}, ${bulbIconId}`);
+    return;
+  }
+
+  slider.removeAttribute('title');
+  valueDisplay.removeAttribute('title');
+  bulbIcon.removeAttribute('title');
+
+  function updateSliderVisuals(value) {
+    const percentage = value;
+    slider.style.background = `linear-gradient(to right, var(--main-color) 0%, var(--main-color) ${percentage}%, #e0e0e0 ${percentage}%, #e0e0e0 100%)`;
+
+    if (value > 0) {
+      bulbSvg.style.fill = '#4A90E2';
+      bulbSvg.style.opacity = '1';
+    } else {
+      bulbSvg.style.fill = '#7B7B7B';
+      bulbSvg.style.opacity = '0.5';
+    }
+  }
+
+  slider.addEventListener('input', function () {
+    const value = parseInt(this.value, 10);
+    updateSliderVisuals(value);
+  });
+
+  slider.addEventListener('mousedown', function () {
+    this.classList.add('active');
+  });
+
+  slider.addEventListener('mouseup', function () {
+    this.classList.remove('active');
+  });
+
+  slider.addEventListener('touchstart', function () {
+    this.classList.add('active');
+  });
+
+  slider.addEventListener('touchend', function () {
+    this.classList.remove('active');
+  });
+
+  const initialValue = parseInt(slider.value, 10);
+  updateSliderVisuals(initialValue);
+}
+
+// #endregion
+
+// #region ***  Callback-Visualisation - showData         ***********
+const showBatteryIn = (json) => {
+  let batteryInTotal = 0;
+  for (const log of json) {
+    const batteryIn = parseFloat(log.value);
+    batteryInTotal += batteryIn;
+  }
+  const solarDisplay = document.querySelector('.js-solar_value');
+  solarDisplay.innerHTML = batteryInTotal + ' Watt';
+};
+
+const showTemperature = (json) => {
+  const temp = parseFloat(json.value).toFixed(1);
+  const tempDisplay = document.querySelector('.js-temperature_value');
+  tempDisplay.innerHTML = temp;
+};
+
+const showEnergyToday = (json) => {
+  let energyTodayTotal = 0;
+  for (const log of json) {
+    const energyToday = parseFloat(log.value);
+    energyTodayTotal += energyToday;
+    console.log('Energy Today:', energyToday, 'Total:', energyTodayTotal);
+  }
+  const energyTodayDisplay = document.querySelector('.js-energy_today_value');
+  energyTodayDisplay.innerHTML = energyTodayTotal + ' Watt';
+};
+
+const showEnergyWeek = (json) => {
+  let energyWeekTotal = 0;
+  for (const log of json) {
+    const energyWeek = parseFloat(log.value);
+    energyWeekTotal += energyWeek;
+    console.log('Energy Week:', energyWeek, 'Total:', energyWeekTotal);
+  }
+  const energyWeekDisplay = document.querySelector('.js-energy_week_value');
+  energyWeekDisplay.innerHTML = energyWeekTotal + ' Watt';
+};
+// #endregion ***  Callback-Visualisation - showData         ***********
+
+// #endregion ***  Callback-Visualisation - showVisuals         ***********
+
+// #region ***  Callback-No Visualisation - callback___  ***********
 
 class TemperatureControl {
   constructor() {
@@ -314,13 +370,63 @@ class TemperatureControl {
     });
   }
 }
+// #endregion
+
+// #region ***  Data Access - get___                     ***********
+const getBatteryIn = async () => {
+  const url = ENDPOINT + `/logs/17/24h/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  showBatteryIn(json);
+};
+
+const getTemperature = async () => {
+  const url = ENDPOINT + `/logs/11/last/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  showTemperature(json);
+};
+
+const getEnergyToday = async () => {
+  const url = ENDPOINT + `/logs/18/24h/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  showEnergyToday(json);
+};
+
+const getEnergyWeek = async () => {
+  const url = ENDPOINT + `/logs/18/week/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  showEnergyWeek(json);
+};
+
+const getLastDoor = async () => {
+  const url = ENDPOINT + `/logs/19/last/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+};
+// #endregion
+
+// #region ***  Event Listeners - listenTo___            ***********
+// #endregion
+
+// #region ***  Init / DOMContentLoaded                  ***********
+
 const init = () => {
   console.info('DOM loaded');
-  showSliders('lightSliderLower', 'valueDisplayLower', 'bulbIconLower');
-  showSliders('lightSliderUpper', 'valueDisplayUpper', 'bulbIconUpper');
-  showDropdown();
-  new TemperatureControl();
-  console.info('All components initialized');
+  // showSliders('lightSliderLower', 'valueDisplayLower', 'bulbIconLower');
+  // showSliders('lightSliderUpper', 'valueDisplayUpper', 'bulbIconUpper');
+  // showDropdown();
+  // new TemperatureControl();
+  // console.info('All components initialized');
+
+  getTemperature();
+  getBatteryIn();
+  getEnergyToday();
+  getEnergyWeek();
+  getLastDoor();
 };
 
 document.addEventListener('DOMContentLoaded', init);
+// #endregion
