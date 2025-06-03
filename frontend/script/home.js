@@ -149,18 +149,11 @@ const showBatteryIn = (json) => {
   solarDisplay.innerHTML = batteryInTotal + ' Watt';
 };
 
-const showTemperature = (json) => {
-  const temp = parseFloat(json.value).toFixed(1);
-  const tempDisplay = document.querySelector('.js-temperature_value');
-  tempDisplay.innerHTML = temp;
-};
-
 const showEnergyToday = (json) => {
   let energyTodayTotal = 0;
   for (const log of json) {
     const energyToday = parseFloat(log.value);
     energyTodayTotal += energyToday;
-    console.log('Energy Today:', energyToday, 'Total:', energyTodayTotal);
   }
   const energyTodayDisplay = document.querySelector('.js-energy_today_value');
   energyTodayDisplay.innerHTML = energyTodayTotal + ' Watt';
@@ -171,11 +164,63 @@ const showEnergyWeek = (json) => {
   for (const log of json) {
     const energyWeek = parseFloat(log.value);
     energyWeekTotal += energyWeek;
-    console.log('Energy Week:', energyWeek, 'Total:', energyWeekTotal);
   }
   const energyWeekDisplay = document.querySelector('.js-energy_week_value');
   energyWeekDisplay.innerHTML = energyWeekTotal + ' Watt';
 };
+
+const showTemperature = (json) => {
+  const temperatureDisplay = document.querySelector('.js-temperature_value');
+  const temperature = parseFloat(json.value);
+  if (!isNaN(temperature)) {
+    temperatureDisplay.innerHTML = temperature.toFixed(1);
+  } else {
+    console.error('Invalid temperature value:', json.value);
+    temperatureDisplay.innerHTML = 'N/A';
+  }
+};
+
+const showTemperatureSchedule = (json, json2) => {
+  const scheduleEnabled = json.enabled;
+  const scheduleEnabled2 = json2.enabled;
+  const scheduleDisplay = document.querySelector('.js-temperature_schedule');
+  if (scheduleEnabled === scheduleEnabled2) {
+    if (scheduleEnabled) {
+      scheduleDisplay.innerHTML = `Schedule active`;
+      scheduleDisplay.classList.add('c-active');
+    } else {
+      scheduleDisplay.innerHTML = `Schedule inactive`;
+      scheduleDisplay.classList.remove('c-active');
+    }
+  } else {
+    console.error('Schedules enable dont correspond');
+  }
+};
+
+const showLightingLowerSchedule = (json) => {
+  const lightingLowerScheduleDisplay = document.querySelector('.js-schedule_lower');
+  const scheduleEnabled = json.enabled;
+  if (scheduleEnabled) {
+    lightingLowerScheduleDisplay.innerHTML = `Schedule active`;
+    lightingLowerScheduleDisplay.classList.add('c-active');
+  } else {
+    lightingLowerScheduleDisplay.innerHTML = `Schedule inactive`;
+    lightingLowerScheduleDisplay.classList.remove('c-active');
+  }
+};
+
+const showLightingUpperSchedule = (json) => {
+  const lightingUpperScheduleDisplay = document.querySelector('.js-schedule_upper');
+  const scheduleEnabled = json.enabled;
+  if (scheduleEnabled) {
+    lightingUpperScheduleDisplay.innerHTML = `Schedule active`;
+    lightingUpperScheduleDisplay.classList.add('c-active');
+  } else {
+    lightingUpperScheduleDisplay.innerHTML = `Schedule inactive`;
+    lightingUpperScheduleDisplay.classList.remove('c-active');
+  }
+};
+
 // #endregion ***  Callback-Visualisation - showData         ***********
 
 // #endregion ***  Callback-Visualisation - showVisuals         ***********
@@ -380,13 +425,6 @@ const getBatteryIn = async () => {
   showBatteryIn(json);
 };
 
-const getTemperature = async () => {
-  const url = ENDPOINT + `/logs/11/last/`;
-  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showTemperature(json);
-};
-
 const getEnergyToday = async () => {
   const url = ENDPOINT + `/logs/18/24h/`;
   const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
@@ -401,11 +439,48 @@ const getEnergyWeek = async () => {
   showEnergyWeek(json);
 };
 
-const getLastDoor = async () => {
-  const url = ENDPOINT + `/logs/19/last/`;
+const getTemperature = async () => {
+  const url = ENDPOINT + `/logs/11/last/`;
   const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
   const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  showTemperature(json);
 };
+
+const getTemperatureSchedule = async () => {
+  let url = ENDPOINT + `/schedules/1/`;
+  let response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+
+  url = ENDPOINT + `/schedules/2/`;
+  response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json2 = await response.json().catch((err) => console.error('JSON-error:', err));
+
+  showTemperatureSchedule(json, json2);
+};
+
+const getLightingLowerSchedule = async () => {
+  let url = ENDPOINT + `/schedules/3/`;
+  let response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  showLightingLowerSchedule(json);
+};
+
+const getLightingUpperSchedule = async () => {
+  let url = ENDPOINT + `/schedules/4/`;
+  let response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  showLightingUpperSchedule(json);
+};
+
+const getLastDoor = async () => {
+  const url = ENDPOINT + `/logs/10/last/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  getLastInhabitant(json.value);
+};
+
+const getLastInhabitant = (value) => {
+
 // #endregion
 
 // #region ***  Event Listeners - listenTo___            ***********
@@ -421,10 +496,13 @@ const init = () => {
   // new TemperatureControl();
   // console.info('All components initialized');
 
-  getTemperature();
   getBatteryIn();
   getEnergyToday();
   getEnergyWeek();
+  getTemperature();
+  getTemperatureSchedule();
+  getLightingLowerSchedule();
+  getLightingUpperSchedule();
   getLastDoor();
 };
 

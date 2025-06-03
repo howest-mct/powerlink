@@ -601,6 +601,7 @@ body {
 .c-temperature-card__info {
     display: flex;
     flex-direction: column;
+    text-align: left;
 }
 
 .c-temperature-card__status {
