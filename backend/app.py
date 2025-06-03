@@ -61,6 +61,7 @@ wh_airco_id = 16
 wh_bat_in_id = 17
 wh_bat_out_id = 18
 button_power_id = 19
+pot_id = 20
 
 # Devices
 MOTION_SENSOR = None
@@ -122,10 +123,9 @@ GPIO.setmode(GPIO.BCM)
 
 # region Functions ---------------------------------
 def gpio_keep_alive():
-    front_door()
-    lights_outdoors()
-
     while True:
+        front_door()
+        lights_outdoors()
         time.sleep(0.5)
 
 
@@ -134,7 +134,10 @@ def lights_button(pin):
     try:
         switch_state = not switch_state
         DataRepository.create_log(switch_state, button_lights_id)
-        DataRepository.create_log(100, led_bottom_id)
+        if switch_state:
+            DataRepository.create_log(100, led_bottom_id)
+        else:
+            DataRepository.create_log(0, led_bottom_id)
         print("Button pressed, switch state:", switch_state)
     except Exception as e:
         logger.error(f"Error in lights_button: {e}")
@@ -179,11 +182,11 @@ def lights_bottom():
             current_time = time.time()
             if current_time - last_log_time_switch >= 1:
                 LED_BOTTOM.set_brightness(100)
-                DataRepository.create_log(1, button_lights_id)
                 last_log_time_switch = current_time
             previous_state_switch = True
         elif not switch_state:
             LED_BOTTOM.off()
+
             previous_state_switch = False
     except Exception as e:
         logger.error(f"Error in lights_bottom: {e}")
@@ -193,8 +196,8 @@ def lights_outdoors():
     global LED_OUTDOORS, MCP, last_state_led, ldr_value, light_sensor_id, led_outdoors_id
     try:
         ldr_value = round((MCP.read_channel(1) * 100) / 1023, 0)
-        top_limit = 75
-        low_limit = 70
+        top_limit = 35
+        low_limit = 30
         if last_state_led is None or not last_state_led:
             current_state = ldr_value > top_limit
         else:
@@ -214,7 +217,6 @@ def lights_outdoors():
 
 
 def front_door():
-    global DOOR_LOCK, REED_SWITCH, CARD_READER
     global DOOR_LOCK, REED_SWITCH, CARD_READER, scanned_card, door_state
     global solenoid_lock_id, reed_switch_id, card_reader_id
 
@@ -301,7 +303,7 @@ async def display_lcd():
             LCD.string(f"{temp} degrees C", 2)
             await asyncio.sleep(3)
             LCD.string("Current Watt:", 1)
-            LCD.string(f"{current_usage}W", 2)
+            LCD.string(f"{round(current_usage, 3)}W", 2)
             await asyncio.sleep(3)
             LCD.string("Battery level:", 1)
             LCD.string(f"{battery_level}%", 2)
@@ -388,11 +390,13 @@ async def run_lights_bottom():
 
 
 async def run_get_temp():
-    global temp, pot_value
+    global temp, pot_value, temp_id, pot_id, temp_sensor_id
     while True:
-        temp = TEMP_SENSOR.get_temp(temp_id)
-        pot_value = MCP.read_channel(0)
-        await asyncio.sleep(1)
+        temp = float(TEMP_SENSOR.get_temp(temp_id))
+        pot_value = float(MCP.read_channel(0))
+        DataRepository.create_log(temp, temp_sensor_id)
+        DataRepository.create_log(pot_value, pot_id)
+        await asyncio.sleep(3)
 
 
 # endregion Async Containers ******************************
