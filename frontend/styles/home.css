@@ -780,7 +780,6 @@ body {
 .c-lighting-outside__icon {
     width: 2rem;
     height: 2rem;
-    fill: var(--main-color);
 }
 
 .c-lighting-outside__meta {
@@ -794,7 +793,6 @@ body {
 }
 
 .c-lighting-outside__value-today {
-    color: var(--active-color);
     font-size: 0.875rem;
     line-height: 1rem;
 }

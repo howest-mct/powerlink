@@ -216,20 +216,31 @@ def lights_outdoors():
         logger.error(f"Error in lights_outdoors: {e}")
 
 
+def cut_card(card_id):
+    return card_id[:6] + "000000"
+
+
 def front_door():
     global DOOR_LOCK, REED_SWITCH, CARD_READER, scanned_card, door_state
     global solenoid_lock_id, reed_switch_id, card_reader_id
 
     door_state = GPIO.input(REED_SWITCH)
-
     scanned_card = CARD_READER.read()
 
     if scanned_card is not None:
-        print(f"Scanned card: {scanned_card}")
-        try:
-            DataRepository.read_card_by_id(scanned_card)
+        scanned_card = str(scanned_card)
+        snipped_card = cut_card(scanned_card)
+        print(snipped_card)
 
-            DataRepository.create_log(scanned_card, card_reader_id)
+        try:
+            checked_card = DataRepository.read_card_by_id(snipped_card)
+
+            if checked_card is None:
+                logger.error(f"Unauthorized card scanned: {scanned_card}")
+                DataRepository.create_log(-1, card_reader_id)
+                return
+
+            DataRepository.create_log(snipped_card, card_reader_id)
             DOOR_LOCK.unlock()
             logger.debug("Door is unlocked")
             DataRepository.create_log(1, solenoid_lock_id)
@@ -242,7 +253,6 @@ def front_door():
                     logger.info("Door did not open in time (3 seconds)")
                     DOOR_LOCK.lock()
                     DataRepository.create_log(0, solenoid_lock_id)
-                    scanned_card = None
                     return
                 time.sleep(0.1)
 
@@ -257,7 +267,6 @@ def front_door():
                     logger.info("Door did not close in time (3 seconds)")
                     DOOR_LOCK.lock()
                     DataRepository.create_log(0, solenoid_lock_id)
-                    scanned_card = None
                     return
                 time.sleep(0.1)
 
@@ -268,11 +277,8 @@ def front_door():
             logger.debug("Door is locked")
             DataRepository.create_log(0, solenoid_lock_id)
 
-            scanned_card = None
-
         except Exception as e:
             logger.error(f"Error: {e}")
-            scanned_card = None
 
 
 def get_ip(interface):
@@ -582,6 +588,25 @@ async def update_schedule(id: int, schedule: DTOSchedule):
     if updated == 0:
         raise HTTPException(status_code=400, detail="Failed to update schedule")
     return DataRepository.read_schedule_by_id(id)
+
+
+@app.get(
+    ENDPOINT + "/inhabitants/{card_id}/",
+    response_model=Card,
+    summary="Retrieve a inhabitant by ID",
+    response_description="The inhabitant with the specified ID",
+    tags=["inhabitants"],
+)
+async def get_inhabitant_by_id(card_id: int):
+    # Fetch the resource by ID from the repository
+    data = DataRepository.read_inhabitant_by_card_id(card_id)
+    # Check if the resource exists
+    if data is None:
+        raise HTTPException(
+            status_code=404, detail=f"inhabitant with ID {card_id} not found"
+        )
+    # Return the resource
+    return data
 
 
 # endregion FastAPI Endpoints *************************

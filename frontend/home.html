@@ -75,7 +75,7 @@
                                 <h3 class="c-solar_kw js-solar_value">8kW</h3>
                                 <div class="c-solar__meta">
                                     <p class="c-solar__status">Solar panels</p>
-                                    <p class="c-solar__capacity">Charging battery</p>
+                                    <p class="c-solar__capacity js-solar_state">Charging battery</p>
                                 </div>
                             </div>
                         </article>
@@ -186,24 +186,26 @@
                     <article class="c-article__door-log c-hover--shadow c-grey-background"
                         onclick="window.location.href='/frontend/insights.html'">
                         <div class="c-door-log">
-                            <p class="c-door__name js-door_name">Michiel</p>
+                            <p class="c-door__name js-last_inhabitant">Michiel</p>
                             <div class="c-door__meta">
                                 <p class="c-door__last">Last entered</p>
-                                <p class="c-door__date">Today at 11:00 AM</p>
+                                <p class="c-door__date js-last_inhabitant_date">Today at 11:00 AM</p>
                             </div>
                         </div>
                     </article>
                     <article class="c-article__door c-hover--shadow c-grey-background">
                         <div class="c-door">
-                            <svg class="c-door__lock-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48"
-                                fill="#000000" viewBox="0 0 256 256">
-                                <path
-                                    d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Z">
-                                </path>
-                            </svg>
+                            <div class="js-door_state_icon">
+                                <svg class="c-door__lock-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48"
+                                    fill="#000000" viewBox="0 0 256 256">
+                                    <path
+                                        d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Z">
+                                    </path>
+                                </svg>
+                            </div>
                             <div class="c-door__meta">
                                 <p class="c-door__lock">Door lock</p>
-                                <p class="c-door__state">Locked</p>
+                                <p class="c-door__state js-door_state">Locked</p>
                             </div>
                         </div>
                     </article>
@@ -223,7 +225,7 @@
                         </svg>
                         <div class="c-lighting-outside__meta">
                             <p class="c-lighting-outside__title">Lights</p>
-                            <p class="c-lighting-outside__value-today c-active">On</p>
+                            <p class="c-lighting-outside__value-today">On</p>
                         </div>
                     </article>
                 </div>
@@ -242,7 +244,7 @@
                         </svg>
                         <div class="c-powerlink__meta">
                             <p class="c-powerlink__title">PowerLink</p>
-                            <p class="c-powerlink__value-today c-active">Active</p>
+                            <p class="c-powerlink__value-today">Active</p>
                         </div>
                     </article>
                 </div>

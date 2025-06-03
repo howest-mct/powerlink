@@ -6,7 +6,7 @@ const ENDPOINT = 'http://192.168.168.169:8000/api/v1';
 // #region ***  DOM references                           ***********
 // #endregion
 
-// #region ***  Callback-Visualisation - showVisuals         ***********
+// #region ***  Callback-Visualisation - showVisuals     ***********
 
 function showDropdown() {
   const hamburger = document.querySelector('.c-hamburger');
@@ -98,7 +98,7 @@ function showSliders(sliderId, valueDisplayId, bulbIconId) {
   valueDisplay.removeAttribute('title');
   bulbIcon.removeAttribute('title');
 
-  function updateSliderVisuals(value) {
+  function updateVisuals(value) {
     const percentage = value;
     slider.style.background = `linear-gradient(to right, var(--main-color) 0%, var(--main-color) ${percentage}%, #e0e0e0 ${percentage}%, #e0e0e0 100%)`;
 
@@ -109,11 +109,13 @@ function showSliders(sliderId, valueDisplayId, bulbIconId) {
       bulbSvg.style.fill = '#7B7B7B';
       bulbSvg.style.opacity = '0.5';
     }
+
+    valueDisplay.textContent = value.toFixed(1);
   }
 
   slider.addEventListener('input', function () {
-    const value = parseInt(this.value, 10);
-    updateSliderVisuals(value);
+    const value = parseFloat(this.value);
+    updateVisuals(value);
   });
 
   slider.addEventListener('mousedown', function () {
@@ -132,21 +134,31 @@ function showSliders(sliderId, valueDisplayId, bulbIconId) {
     this.classList.remove('active');
   });
 
-  const initialValue = parseInt(slider.value, 10);
-  updateSliderVisuals(initialValue);
+  const initialValue = parseFloat(slider.value);
+  updateVisuals(initialValue);
 }
 
 // #endregion
 
 // #region ***  Callback-Visualisation - showData         ***********
+
 const showBatteryIn = (json) => {
+  const solarDisplay = document.querySelector('.js-solar_value');
+  const solarState = document.querySelector('.js-solar_state');
+
   let batteryInTotal = 0;
   for (const log of json) {
     const batteryIn = parseFloat(log.value);
     batteryInTotal += batteryIn;
   }
-  const solarDisplay = document.querySelector('.js-solar_value');
   solarDisplay.innerHTML = batteryInTotal + ' Watt';
+
+  const lastValue = parseFloat(json[json.length - 1].value);
+  if (lastValue > 0) {
+    solarState.innerHTML = 'Charging battery';
+  } else {
+    solarState.innerHTML = 'Inactive';
+  }
 };
 
 const showEnergyToday = (json) => {
@@ -169,17 +181,6 @@ const showEnergyWeek = (json) => {
   energyWeekDisplay.innerHTML = energyWeekTotal + ' Watt';
 };
 
-const showTemperature = (json) => {
-  const temperatureDisplay = document.querySelector('.js-temperature_value');
-  const temperature = parseFloat(json.value);
-  if (!isNaN(temperature)) {
-    temperatureDisplay.innerHTML = temperature.toFixed(1);
-  } else {
-    console.error('Invalid temperature value:', json.value);
-    temperatureDisplay.innerHTML = 'N/A';
-  }
-};
-
 const showTemperatureSchedule = (json, json2) => {
   const scheduleEnabled = json.enabled;
   const scheduleEnabled2 = json2.enabled;
@@ -194,6 +195,36 @@ const showTemperatureSchedule = (json, json2) => {
     }
   } else {
     console.error('Schedules enable dont correspond');
+  }
+};
+
+const showLightingLower = (json) => {
+  const slider = document.getElementById('lightSliderLower');
+  const value = parseFloat(json.value);
+  if (!isNaN(value)) {
+    slider.value = value;
+    const event = new Event('input', { bubbles: true });
+    slider.dispatchEvent(event);
+  } else {
+    console.error('Invalid lighting lower value:', json.value);
+    slider.value = 0;
+    const event = new Event('input', { bubbles: true });
+    slider.dispatchEvent(event);
+  }
+};
+
+const showLightingUpper = (json) => {
+  const slider = document.getElementById('lightSliderUpper');
+  const value = parseFloat(json.value);
+  if (!isNaN(value)) {
+    slider.value = value;
+    const event = new Event('input', { bubbles: true });
+    slider.dispatchEvent(event);
+  } else {
+    console.error('Invalid lighting upper value:', json.value);
+    slider.value = 0;
+    const event = new Event('input', { bubbles: true });
+    slider.dispatchEvent(event);
   }
 };
 
@@ -221,11 +252,49 @@ const showLightingUpperSchedule = (json) => {
   }
 };
 
-// #endregion ***  Callback-Visualisation - showData         ***********
+const showLastInhabitant = (json, datetime) => {
+  const lastInhabitantDisplay = document.querySelector('.js-last_inhabitant');
+  lastInhabitantDisplay.innerHTML = json.first_name;
+  const lastInhabitantDateDisplay = document.querySelector('.js-last_inhabitant_date');
+  const displayedDate = formatDateTime(datetime);
+  lastInhabitantDateDisplay.innerHTML = displayedDate;
+};
 
-// #endregion ***  Callback-Visualisation - showVisuals         ***********
+const showLockState = (json) => {
+  const doorStateDisplay = document.querySelector('.js-door_state');
+  const doorStateIcon = document.querySelector('.js-door_state_icon');
+  const doorState = parseInt(json.value);
+
+  if (doorState === 0) {
+    doorStateIcon.innerHTML = `
+      <svg class="c-door__lock-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#000000" viewBox="0 0 256 256"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Z"></path></svg>`;
+    doorStateDisplay.innerHTML = 'Locked';
+    doorStateDisplay.classList.remove('c-active');
+  } else {
+    doorStateIcon.innerHTML = `
+      <svg class="c-door__lock-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#000000" viewBox="0 0 256 256"><path d="M208,80H96V56a32,32,0,0,1,32-32c15.37,0,29.2,11,32.16,25.59a8,8,0,0,0,15.68-3.18C171.32,24.15,151.2,8,128,8A48.05,48.05,0,0,0,80,56V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm0,128H48V96H208V208Z"></path></svg>`;
+    doorStateDisplay.innerHTML = 'Unlocked';
+    doorStateDisplay.classList.add('c-active');
+  }
+};
+
+// #endregion
 
 // #region ***  Callback-No Visualisation - callback___  ***********
+
+const formatDateTime = (isoString) => {
+  const date = new Date(isoString);
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+// #endregion
+
+// #region ***  TemperatureControl Class                 ***********
 
 class TemperatureControl {
   constructor() {
@@ -288,6 +357,19 @@ class TemperatureControl {
     this.increaseBtn.style.opacity = this.temperature >= this.maxTemp ? '0.3' : '1';
   }
 
+  setTemperature(newTemp) {
+    let temp = parseFloat(newTemp);
+    if (isNaN(temp)) {
+      console.error('Invalid temperature value:', newTemp);
+      return;
+    }
+
+    temp = Math.max(this.minTemp, Math.min(this.maxTemp, temp));
+    temp = Math.round(temp / this.increment) * this.increment;
+    this.temperature = Math.round(temp * 10) / 10;
+    this.updateDisplay();
+  }
+
   increaseTemp() {
     if (this.temperature < this.maxTemp) {
       this.temperature = Math.round((this.temperature + this.increment) * 10) / 10;
@@ -328,8 +410,6 @@ class TemperatureControl {
       padding: 0;
       box-sizing: border-box;
     `;
-
-    const originalText = this.tempDisplay.textContent;
 
     this.tempDisplay.textContent = '';
     this.tempDisplay.appendChild(input);
@@ -382,10 +462,7 @@ class TemperatureControl {
     input.addEventListener('input', () => {
       const value = parseFloat(input.value);
       if (!isNaN(value)) {
-        if (value < this.minTemp) {
-          input.style.borderColor = '#ff4444';
-          input.style.border = '1px solid #ff4444';
-        } else if (value > this.maxTemp) {
+        if (value < this.minTemp || value > this.maxTemp) {
           input.style.borderColor = '#ff4444';
           input.style.border = '1px solid #ff4444';
         } else {
@@ -415,9 +492,11 @@ class TemperatureControl {
     });
   }
 }
+
 // #endregion
 
 // #region ***  Data Access - get___                     ***********
+
 const getBatteryIn = async () => {
   const url = ENDPOINT + `/logs/17/24h/`;
   const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
@@ -439,11 +518,18 @@ const getEnergyWeek = async () => {
   showEnergyWeek(json);
 };
 
-const getTemperature = async () => {
-  const url = ENDPOINT + `/logs/11/last/`;
+const getLightingLower = async () => {
+  const url = ENDPOINT + `/logs/3/last/`;
   const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
   const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showTemperature(json);
+  showLightingLower(json);
+};
+
+const getLightingUpper = async () => {
+  const url = ENDPOINT + `/logs/4/last/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  showLightingUpper(json);
 };
 
 const getTemperatureSchedule = async () => {
@@ -476,10 +562,23 @@ const getLastDoor = async () => {
   const url = ENDPOINT + `/logs/10/last/`;
   const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
   const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  getLastInhabitant(json.value);
+  getLastInhabitant(json.value, json.datetime);
 };
 
-const getLastInhabitant = (value) => {
+const getLastInhabitant = async (value, datetime) => {
+  const card_id = String(value);
+  const url = ENDPOINT + `/inhabitants/${card_id}/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  showLastInhabitant(json, datetime);
+};
+
+const getLockState = async () => {
+  const url = ENDPOINT + `/logs/6/last/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  showLockState(json);
+};
 
 // #endregion
 
@@ -488,23 +587,26 @@ const getLastInhabitant = (value) => {
 
 // #region ***  Init / DOMContentLoaded                  ***********
 
+let tempControl; // Global instance for TemperatureControl
+
 const init = () => {
   console.info('DOM loaded');
-  // showSliders('lightSliderLower', 'valueDisplayLower', 'bulbIconLower');
-  // showSliders('lightSliderUpper', 'valueDisplayUpper', 'bulbIconUpper');
-  // showDropdown();
-  // new TemperatureControl();
-  // console.info('All components initialized');
-
+  showSliders('lightSliderLower', 'valueDisplayLower', 'bulbIconLower');
+  showSliders('lightSliderUpper', 'valueDisplayUpper', 'bulbIconUpper');
+  showDropdown();
+  tempControl = new TemperatureControl();
   getBatteryIn();
   getEnergyToday();
   getEnergyWeek();
-  getTemperature();
   getTemperatureSchedule();
+  getLightingLower();
+  getLightingUpper();
   getLightingLowerSchedule();
   getLightingUpperSchedule();
   getLastDoor();
+  getLockState();
 };
 
 document.addEventListener('DOMContentLoaded', init);
+
 // #endregion
