@@ -55,6 +55,19 @@ class DataRepository:
         return Database.get_one_row(sql, params)
 
     @staticmethod
+    def read_all_last_logs(component_id):
+        sql = """
+            SELECT cl.*, c.component_name, c.value_unit, r.room_name 
+            FROM component_logs cl
+            JOIN components c ON cl.component_id = c.component_id
+            JOIN rooms r ON c.room_id = r.room_id
+            ORDER BY cl.datetime DESC 
+            LIMIT 1
+        """
+        params = [component_id]
+        return Database.get_one_row(sql, params)
+
+    @staticmethod
     def read_logs_last_24_hours_by_component_id(component_id):
         one_day_ago = datetime.now() - timedelta(days=1)
         sql = """

@@ -447,7 +447,6 @@ const getAllSchedules = async () => {
   const url_params = new URLSearchParams(window.location.search);
   const url_param = url_params.get('param');
   const url = ENDPOINT + `/schedules/${url_param}/`;
-  console.log(url_param);
   const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
   const json = await response.json().catch((err) => console.error('JSON-error:', err));
   showAllSchedules(json);
