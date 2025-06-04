@@ -382,10 +382,6 @@ class SolenoidLock:
         GPIO.cleanup(self.control_pin)
 
 
-import RPi.GPIO as GPIO
-import time
-
-
 class ServoLock:
     def __init__(self, control_pin, freq=50):
         self.control_pin = control_pin
@@ -579,10 +575,10 @@ class PowerMonitoringSystem:
 
         # Define sensor mapping to TCA channels
         self.sensors = {
-            "led_bottom": 7,
-            "led_top": 6,
-            "heating": 5,
-            "airco": 4,
+            "led_bottom": 6,
+            "led_top": 7,
+            "heating": 4,
+            "airco": 5,
             "battery_in": 3,
             "battery_out": 2,
         }

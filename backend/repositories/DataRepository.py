@@ -157,7 +157,7 @@ class DataRepository:
     # region Update ---------------------------------
 
     @staticmethod
-    def update_schedule(schedule_id, start_time, end_time, value, enabled):
+    def update_lighting_schedule(schedule_id, start_time, end_time, value, enabled):
         sql = "UPDATE schedules SET start_time = %s, end_time = %s, value = %s, enabled = %s WHERE schedule_id = %s"
         params = [start_time, end_time, value, enabled, schedule_id]
         return Database.execute_sql(sql, params)

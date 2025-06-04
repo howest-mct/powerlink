@@ -151,7 +151,15 @@ body {
     text-decoration: underline;
 }
 
-
+.c-loading-message{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20rem;
+    font-family: "Manrope", sans-serif;
+    font-size: 2rem;
+    color: var(--main-color);
+}
 
 .c-overlay {
     position: fixed;
@@ -316,6 +324,26 @@ body {
     border: solid 0.0625rem var(--border-color);
     padding: 0.5rem;
     font-size: 0.875rem;
+    transition: background-color 0.2s ease;
+    height: 100%;
+}
+.c-lighting-card__schedule-save{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: fit-content;
+    gap: 0.25rem;
+    border: solid 0.0625rem var(--border-color);
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    transition: background-color 0.2s ease;
+    height: 100%;
+}
+.c-lighting-card__schedule-save:hover {
+    background-color: var(--main-color);
+    color: var(--white-color);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
 
@@ -397,6 +425,12 @@ body {
     pointer-events: none;
 }
 
+.c-schedule-card__header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .c-schedule-card__title{
     display: flex;
 }
@@ -407,51 +441,6 @@ body {
     max-width: 100%;
     width: 100%;
     box-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.1);
-}
-
-.c-circular-progress {
-    font-size: 1.6rem;
-    max-height: 9.5rem;
-}
-
-.c-progress-ring {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 15.625rem;
-    height: 15.625rem;
-    transform: rotate(-90deg);
-}
-
-.c-segment {
-    position: absolute;
-    width: 0.25rem;
-    height: 1.875rem;
-    border-radius: 0.125rem;
-    transform-origin: 0.125rem 7.8125rem;
-    transition: all 0.3s ease;
-}
-
-.c-segment.active {
-    background: linear-gradient(45deg, #4A90E2, #5BA7F7);
-}
-
-.c-segment.inactive {
-    background: var(--border-color);
-}
-
-.c-temperature-display {
-    position: absolute;
-    top: 7.8125rem;
-    left: 50%;
-    transform: translate(-50%, -100%);
-    font-size: 2.025rem;
-    color: #333;
-}
-
-.c-temperature-display .unit {
-    font-size: 1.5rem;
-    vertical-align: top;
 }
 
 .c-controls {
@@ -558,6 +547,64 @@ body {
 .c-grey-background {
     background-color: var(--background-color);
 }
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+input:checked+.slider {
+    background-color: #2196F3;
+}
+
+input:focus+.slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked+.slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%; }
 
 @media (min-width: 48rem) {
 

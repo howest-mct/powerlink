@@ -16,7 +16,15 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from repositories.DataRepository import DataRepository
-from models.backend_models import Log, DTOLog, Schedule, DTOSchedule, Card, DTOCard
+from models.backend_models import (
+    Log,
+    DTOLog,
+    Schedule,
+    DTOSchedule,
+    Card,
+    DTOCard,
+    UpdatedSchedule,
+)
 
 from models.device_models import (
     DS18B20,
@@ -43,7 +51,7 @@ logger = logging.getLogger(__name__)
 # region Global Variables ---------------------------------
 # Database IDs
 heater_id = 1
-airco_id = 2
+fan_id = 2
 led_bottom_id = 3
 led_top_id = 4
 led_outdoors_id = 5
@@ -373,12 +381,12 @@ async def get_wattage():
                 f"Current Usage: {current_usage}W, Battery Level: {battery_level}%"
             )
 
-            # DataRepository.create_log(kw_led_bottom, wh_led_bottom_id)
-            # DataRepository.create_log(kw_led_top, wh_led_top_id)
-            # DataRepository.create_log(kw_heating, wh_heater_id)
-            # DataRepository.create_log(kw_airco, wh_airco_id)
-            # DataRepository.create_log(battery_in_power, wh_bat_in_id)
-            # DataRepository.create_log(battery_out_power, wh_bat_out_id)
+            DataRepository.create_log(kw_led_bottom, wh_led_bottom_id)
+            DataRepository.create_log(kw_led_top, wh_led_top_id)
+            DataRepository.create_log(kw_heating, wh_heater_id)
+            DataRepository.create_log(kw_airco, wh_airco_id)
+            DataRepository.create_log(battery_in_power, wh_bat_in_id)
+            DataRepository.create_log(battery_out_power, wh_bat_out_id)
 
         except Exception as e:
             logger.error(f"Error in get_wattage: {e}")
@@ -393,7 +401,7 @@ async def get_wattage():
 
 
 async def climate_control(target_temp, temp_id):
-    global HEATING, AIRCO, temp
+    global HEATING, AIRCO, temp, temp_sensor_id
     hysteresis = 0.5
     max_range = 2.0
     lower_bound = target_temp - hysteresis / 2
@@ -406,39 +414,46 @@ async def climate_control(target_temp, temp_id):
     try:
         while True:
             current_temp = TEMP_SENSOR.get_temp(temp_id)
-            print(f"Current temperature: {current_temp}°C")
+            DataRepository.create_log(current_temp, temp_sensor_id)
 
             if current_temp < lower_bound:
                 if current_temp <= max_lower:
                     heater_power = 100
-                else:
+                    DataRepository.create_log(100, heater_id)
+                    DataRepository.create_log(0, fan_id)
 
+                else:
                     heater_power = min_heater_power + (100 - min_heater_power) * (
                         lower_bound - current_temp
                     ) / (lower_bound - max_lower)
+                    DataRepository.create_log(heater_power, heater_id)
+                    DataRepository.create_log(0, fan_id)
+
                 HEATING.set_power(max(0, min(100, heater_power)))
                 AIRCO.stop()
-                print(f"Heater power: {heater_power:.1f}%, Fan off")
 
             elif current_temp > upper_bound:
                 if current_temp >= max_upper:
                     fan_speed = 100
+                    DataRepository.create_log(100, fan_id)
+                    DataRepository.create_log(0, heater_id)
 
                 else:
                     fan_speed = min_fan_speed + (100 - min_fan_speed) * (
                         current_temp - upper_bound
                     ) / (max_upper - upper_bound)
+                    DataRepository.create_log(fan_speed, fan_id)
+                    DataRepository.create_log(0, heater_id)
+
                 AIRCO.set_speed(max(0, min(100, fan_speed)))
                 HEATING.off()
-                print(f"Fan speed: {fan_speed:.1f}%, Heater off")
 
             else:
-                print("Within hysteresis band: no changes")
                 pass
 
             temp = current_temp
 
-            await asyncio.sleep(1)
+            await asyncio.sleep(3)
 
     except Exception as e:
         logger.error(f"Error in climate_control: {e}")
@@ -473,71 +488,74 @@ async def lifespan_manager(app: FastAPI):
         global HEATING, AIRCO, MCP, CARD_READER
         global temp_id, ip_address
 
-        # MOTION_SENSOR = 26
-        # GPIO.setup(MOTION_SENSOR, GPIO.IN)
-        # LED_BUTTON = 13
-        # GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        # POWER_BUTTON = 27
-        # GPIO.setup(POWER_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        # REED_SWITCH = 22
-        # GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        # TEMP_SENSOR = DS18B20()
-        # temp_id = TEMP_SENSOR.get_id()
-        # CARD_READER = RFIDReader()
-        # LCD = LCD_Display(0x38, 5, 6)
-        # DOOR_LOCK = SolenoidLock(18)
-        # LED_OUTDOORS = LED(14)
-        # LED_BOTTOM = LED(25)
-        # LED_TOP = LED(21)
-        # HEATING = HeatingPad(20)
-        # AIRCO = DCMotor(12)
-        # MCP = MCP3008(0, 1)
-        # I2C_EXPANDER = TCA9548A()
+        MOTION_SENSOR = 26
+        GPIO.setup(MOTION_SENSOR, GPIO.IN)
+        LED_BUTTON = 13
+        GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        POWER_BUTTON = 27
+        GPIO.setup(POWER_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        REED_SWITCH = 22
+        GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        TEMP_SENSOR = DS18B20()
+        temp_id = TEMP_SENSOR.get_id()
+        CARD_READER = RFIDReader()
+        LCD = LCD_Display(0x38, 5, 6)
+        DOOR_LOCK = SolenoidLock(18)
+        LED_OUTDOORS = LED(14)
+        LED_BOTTOM = LED(25)
+        LED_TOP = LED(21)
+        HEATING = HeatingPad(20)
+        AIRCO = DCMotor(12)
+        MCP = MCP3008(0, 1)
+        I2C_EXPANDER = TCA9548A()
 
-        # threading.Thread(
-        #     target=gpio_keep_alive,
-        #     daemon=True,
-        # ).start()
+        threading.Thread(
+            target=gpio_keep_alive,
+            daemon=True,
+        ).start()
 
-        # tasks = [
-        # asyncio.create_task(run_lights_bottom()),
-        # asyncio.create_task(lights_top()),
-        # asyncio.create_task(display_lcd()),
-        # asyncio.create_task(get_wattage()),
-        # asyncio.create_task(climate_control(25.0, temp_id)),
-        # ]
+        tasks = [
+            asyncio.create_task(run_lights_bottom()),
+            asyncio.create_task(lights_top()),
+            asyncio.create_task(display_lcd()),
+            asyncio.create_task(get_wattage()),
+            asyncio.create_task(climate_control(25.0, temp_id)),
+        ]
 
-        # GPIO.add_event_detect(
-        #     LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=150
-        # )
-        # GPIO.add_event_detect(
-        #     POWER_BUTTON, GPIO.FALLING, callback=power_button, bouncetime=150
-        # )
+        GPIO.add_event_detect(
+            LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=150
+        )
+        GPIO.add_event_detect(
+            POWER_BUTTON, GPIO.FALLING, callback=power_button, bouncetime=150
+        )
 
-        # GPIO.add_event_detect(
-        #     MOTION_SENSOR, GPIO.FALLING, callback=motion_sensor_callback, bouncetime=150
-        # )
+        GPIO.add_event_detect(
+            MOTION_SENSOR,
+            GPIO.FALLING,
+            callback=motion_sensor_callback,
+            bouncetime=4000,
+        )
 
         yield
 
     finally:
         logger.info("Shutting down application...")
-        # for task in tasks:
-        #     task.cancel()
-        # await asyncio.gather(*tasks, return_exceptions=True)
-        # CARD_READER.cleanup()
-        # LCD.close()
-        # DOOR_LOCK.cleanup()
-        # LED_OUTDOORS.cleanup()
-        # LED_BOTTOM.cleanup()
-        # LED_TOP.cleanup()
-        # HEATING.cleanup()
-        # AIRCO.cleanup()
-        # MCP.close()
-        # GPIO.cleanup()
-        # I2C_EXPANDER.close()
-        # CARD_READER.cleanup()
-        # power_monitor.close()
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        CARD_READER.cleanup()
+        LCD.close()
+        DOOR_LOCK.cleanup()
+        LED_OUTDOORS.cleanup()
+        LED_BOTTOM.cleanup()
+        LED_TOP.cleanup()
+        HEATING.cleanup()
+        AIRCO.cleanup()
+        MCP.close()
+        GPIO.cleanup()
+        I2C_EXPANDER.close()
+        CARD_READER.cleanup()
+        power_monitor.close()
         logger.info("GPIO cleaned up. Bye!")
 
 
@@ -635,15 +653,12 @@ async def get_logs_between_1_and_2_weeks_by_component_id(id: int):
     tags=["schedules"],
 )
 async def get_all_schedules(frame_name: str):
-    # Fetch all resources from the repository
     print(frame_name)
     data = DataRepository.read_all_schedules_by_frame_id(frame_name)
-    # Check if resources exist
     if data is None or len(data) == 0:
         raise HTTPException(
             status_code=404, detail=f"No schedules found in the database"
         )
-    # Return the list of resources
     return data
 
 
@@ -655,12 +670,16 @@ async def get_schedule_by_id(id: int):
     return data
 
 
-@app.put(ENDPOINT + "/schedules/{id}/", response_model=Schedule, tags=["schedules"])
-async def update_schedule(id: int, schedule: DTOSchedule):
+@app.put(
+    ENDPOINT + "/schedules/{id}/lighting/",
+    response_model=UpdatedSchedule,
+    tags=["schedules"],
+)
+async def update_lighting_schedule(id: int, schedule: DTOSchedule):
     existing = DataRepository.read_schedule_by_id(id)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Schedule with ID {id} not found")
-    updated = DataRepository.update_schedule(
+    updated = DataRepository.update_lighting_schedule(
         id, schedule.start_time, schedule.end_time, schedule.value, schedule.enabled
     )
     if updated == 0:
@@ -676,14 +695,11 @@ async def update_schedule(id: int, schedule: DTOSchedule):
     tags=["inhabitants"],
 )
 async def get_inhabitant_by_id(card_id: int):
-    # Fetch the resource by ID from the repository
     data = DataRepository.read_inhabitant_by_card_id(card_id)
-    # Check if the resource exists
     if data is None:
         raise HTTPException(
             status_code=404, detail=f"inhabitant with ID {card_id} not found"
         )
-    # Return the resource
     return data
 
 

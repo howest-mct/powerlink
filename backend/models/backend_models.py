@@ -34,6 +34,19 @@ class Schedule(P1BaseModel):
     type_name: str
 
 
+class UpdatedSchedule(P1BaseModel):
+    schedule_id: int
+    schedule_name: str
+    start_time: str
+    end_time: str
+    value: float
+    value_unit: str
+    enabled: int
+    type_id: int
+    component_id: int
+    room_id: int
+
+
 class Card(P1BaseModel):
     inhabitant_id: int
     first_name: str
@@ -53,7 +66,6 @@ class DTOLog(P1BaseModel):
 
 
 class DTOSchedule(P1BaseModel):
-    schedule_id: int
     start_time: str
     end_time: str
     value: float

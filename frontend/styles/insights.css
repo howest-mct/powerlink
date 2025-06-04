@@ -152,6 +152,18 @@ body {
 }
 
 
+.c-loading-message {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20rem;
+    font-family: "Manrope", sans-serif;
+    font-size: 2rem;
+    color: var(--main-color);
+}
+
+
+
 .c-overlay {
     position: fixed;
     top: 0;
@@ -175,6 +187,12 @@ body {
     flex-direction: column;
     width: 100%;
     margin: 0 auto;
+}
+
+.c-room__container {
+    padding: 1.5rem;
+    padding-top: 3rem;
+    padding-bottom: 3rem;
 }
 
 .c-home-battery__container {

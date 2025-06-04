@@ -10,7 +10,14 @@ const ENDPOINT = 'http://192.168.168.169:8000/api/v1';
 
 const showAllLastLogs = (logs) => {
   let htmlString = '';
-  const room_content = document.querySelector('.js-room__content');
+  const room_content = document.querySelector('.c-main');
+  htmlString += `
+    <div class="c-room__container">
+      <section class="c-room lighting-upper">
+          <h1 class="c-section__title">Sensors & Actuators</h1>
+          <div class="c-room__content js-room__content">
+          `;
+
   for (const log of logs) {
     const { log_id, datetime, value, component_id, component_name, value_unit, room_name } = log;
     htmlString += `
@@ -26,6 +33,12 @@ const showAllLastLogs = (logs) => {
       </article>
     `;
   }
+
+  htmlString += `
+          </div>
+      </section>
+    </div>
+  `;
   room_content.innerHTML = htmlString;
 };
 
@@ -40,6 +53,7 @@ const getAllLastLogs = async () => {
   const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
   const json = await response.json().catch((err) => console.error('JSON-error:', err));
   showAllLastLogs(json);
+  console.info('getAllLastLogs:', json);
 };
 // #endregion
 

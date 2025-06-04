@@ -152,10 +152,13 @@ const showAllSchedules = (schedules) => {
       if (type_id === 1) {
         htmlSchedules += `
           <div class="c-temperature-control js-schedule__container js-temperature-control c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
-            <div>
+            <div class="c-switch">
               <h4 class="c-schedule-card__title">${type_name}</h4>
-              <input type="checkbox" class="c-lighting-card__checkbox js-schedule__checkbox"
-                  id="lightingCheckbox">
+              <label class="switch">
+                <input type="checkbox" class="c-lighting-card__checkbox  js-schedule__checkbox"
+                    id="lightingCheckbox">
+                <span class="slider round"></span>
+              </label>
             </div>
             <div class="c-circular-progress">
               <div class="c-circular-progress__chart" id="chart_${schedule_id}"></div>
@@ -180,8 +183,8 @@ const showAllSchedules = (schedules) => {
                     <p>to</p>
                     <input type="time" class="js-input_container" value="${end_time}">
                   </div>
-                  <div>
-                    <button type="button">SAVE</button>
+                  <div class="c-lighting-card__schedule-save__container">
+                    <button class="js-lighting-card__schedule-save c-lighting-card__schedule-save" type="button">SAVE</button>
                   </div>
                 </div>
               </div>
@@ -239,10 +242,13 @@ const showAllSchedules = (schedules) => {
       } else if (type_id === 2) {
         htmlSchedules += `
           <div class="c-lighting-card js-schedule__container c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
-            <div>    
+            <div class="c-schedule-card__header">    
               <h4 class="c-schedule-card__title">${type_name}</h4>
-              <input type="checkbox" class="c-schedule__checkbox js-schedule__checkbox"
-                id="lightingCheckbox">
+              <label class="switch">
+                <input type="checkbox" class="c-lighting-card__checkbox  js-schedule__checkbox"
+                    id="lighting_checkbox">
+                <span class="slider round"></span>
+              </label>
             </div>
             <div class="c-lighting-card__content">
               <div class="c-bulb-icon" id="bulb_icon_${schedule_id}">
@@ -264,8 +270,8 @@ const showAllSchedules = (schedules) => {
                   <p>to</p>
                   <input type="time" class="js-input_container" value="${end_time}">
                 </div>
-                <div>
-                  <button type="button">SAVE</button>
+                <div class="c-lighting-card__schedule-save__container">
+                  <button class="js-lighting-card__schedule-save c-lighting-card__schedule-save" type="button">SAVE</button>
                 </div>
               </div>
             </div>
@@ -294,6 +300,7 @@ const showAllSchedules = (schedules) => {
     const room_id = parseInt(room_container.dataset.room_id);
     const schedule_containers = room_container.querySelectorAll('.js-schedule__container');
     const input_containers = room_container.querySelectorAll('.js-input_container');
+    const save_containers = room_container.querySelectorAll('.js-lighting-card__schedule-save');
 
     if (room_id % 2 === 0) {
       room_container.classList.add('c-grey-background');
@@ -303,6 +310,9 @@ const showAllSchedules = (schedules) => {
       input_containers.forEach((input_container) => {
         input_container.classList.add('c-white-background');
       });
+      save_containers.forEach((save_container) => {
+        save_container.classList.add('c-white-background');
+      });
     } else {
       room_container.classList.add('c-white-background');
       schedule_containers.forEach((schedule_container) => {
@@ -310,6 +320,9 @@ const showAllSchedules = (schedules) => {
       });
       input_containers.forEach((input_container) => {
         input_container.classList.add('c-grey-background');
+      });
+      save_containers.forEach((save_container) => {
+        save_container.classList.add('c-grey-background');
       });
     }
 
@@ -319,9 +332,7 @@ const showAllSchedules = (schedules) => {
       showSliders(`light_slider_${schedule_id}`, `value_display_${schedule_id}`, `bulb_icon_${schedule_id}`);
     });
   });
-  listenToTimeSchedules();
-  listenToValueLightingSchedules();
-  listenToValueTemperatureSchedules();
+  listenToSubmitLightingSchedules();
 };
 // #endregion
 
@@ -528,12 +539,13 @@ const getAllSchedules = async () => {
   showAllSchedules(json);
 };
 
-const getPutTimeSchedule = async (schedule_id, component_id, room_id, time) => {
-  const url = ENDPOINT + `/schedules/${schedule_id}/`;
+const getPutLightingSchedule = async (schedule_id, start_time, end_time, value, enabled) => {
+  const url = ENDPOINT + `/schedules/${schedule_id}/lighting/`;
   const data = {
-    component_id: component_id,
-    room_id: room_id,
-    time: time,
+    start_time: start_time,
+    end_time: end_time,
+    value: value,
+    enabled: enabled,
   };
   const response = await fetch(url, {
     method: 'PUT',
@@ -553,27 +565,39 @@ const getPutTimeSchedule = async (schedule_id, component_id, room_id, time) => {
 
 // #region ***  Event Listeners - listenTo___            ***********
 
-const listenToSubmitSchedules = () => {
-  const time_inputs = document.querySelectorAll('.js-input_container');
+const listenToSubmitLightingSchedules = () => {
+  const time_inputs = document.querySelectorAll('.js-lighting-card__schedule-save');
   time_inputs.forEach((input) => {
-    input.addEventListener('change', (e) => {
+    input.addEventListener('click', (e) => {
       const schedule_container = e.target.closest('.js-schedule__container');
-      const schedule_id = schedule_container.dataset.schedule_id;
+      const schedule_id = parseInt(schedule_container.dataset.schedule_id);
 
       const start_time_input = schedule_container.querySelector('.c-lighting-card__schedule-from .js-input_container');
       const end_time_input = schedule_container.querySelector('.c-lighting-card__schedule-to .js-input_container');
+      const enabled_input = schedule_container.querySelector('.js-schedule__checkbox');
+      const slider_input = schedule_container.querySelector('.c-slider');
+
+      if (!start_time_input || !end_time_input || !enabled_input || !slider_input) {
+        console.error('Required input elements not found for schedule:', schedule_id);
+        return;
+      }
 
       const start_time = start_time_input.value;
       const end_time = end_time_input.value;
+      const value = parseFloat(slider_input.value) || 0;
+      const enabled = enabled_input.checked ? 1 : 0;
 
-      getPutTimeSchedule(schedule_id, start_time, end_time);
+      if (!start_time || !end_time) {
+        console.error('Start time and end time are required for schedule:', schedule_id);
+        return;
+      }
+
+      console.info(`Saving schedule ${schedule_id} with start_time: ${start_time}, end_time: ${end_time}, value: ${value}, enabled: ${enabled}`);
+
+      getPutLightingSchedule(schedule_id, start_time, end_time, value, enabled);
     });
   });
 };
-
-const listenToValueLightingSchedules = () => {};
-
-const listenToValueTemperatureSchedules = () => {};
 // #endregion
 
 // #region ***  Init / DOMContentLoaded                  ***********
