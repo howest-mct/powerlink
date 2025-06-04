@@ -12,9 +12,7 @@
         <link
             href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
             rel="stylesheet">
-        <link
-            href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
-            rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="styles/global.css">
         <link rel="stylesheet" href="styles/schedules.css">
         <link rel="stylesheet" href="styles/footer.css">
@@ -22,6 +20,7 @@
             integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
             crossorigin="anonymous"></script>
         <script src="script/schedules.js" defer></script>
+        <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     </head>
 
     <body class="c-body js-home">
@@ -57,49 +56,56 @@
                 <section class="c-room">
                     <h2 class="c-section__title">Living room & Kitchen</h2>
                     <div class="c-room__card js-room__container">
-                        <div class="c-lighting-card js-room__container c-hover--shadow">
-                            <h4 class="c-schedule-card__title">Lighting schedule</h4>
+                        <div class="c-lighting-card js-schedule__container c-hover--shadow" data-schedule_id="${schedule_id}"
+                            data-component_id="${component_id}" data-room_id="${room_id}">
+                            <div>
+                                <h4 class="c-schedule-card__title">${type_name}</h4>
+                                <input type="checkbox" class="c-schedule__checkbox js-schedule__checkbox" id="lightingCheckbox">
+                            </div>
                             <div class="c-lighting-card__content">
-                                <div class="c-bulb-icon" id="bulbIconLower">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000"
-                                        viewBox="0 0 256 256">
+                                <div class="c-bulb-icon" id="bulb_icon_${schedule_id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
                                         <path
                                             d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z">
                                         </path>
                                     </svg>
-                                </div class="c-hover--shadow">
-                                <input type="range" min="0" max="100" value="0" class="c-slider" id="lightSliderLower">
-                                <div class="c-value-display" id="valueDisplayLower">0%</div>
+                                </div>
+                                <input type="range" min="0" max="100" value="${value}" class="c-slider" id="light_slider_${schedule_id}">
+                                <div class="c-value-display" id="value_display_${schedule_id}">${value}%</div>
                             </div>
                             <div class="c-lighting-card__info">
                                 <p class="c-lighting-card__status">Dim lights automatically</p>
                                 <div class="c-lighting-card__schedule">
                                     <div class="c-lighting-card__schedule-from">
                                         <p>from</p>
-                                        <input type="time" class="c-lighting-card__from js-lighting-card__from" value="21:00">
+                                        <input type="time" class="js-input_container" value="${start_time}">
                                     </div>
                                     <div class="c-lighting-card__schedule-to">
                                         <p>to</p>
-                                        <input type="time" class="c-lighting-card__to js-lighting-card__to" value="06:00">
+                                        <input type="time" class="js-input_container" value="${end_time}">
+                                    </div>
+                                    <div>
+                                        <button type="button">SAVE</button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="c-temperature-control js-temperature-control c-hover--shadow">
-                            <h4 class="c-schedule-card__title">Climate schedule</h4>
+                        </div>`;
+                        <div class="c-temperature-control js-schedule__container js-temperature-control c-hover--shadow"
+                            data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
+                            <div>
+                                <h4 class="c-schedule-card__title">${type_name}</h4>
+                                <input type="checkbox" class="c-lighting-card__checkbox js-schedule__checkbox" id="lightingCheckbox">
+                            </div>
                             <div class="c-circular-progress">
-                                <div class="c-progress-ring" id="progressRing"></div>
-                                <div class="c-temperature-display" id="tempDisplay">
-                                    <span id="tempValue">24</span><span class="unit">°C</span>
-                                </div>
+                                <div class="c-circular-progress__chart" id="chart_${schedule_id}"></div>
                             </div>
                             <div class="c-controls">
-                                <svg class="c-control-btn" id="decreaseBtn" xmlns="http://www.w3.org/2000/svg" width="32" height="32"
-                                    fill="#000000" viewBox="0 0 256 256">
+                                <svg class="c-control-btn" id="decrease_btn_${schedule_id}" xmlns="http://www.w3.org/2000/svg" width="32"
+                                    height="32" fill="#000000" viewBox="0 0 256 256">
                                     <path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z"></path>
                                 </svg>
-                                <svg class="c-control-btn" id="increaseBtn" xmlns="http://www.w3.org/2000/svg" width="32" height="32"
-                                    fill="#000000" viewBox="0 0 256 256">
+                                <svg class="c-control-btn" id="increase_btn_${schedule_id}" xmlns="http://www.w3.org/2000/svg" width="32"
+                                    height="32" fill="#000000" viewBox="0 0 256 256">
                                     <path
                                         d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z">
                                     </path>
@@ -111,51 +117,59 @@
                                     <div class="c-temperature-card__schedule">
                                         <div class="c-temperature-card__schedule-from">
                                             <p>from</p>
-                                            <input type="time" class="js-temperature-card__from" value="21:00">
+                                            <input type="time" class="js-input_container" value="${start_time}">
                                         </div>
                                         <div class="c-temperature-card__schedule-to">
                                             <p>to</p>
-                                            <input type="time" class="js-lighting-card__to" value="06:00">
-                                        </div>                                                                                
+                                            <input type="time" class="js-input_container" value="${end_time}">
+                                        </div>
+                                        <div>
+                                            <button type="button">SAVE</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div>`;
                     </div>
                 </section>
             </div>
             <div class="c-upstairs__container">
                 <section class="c-upper lighting-upper">
                     <h3 class="c-section__title">Bedroom and Bathroom</h3>
-                    <div class="c-lighting-card js-lighting_schedule_upper c-grey-background c-hover--shadow">
-                        <h4 class="c-schedule-card__title">Lighting schedule</h4>
+                    <div class="c-lighting-card js-schedule__container c-hover--shadow" data-schedule_id="${schedule_id}"
+                        data-component_id="${component_id}" data-room_id="${room_id}">
+                        <div>
+                            <h4 class="c-schedule-card__title">${type_name}</h4>
+                            <input type="checkbox" class="c-schedule__checkbox js-schedule__checkbox" id="lightingCheckbox">
+                        </div>
                         <div class="c-lighting-card__content">
-                            <div class="c-bulb-icon" id="bulbIconUpper">
+                            <div class="c-bulb-icon" id="bulb_icon_${schedule_id}">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
                                     <path
                                         d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z">
                                     </path>
                                 </svg>
                             </div>
-                            <input type="range" min="0" max="100" value="0" class="c-slider" id="lightSliderUpper">
-                            <div class="c-value-display" id="valueDisplayUpper">0%</div>
+                            <input type="range" min="0" max="100" value="${value}" class="c-slider" id="light_slider_${schedule_id}">
+                            <div class="c-value-display" id="value_display_${schedule_id}">${value}%</div>
                         </div>
-                        <div class="c-lighting-card__meta">
-                            <div class="c-lighting-card__info">
-                                <p class="c-lighting-card__status">Dim lights automatically</p>
-                                <div class="c-lighting-card__schedule">
-                                    <div class="c-lighting-card__schedule-from">
-                                        <p>from</p>
-                                        <input type="time" class="js-lighting-card__from" value="21:00">
-                                    </div>
-                                    <div class="c-lighting-card__schedule-to">
-                                        <p>to</p>
-                                        <input class="c-grey-background" type="time" class="js-lighting-card__to" value="06:00">
-                                    </div>                                    
+                        <div class="c-lighting-card__info">
+                            <p class="c-lighting-card__status">Dim lights automatically</p>
+                            <div class="c-lighting-card__schedule">
+                                <div class="c-lighting-card__schedule-from">
+                                    <p>from</p>
+                                    <input type="time" class="js-input_container" value="${start_time}">
+                                </div>
+                                <div class="c-lighting-card__schedule-to">
+                                    <p>to</p>
+                                    <input type="time" class="js-input_container" value="${end_time}">
+                                </div>
+                                <div>
+                                    <button type="button">SAVE</button>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div>`;
                 </section>
             </div>
         </main>

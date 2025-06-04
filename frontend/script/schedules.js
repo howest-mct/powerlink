@@ -132,6 +132,8 @@ const showAllSchedules = (schedules) => {
     roomSchedules[room_id].push(schedule);
   }
 
+  const chartsToRender = [];
+
   for (const room_id in roomSchedules) {
     const room_data = roomSchedules[room_id];
     const room_name = room_data[0].room_name;
@@ -150,12 +152,13 @@ const showAllSchedules = (schedules) => {
       if (type_id === 1) {
         htmlSchedules += `
           <div class="c-temperature-control js-schedule__container js-temperature-control c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
-            <h4 class="c-schedule-card__title">${type_name}</h4>
+            <div>
+              <h4 class="c-schedule-card__title">${type_name}</h4>
+              <input type="checkbox" class="c-lighting-card__checkbox js-schedule__checkbox"
+                  id="lightingCheckbox">
+            </div>
             <div class="c-circular-progress">
-              <div class="c-progress-ring" id="progress_ring_${schedule_id}"></div>
-              <div class="c-temperature-display" id="temp_display_${schedule_id}">
-                <span id="temp_value_${schedule_id}">${value}</span><span class="unit">°C</span>
-              </div>
+              <div class="c-circular-progress__chart" id="chart_${schedule_id}"></div>
             </div>
             <div class="c-controls">
               <svg class="c-control-btn" id="decrease_btn_${schedule_id}" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
@@ -177,14 +180,70 @@ const showAllSchedules = (schedules) => {
                     <p>to</p>
                     <input type="time" class="js-input_container" value="${end_time}">
                   </div>
+                  <div>
+                    <button type="button">SAVE</button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>`;
+
+        chartsToRender.push({
+          containerId: `chart_${schedule_id}`,
+          options: {
+            series: [((value - 16) / (30 - 16)) * 100],
+            chart: {
+              height: 280,
+              type: 'radialBar',
+              offsetY: -10,
+            },
+            plotOptions: {
+              radialBar: {
+                startAngle: -90,
+                endAngle: 90,
+                dataLabels: {
+                  name: {
+                    fontSize: '2.025rem',
+                    color: undefined,
+                    offsetY: 120,
+                  },
+                  value: {
+                    offsetY: -15,
+                    fontSize: '2.025rem',
+                    color: '#4a90e2',
+                    formatter: function (val) {
+                      const temp = (val / 100) * (30 - 16) + 16;
+                      return temp.toFixed(1) + '°C';
+                    },
+                  },
+                },
+              },
+            },
+            fill: {
+              type: 'gradient',
+              gradient: {
+                shade: 'dark',
+                shadeIntensity: 0.15,
+                inverseColors: false,
+                opacityFrom: 1,
+                opacityTo: 1,
+                stops: [0, 50, 65, 91],
+              },
+            },
+            stroke: {
+              dashArray: 4,
+            },
+            labels: [''],
+          },
+        });
       } else if (type_id === 2) {
         htmlSchedules += `
           <div class="c-lighting-card js-schedule__container c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
-            <h4 class="c-schedule-card__title">${type_name}</h4>
+            <div>    
+              <h4 class="c-schedule-card__title">${type_name}</h4>
+              <input type="checkbox" class="c-schedule__checkbox js-schedule__checkbox"
+                id="lightingCheckbox">
+            </div>
             <div class="c-lighting-card__content">
               <div class="c-bulb-icon" id="bulb_icon_${schedule_id}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
@@ -205,6 +264,9 @@ const showAllSchedules = (schedules) => {
                   <p>to</p>
                   <input type="time" class="js-input_container" value="${end_time}">
                 </div>
+                <div>
+                  <button type="button">SAVE</button>
+                </div>
               </div>
             </div>
           </div>`;
@@ -219,6 +281,13 @@ const showAllSchedules = (schedules) => {
   }
 
   roomsContainer.innerHTML = htmlRooms;
+
+  const chartContainers = document.querySelectorAll('.c-circular-progress__chart');
+  chartContainers.forEach((container, index) => {
+    const { options } = chartsToRender[index];
+    const chart = new ApexCharts(container, options);
+    chart.render();
+  });
 
   const room_containers = document.querySelectorAll('.js-room__container');
   room_containers.forEach((room_container) => {
@@ -250,6 +319,9 @@ const showAllSchedules = (schedules) => {
       showSliders(`light_slider_${schedule_id}`, `value_display_${schedule_id}`, `bulb_icon_${schedule_id}`);
     });
   });
+  listenToTimeSchedules();
+  listenToValueLightingSchedules();
+  listenToValueTemperatureSchedules();
 };
 // #endregion
 
@@ -456,9 +528,52 @@ const getAllSchedules = async () => {
   showAllSchedules(json);
 };
 
+const getPutTimeSchedule = async (schedule_id, component_id, room_id, time) => {
+  const url = ENDPOINT + `/schedules/${schedule_id}/`;
+  const data = {
+    component_id: component_id,
+    room_id: room_id,
+    time: time,
+  };
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  }).catch((err) => console.error('Fetch-error:', err));
+  if (!response.ok) {
+    console.error('Error updating schedule:', response.statusText);
+    return;
+  }
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  console.info(json);
+};
 // #endregion
 
 // #region ***  Event Listeners - listenTo___            ***********
+
+const listenToSubmitSchedules = () => {
+  const time_inputs = document.querySelectorAll('.js-input_container');
+  time_inputs.forEach((input) => {
+    input.addEventListener('change', (e) => {
+      const schedule_container = e.target.closest('.js-schedule__container');
+      const schedule_id = schedule_container.dataset.schedule_id;
+
+      const start_time_input = schedule_container.querySelector('.c-lighting-card__schedule-from .js-input_container');
+      const end_time_input = schedule_container.querySelector('.c-lighting-card__schedule-to .js-input_container');
+
+      const start_time = start_time_input.value;
+      const end_time = end_time_input.value;
+
+      getPutTimeSchedule(schedule_id, start_time, end_time);
+    });
+  });
+};
+
+const listenToValueLightingSchedules = () => {};
+
+const listenToValueTemperatureSchedules = () => {};
 // #endregion
 
 // #region ***  Init / DOMContentLoaded                  ***********
