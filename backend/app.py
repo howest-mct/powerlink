@@ -5,11 +5,9 @@ import uvicorn
 import logging
 from RPi import GPIO
 import time
-import datetime
-import socket
-import threading
 import re
 import subprocess
+import threading
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
@@ -18,11 +16,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from repositories.DataRepository import DataRepository
 from models.backend_models import (
     Log,
-    DTOLog,
     Schedule,
     DTOSchedule,
     Card,
-    DTOCard,
     UpdatedSchedule,
 )
 
@@ -32,11 +28,11 @@ from models.device_models import (
     DCMotor,
     HeatingPad,
     LED,
-    SolenoidLock,
     MCP3008,
     TCA9548A,
     RFIDReader,
     PowerMonitoringSystem,
+    ServoLock,
 )
 
 logging.basicConfig(
@@ -89,13 +85,6 @@ MCP = None
 I2C_EXPANDER = None
 
 # Values and States
-raspi_power = None
-motion_detected = False
-last_motion_time = 0
-light_duration = 10
-last_motion_time = None
-prev_state_motion = False
-led_top_last_state = None
 switch_state = False
 switch_state_power = False
 last_log_time_switch = 0
@@ -103,20 +92,10 @@ previous_state_switch = False
 last_state_led = None
 temp_id = None
 temp = None
-set_temp = None
-target_temp = None
-pot_value = None
 ldr_value = None
 scanned_card = None
-lcd_string = None
 door_state = None
-led_outdoors_brightness = None
-last_brightness = None
-led_bottom_brightness = None
-led_top_brightness = None
-heating_value = None
-airco_value = None
-serial_string = None
+light_duration = 10
 power_monitor = None
 current_usage = 0.0
 battery_level = 0.0
@@ -124,9 +103,6 @@ kw_led_bottom = 0.0
 kw_led_top = 0.0
 kw_heating = 0.0
 kw_airco = 0.0
-current_usage = None
-battery_level = None
-ip_address = None
 
 GPIO.setmode(GPIO.BCM)
 # endregion Global Variables **************************
@@ -148,7 +124,6 @@ def lights_button(pin):
             DataRepository.create_log(100, led_bottom_id)
         else:
             DataRepository.create_log(0, led_bottom_id)
-        print("Button pressed, switch state:", switch_state)
     except Exception as e:
         logger.error(f"Error in lights_button: {e}")
 
@@ -158,34 +133,38 @@ def power_button(pin):
     try:
         switch_state_power = not switch_state_power
         DataRepository.create_log(switch_state_power, button_power_id)
-        print("Button pressed, switch state:", switch_state_power)
     except Exception as e:
         logger.error(f"Error in power_button: {e}")
 
 
 async def lights_top():
-    global LED_TOP, led_top_id, motion_sensor_id, prev_state_motion, motion_detected, last_motion_time
+    global LED_TOP, led_top_id, motion_sensor_id, MOTION_SENSOR, light_duration
+
+    last_motion = 0
 
     while True:
         try:
-            motion_detected = GPIO.input(MOTION_SENSOR)
-            print(f"Motion detected: {motion_detected}")
-            if motion_detected == 1:
-                print(f"Motion detected: {motion_detected}")
+            motion_now = GPIO.input(MOTION_SENSOR)
+
+            if motion_now == 1 and last_motion == 0:
+                GPIO.output(LED_TOP, GPIO.HIGH)
                 DataRepository.create_log(1, motion_sensor_id)
-                DataRepository.create_log(1, led_top_id)
-                while motion_detected is True:
-                    LED_TOP.set_brightness(100)
-                    motion_detected = GPIO.input(MOTION_SENSOR)
+                DataRepository.create_log(100, led_top_id)
+                await asyncio.sleep(light_duration)
+
+            elif motion_now == 0 and last_motion == 1:
+                GPIO.output(LED_TOP, GPIO.LOW)
                 DataRepository.create_log(0, motion_sensor_id)
                 DataRepository.create_log(0, led_top_id)
-                LED_TOP.off()
+
+            last_motion = motion_now
+
+            await asyncio.sleep(0.5)
 
         except Exception as e:
-            logger.error(f"Error in lights_top: {e}")
-            motion_detected = False
-
-        await asyncio.sleep()
+            print(f"Something went wrong: {e}")
+            last_motion = 0
+            await asyncio.sleep(1)
 
 
 def lights_bottom():
@@ -199,7 +178,6 @@ def lights_bottom():
             previous_state_switch = True
         elif not switch_state:
             LED_BOTTOM.off()
-
             previous_state_switch = False
     except Exception as e:
         logger.error(f"Error in lights_bottom: {e}")
@@ -217,7 +195,6 @@ async def lights_outdoors():
 
             if not last_state_led:
                 current_state = ldr_value > 70
-
             else:
                 current_state = ldr_value >= 65
 
@@ -245,10 +222,9 @@ def cut_card(card_id):
 
 
 def front_door():
-    global DOOR_LOCK, REED_SWITCH, CARD_READER, scanned_card, door_state
+    global DOOR_LOCK, REED_SWITCH, CARD_READER, scanned_card
     global solenoid_lock_id, reed_switch_id, card_reader_id
 
-    door_state = GPIO.input(REED_SWITCH)
     scanned_card = CARD_READER.read_no_block()
 
     if scanned_card is not None:
@@ -260,13 +236,18 @@ def front_door():
             checked_card = DataRepository.read_card_by_id(snipped_card)
 
             if checked_card is None:
-                logger.error(f"Unauthorized card scanned: {scanned_card}")
+                logger.info("Invalid card scanned")
                 DataRepository.create_log(-1, card_reader_id)
                 return
 
+            logger.info("Valid card scanned")
             DataRepository.create_log(snipped_card, card_reader_id)
 
-            DOOR_LOCK.unlock(pull_duty=100, hold_duty=40, pull_time=0.1)
+            if DOOR_LOCK.is_unlocked():
+                logger.debug("Door is already unlocked")
+                return
+
+            DOOR_LOCK.unlock()
             logger.debug("Door is unlocked")
             DataRepository.create_log(1, solenoid_lock_id)
 
@@ -274,8 +255,8 @@ def front_door():
             start_time = time.time()
 
             while GPIO.input(REED_SWITCH) == 1:
-                if time.time() - start_time > 3:
-                    logger.info("Door did not open in time (3 seconds)")
+                if time.time() - start_time > 5:
+                    logger.info("Door did not open in time (5 seconds) - locking again")
                     DOOR_LOCK.lock()
                     DataRepository.create_log(0, solenoid_lock_id)
                     return
@@ -288,10 +269,10 @@ def front_door():
             start_time = time.time()
 
             while GPIO.input(REED_SWITCH) == 0:
-                if time.time() - start_time > 3:
-                    logger.info("Door did not close in time (3 seconds)")
-                    DOOR_LOCK.lock()
-                    DataRepository.create_log(0, solenoid_lock_id)
+                if time.time() - start_time > 10:
+                    logger.info(
+                        "Door did not close in time (10 seconds) - locking again"
+                    )
                     return
                 time.sleep(0.1)
 
@@ -304,6 +285,10 @@ def front_door():
 
         except Exception as e:
             logger.error(f"Error: {e}")
+            try:
+                DOOR_LOCK.lock()
+            except:
+                pass
 
 
 def get_ip(interface):
@@ -319,7 +304,7 @@ def get_ip(interface):
 
 
 async def display_lcd():
-    global LCD, lcd_string, ip_address, temp, current_usage, battery_level
+    global LCD, temp, current_usage, battery_level
     while True:
         try:
             eth0_ip = get_ip("eth0")
@@ -341,7 +326,6 @@ async def display_lcd():
             await asyncio.sleep(3)
         except Exception as e:
             logger.error(f"Error in display_lcd: {e}")
-            lcd_string = None
             await asyncio.sleep(1)
 
 
@@ -408,61 +392,52 @@ async def get_wattage():
         await asyncio.sleep(3)
 
 
-async def climate_control(target_temp, temp_id):
-    global HEATING, AIRCO, temp, temp_sensor_id, pot_id, set_temp
+async def climate_control(temp_id):
+    global HEATING, AIRCO, temp, temp_sensor_id, pot_id, MCP, TEMP_SENSOR
     hysteresis = 0.5
     max_range = 2.0
-    lower_bound = target_temp - hysteresis / 2
-    upper_bound = target_temp + hysteresis / 2
-    max_lower = target_temp - max_range
-    max_upper = target_temp + max_range
     min_heater_power = 20
-    min_fan_speed = 80
 
     try:
         while True:
             current_pot = MCP.read_channel(0)
-            DataRepository.create_log(current_pot, pot_id)
+            target_temp_pot = round((16 + (current_pot / 1023) * 14) * 2) / 2
+            print(f"Target temperature from pot: {target_temp_pot}°C")
+            DataRepository.create_log(target_temp_pot, pot_id)
+
+            lower_bound = target_temp_pot - hysteresis / 2
+            upper_bound = target_temp_pot + hysteresis / 2
+            max_lower = target_temp_pot - max_range
+
             current_temp = TEMP_SENSOR.get_temp(temp_id)
             DataRepository.create_log(current_temp, temp_sensor_id)
 
             if current_temp < lower_bound:
                 if current_temp <= max_lower:
                     heater_power = 100
-                    DataRepository.create_log(100, heater_id)
-                    DataRepository.create_log(0, fan_id)
-
                 else:
                     heater_power = min_heater_power + (100 - min_heater_power) * (
                         lower_bound - current_temp
                     ) / (lower_bound - max_lower)
-                    DataRepository.create_log(heater_power, heater_id)
-                    DataRepository.create_log(0, fan_id)
 
                 HEATING.set_power(max(0, min(100, heater_power)))
-                AIRCO.stop()
+                AIRCO.off()
+                DataRepository.create_log(heater_power, heater_id)
+                DataRepository.create_log(0, fan_id)
 
             elif current_temp > upper_bound:
-                if current_temp >= max_upper:
-                    fan_speed = 100
-                    DataRepository.create_log(100, fan_id)
-                    DataRepository.create_log(0, heater_id)
-
-                else:
-                    fan_speed = min_fan_speed + (100 - min_fan_speed) * (
-                        current_temp - upper_bound
-                    ) / (max_upper - upper_bound)
-                    DataRepository.create_log(fan_speed, fan_id)
-                    DataRepository.create_log(0, heater_id)
-
-                AIRCO.set_speed(max(0, min(100, fan_speed)))
                 HEATING.off()
+                AIRCO.on()
+                DataRepository.create_log(0, heater_id)
+                DataRepository.create_log(1, fan_id)
 
             else:
-                pass
+                HEATING.off()
+                AIRCO.off()
+                DataRepository.create_log(0, heater_id)
+                DataRepository.create_log(0, fan_id)
 
             temp = current_temp
-
             await asyncio.sleep(3)
 
     except Exception as e:
@@ -473,8 +448,6 @@ async def climate_control(target_temp, temp_id):
 
 
 # region Async Containers ---------------------------------
-
-
 async def run_lights_bottom():
     while True:
         lights_bottom()
@@ -490,13 +463,13 @@ async def lifespan_manager(app: FastAPI):
     logger.info("Starting application...")
     GPIO.setmode(GPIO.BCM)
 
-    # tasks = []
+    tasks = []
 
     try:
         global MOTION_SENSOR, LED_BUTTON, REED_SWITCH, TEMP_SENSOR
         global LCD, DOOR_LOCK, LED_OUTDOORS, LED_BOTTOM, LED_TOP
         global HEATING, AIRCO, MCP, CARD_READER
-        global temp_id, ip_address
+        global temp_id, POWER_BUTTON, I2C_EXPANDER
 
         MOTION_SENSOR = 19
         GPIO.setup(MOTION_SENSOR, GPIO.IN)
@@ -510,12 +483,13 @@ async def lifespan_manager(app: FastAPI):
         temp_id = TEMP_SENSOR.get_id()
         CARD_READER = RFIDReader()
         LCD = LCD_Display(0x38, 5, 6)
-        DOOR_LOCK = SolenoidLock(18)
+        DOOR_LOCK = ServoLock(12)
         LED_OUTDOORS = LED(21)
         LED_BOTTOM = LED(25)
-        LED_TOP = LED(14)
+        LED_TOP = 17
+        GPIO.setup(LED_TOP, GPIO.OUT)
         HEATING = HeatingPad(20)
-        AIRCO = DCMotor(12)
+        AIRCO = DCMotor(18)
         MCP = MCP3008(0, 1)
         I2C_EXPANDER = TCA9548A()
 
@@ -526,16 +500,11 @@ async def lifespan_manager(app: FastAPI):
 
         tasks = [
             asyncio.create_task(run_lights_bottom()),
-            asyncio.sleep(0.5),
             asyncio.create_task(lights_top()),
-            asyncio.sleep(0.5),
             asyncio.create_task(lights_outdoors()),
-            asyncio.sleep(0.5),
             asyncio.create_task(display_lcd()),
-            asyncio.sleep(0.5),
             asyncio.create_task(get_wattage()),
-            asyncio.sleep(0.5),
-            asyncio.create_task(climate_control(25.0, temp_id)),
+            asyncio.create_task(climate_control(temp_id)),
         ]
 
         GPIO.add_event_detect(
@@ -557,13 +526,11 @@ async def lifespan_manager(app: FastAPI):
         DOOR_LOCK.cleanup()
         LED_OUTDOORS.cleanup()
         LED_BOTTOM.cleanup()
-        LED_TOP.cleanup()
         HEATING.cleanup()
         AIRCO.cleanup()
         MCP.close()
         GPIO.cleanup()
         I2C_EXPANDER.close()
-        CARD_READER.cleanup()
         power_monitor.close()
         logger.info("GPIO cleaned up. Bye!")
 
@@ -588,14 +555,6 @@ ENDPOINT = "/api/v1"
 @app.get("/")
 async def root():
     return "Server werkt, maar hier geen API endpoint gevonden."
-
-
-@app.get(ENDPOINT + "/logs/", response_model=list[Log], tags=["logs"])
-async def get_all_logs():
-    data = DataRepository.read_all_logs()
-    if not data:
-        raise HTTPException(status_code=404, detail="No logs found in the database")
-    return data
 
 
 @app.get(ENDPOINT + "/logs/{id}/all/", response_model=list[Log], tags=["logs"])

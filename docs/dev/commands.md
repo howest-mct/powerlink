@@ -21,3 +21,8 @@
 ### RPI Monitoring
 
 - RPI CPU temp => vcgencmd measure_temp
+
+### MySQL
+
+- DELETE FROM component_logs WHERE log_id > 1000;
+  ALTER TABLE component_logs AUTO_INCREMENT = 1; => reset component_logs table
