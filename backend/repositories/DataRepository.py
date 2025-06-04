@@ -8,53 +8,90 @@ class DataRepository:
 
     @staticmethod
     def read_log_by_id(log_id):
-        sql = "SELECT * FROM component_logs WHERE log_id = %s"
+        sql = """
+            SELECT cl.*, c.component_name, c.value_unit, r.room_name 
+            FROM component_logs cl
+            JOIN components c ON cl.component_id = c.component_id
+            JOIN rooms r ON c.room_id = r.room_id
+            WHERE cl.log_id = %s
+        """
         params = [log_id]
         return Database.get_one_row(sql, params)
 
     @staticmethod
     def read_all_logs():
-        sql = "SELECT * FROM component_logs"
+        sql = """
+            SELECT cl.*, c.component_name, c.value_unit, r.room_name 
+            FROM component_logs cl
+            JOIN components c ON cl.component_id = c.component_id
+            JOIN rooms r ON c.room_id = r.room_id
+        """
         return Database.get_rows(sql)
 
     @staticmethod
     def read_all_logs_by_component_id(component_id):
-        sql = "SELECT * FROM component_logs WHERE component_id = %s"
+        sql = """
+            SELECT cl.*, c.component_name, c.value_unit, r.room_name 
+            FROM component_logs cl
+            JOIN components c ON cl.component_id = c.component_id
+            JOIN rooms r ON c.room_id = r.room_id
+            WHERE cl.component_id = %s
+        """
         params = [component_id]
         return Database.get_rows(sql, params)
 
     @staticmethod
     def read_last_log_by_component_id(component_id):
-        sql = "SELECT * FROM component_logs WHERE component_id = %s ORDER BY datetime DESC LIMIT 1"
+        sql = """
+            SELECT cl.*, c.component_name, c.value_unit, r.room_name 
+            FROM component_logs cl
+            JOIN components c ON cl.component_id = c.component_id
+            JOIN rooms r ON c.room_id = r.room_id
+            WHERE cl.component_id = %s 
+            ORDER BY cl.datetime DESC 
+            LIMIT 1
+        """
         params = [component_id]
         return Database.get_one_row(sql, params)
 
     @staticmethod
     def read_logs_last_24_hours_by_component_id(component_id):
         one_day_ago = datetime.now() - timedelta(days=1)
-
-        sql = "SELECT * FROM component_logs WHERE component_id = %s AND datetime >= %s"
+        sql = """
+            SELECT cl.*, c.component_name, c.value_unit, r.room_name 
+            FROM component_logs cl
+            JOIN components c ON cl.component_id = c.component_id
+            JOIN rooms r ON c.room_id = r.room_id
+            WHERE cl.component_id = %s AND cl.datetime >= %s
+        """
         params = [component_id, one_day_ago]
-
         return Database.get_rows(sql, params)
 
     @staticmethod
     def read_logs_last_week_by_component_id(component_id):
         one_week_ago = datetime.now() - timedelta(weeks=1)
-
-        sql = "SELECT * FROM component_logs WHERE component_id = %s AND datetime >= %s"
+        sql = """
+            SELECT cl.*, c.component_name, c.value_unit, r.room_name 
+            FROM component_logs cl
+            JOIN components c ON cl.component_id = c.component_id
+            JOIN rooms r ON c.room_id = r.room_id
+            WHERE cl.component_id = %s AND cl.datetime >= %s
+        """
         params = [component_id, one_week_ago]
-
         return Database.get_rows(sql, params)
 
     @staticmethod
     def read_logs_between_1_and_2_weeks_by_component_id(component_id):
         one_week_ago = datetime.now() - timedelta(weeks=1)
         two_weeks_ago = datetime.now() - timedelta(weeks=2)
-
-        sql = "SELECT * FROM component_logs WHERE component_id = %s AND datetime >= %s AND datetime < %s"
+        sql = """
+            SELECT cl.*, c.component_name, c.value_unit, r.room_name 
+            FROM component_logs cl
+            JOIN components c ON cl.component_id = c.component_id
+            JOIN rooms r ON c.room_id = r.room_id
+            WHERE cl.component_id = %s AND cl.datetime >= %s AND cl.datetime < %s
+        """
         params = [component_id, two_weeks_ago, one_week_ago]
-
         return Database.get_rows(sql, params)
 
     @staticmethod

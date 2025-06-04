@@ -14,6 +14,9 @@ class Log(P1BaseModel):
     datetime: datetime.datetime
     value: float
     component_id: int
+    component_name: str
+    value_unit: str
+    room_id: int
 
 
 class Schedule(P1BaseModel):
