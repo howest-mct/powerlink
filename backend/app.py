@@ -142,49 +142,87 @@ async def lights_top():
 
     last_motion = 0
 
+    prev_values = {
+        "motion_sensor": None,
+        "led_brightness": None,
+    }
+
     while True:
         try:
             motion_now = GPIO.input(MOTION_SENSOR)
 
             if motion_now == 1 and last_motion == 0:
                 GPIO.output(LED_TOP, GPIO.HIGH)
-                DataRepository.create_log(1, motion_sensor_id)
-                DataRepository.create_log(100, led_top_id)
+
+                if 1 != prev_values["motion_sensor"]:
+                    DataRepository.create_log(1, motion_sensor_id)
+                prev_values["motion_sensor"] = 1
+
+                if 100 != prev_values["led_brightness"]:
+                    DataRepository.create_log(100, led_top_id)
+                prev_values["led_brightness"] = 100
+
                 await asyncio.sleep(light_duration)
 
             elif motion_now == 0 and last_motion == 1:
                 GPIO.output(LED_TOP, GPIO.LOW)
-                DataRepository.create_log(0, motion_sensor_id)
-                DataRepository.create_log(0, led_top_id)
+
+                if 0 != prev_values["motion_sensor"]:
+                    DataRepository.create_log(0, motion_sensor_id)
+                prev_values["motion_sensor"] = 0
+
+                if 0 != prev_values["led_brightness"]:
+                    DataRepository.create_log(0, led_top_id)
+                prev_values["led_brightness"] = 0
 
             last_motion = motion_now
 
             await asyncio.sleep(0.5)
 
         except Exception as e:
-            print(f"Something went wrong: {e}")
+            logger.error(f"Something went wrong: {e}")
             last_motion = 0
+            prev_values["motion_sensor"] = None
+            prev_values["led_brightness"] = None
             await asyncio.sleep(1)
 
 
 def lights_bottom():
     global LED_BOTTOM, switch_state, last_log_time_switch, previous_state_switch
+    global prev_led_brightness
+
     try:
         if switch_state and not previous_state_switch:
             current_time = time.time()
             if current_time - last_log_time_switch >= 1:
                 LED_BOTTOM.set_brightness(100)
+
+                if 100 != prev_led_brightness:
+                    DataRepository.create_log(100, led_bottom_id)
+                prev_led_brightness = 100
+
                 last_log_time_switch = current_time
             previous_state_switch = True
         elif not switch_state:
             LED_BOTTOM.off()
+
+            if 0 != prev_led_brightness:
+                DataRepository.create_log(0, led_bottom_id)
+            prev_led_brightness = 0
+
             previous_state_switch = False
     except Exception as e:
         logger.error(f"Error in lights_bottom: {e}")
+        prev_led_brightness = None
 
 
 async def lights_outdoors():
     global LED_OUTDOORS, MCP, last_state_led, ldr_value, light_sensor_id, led_outdoors_id
+
+    prev_values = {
+        "ldr_value": None,
+        "led_brightness": None,
+    }
 
     while True:
         try:
@@ -201,20 +239,33 @@ async def lights_outdoors():
             if current_state != last_state_led:
                 if current_state:
                     LED_OUTDOORS.set_brightness(100)
-                    DataRepository.create_log(100, led_outdoors_id)
+                    if 100 != prev_values["led_brightness"]:
+                        DataRepository.create_log(100, led_outdoors_id)
+                    prev_values["led_brightness"] = 100
                 else:
                     LED_OUTDOORS.off()
-                    DataRepository.create_log(0, led_outdoors_id)
+                    if prev_values["led_brightness"] != 0:
+                        DataRepository.create_log(0, led_outdoors_id)
+                    prev_values["led_brightness"] = 0
 
-                DataRepository.create_log(ldr_value, light_sensor_id)
+                if ldr_value != prev_values["ldr_value"]:
+                    DataRepository.create_log(ldr_value, light_sensor_id)
+                prev_values["ldr_value"] = ldr_value
+
                 last_state_led = current_state
+            else:
+                if ldr_value != prev_values["ldr_value"]:
+                    DataRepository.create_log(ldr_value, light_sensor_id)
+                    prev_values["ldr_value"] = ldr_value
 
-            await asyncio.sleep(3)
+            await asyncio.sleep(1)
 
         except Exception as e:
             logger.error(f"Error in lights_outdoors: {e}")
             last_state_led = None
-            await asyncio.sleep(5)
+            prev_values["ldr_value"] = None
+            prev_values["led_brightness"] = None
+            await asyncio.sleep(1)
 
 
 def cut_card(card_id):
@@ -230,7 +281,7 @@ def front_door():
     if scanned_card is not None:
         scanned_card = str(scanned_card)
         snipped_card = cut_card(scanned_card)
-        print(snipped_card)
+        logger.info(f"Snipped card: {snipped_card}")
 
         try:
             checked_card = DataRepository.read_card_by_id(snipped_card)
@@ -287,8 +338,8 @@ def front_door():
             logger.error(f"Error: {e}")
             try:
                 DOOR_LOCK.lock()
-            except:
-                pass
+            except Exception as e:
+                logger.error(f"Error locking door: {e}")
 
 
 def get_ip(interface):
@@ -344,25 +395,31 @@ async def get_wattage():
     global power_monitor, current_usage, battery_level
     global kw_led_bottom, kw_led_top, kw_heating, kw_airco
 
+    prev_values = {
+        "led_bottom": None,
+        "led_top": None,
+        "heating": None,
+        "airco": None,
+        "battery_in": None,
+        "battery_out": None,
+    }
+
     while True:
         try:
             if power_monitor is None:
-                logger.warning(
-                    "Power monitor not initialized, attempting to reinitialize..."
-                )
                 initialize_power_monitoring()
                 await asyncio.sleep(5)
                 continue
 
             readings = power_monitor.read_all_sensors()
 
-            kw_led_bottom = readings.get("led_bottom", 0.0)
-            kw_led_top = readings.get("led_top", 0.0)
-            kw_heating = readings.get("heating", 0.0)
-            kw_airco = readings.get("airco", 0.0)
+            kw_led_bottom = round(readings.get("led_bottom", 0.0), 3)
+            kw_led_top = round(readings.get("led_top", 0.0), 3)
+            kw_heating = round(readings.get("heating", 0.0), 3)
+            kw_airco = round(readings.get("airco", 0.0), 3)
 
-            battery_in_power = readings.get("battery_in", 0.0)
-            battery_out_power = readings.get("battery_out", 0.0)
+            battery_in_power = round(readings.get("battery_in", 0.0), 3)
+            battery_out_power = round(readings.get("battery_out", 0.0), 3)
 
             current_usage = kw_led_bottom + kw_led_top + kw_heating + kw_airco
 
@@ -373,12 +430,30 @@ async def get_wattage():
             else:
                 battery_level = 100.0
 
-            DataRepository.create_log(kw_led_bottom, wh_led_bottom_id)
-            DataRepository.create_log(kw_led_top, wh_led_top_id)
-            DataRepository.create_log(kw_heating, wh_heater_id)
-            DataRepository.create_log(kw_airco, wh_airco_id)
-            DataRepository.create_log(battery_in_power, wh_bat_in_id)
-            DataRepository.create_log(battery_out_power, wh_bat_out_id)
+            if kw_led_bottom != 0 or prev_values["led_bottom"] != 0:
+                DataRepository.create_log(kw_led_bottom, wh_led_bottom_id)
+
+            if kw_led_top != 0 or prev_values["led_top"] != 0:
+                DataRepository.create_log(kw_led_top, wh_led_top_id)
+
+            if kw_heating != 0 or prev_values["heating"] != 0:
+                DataRepository.create_log(kw_heating, wh_heater_id)
+
+            if kw_airco != 0 or prev_values["airco"] != 0:
+                DataRepository.create_log(kw_airco, wh_airco_id)
+
+            if battery_in_power != 0 or prev_values["battery_in"] != 0:
+                DataRepository.create_log(battery_in_power, wh_bat_in_id)
+
+            if battery_out_power != 0 or prev_values["battery_out"] != 0:
+                DataRepository.create_log(battery_out_power, wh_bat_out_id)
+
+            prev_values["led_bottom"] = kw_led_bottom
+            prev_values["led_top"] = kw_led_top
+            prev_values["heating"] = kw_heating
+            prev_values["airco"] = kw_airco
+            prev_values["battery_in"] = battery_in_power
+            prev_values["battery_out"] = battery_out_power
 
         except Exception as e:
             logger.error(f"Error in get_wattage: {e}")
@@ -398,19 +473,31 @@ async def climate_control(temp_id):
     max_range = 2.0
     min_heater_power = 20
 
+    prev_values = {
+        "target_temp_pot": None,
+        "current_temp": None,
+        "heater_power": None,
+        "fan_state": None,
+    }
+
     try:
         while True:
             current_pot = MCP.read_channel(0)
             target_temp_pot = round((16 + (current_pot / 1023) * 14) * 2) / 2
-            print(f"Target temperature from pot: {target_temp_pot}°C")
-            DataRepository.create_log(target_temp_pot, pot_id)
+            if target_temp_pot != prev_values["target_temp_pot"]:
+                DataRepository.create_log(target_temp_pot, pot_id)
 
             lower_bound = target_temp_pot - hysteresis / 2
             upper_bound = target_temp_pot + hysteresis / 2
             max_lower = target_temp_pot - max_range
 
-            current_temp = TEMP_SENSOR.get_temp(temp_id)
-            DataRepository.create_log(current_temp, temp_sensor_id)
+            current_temp = round(TEMP_SENSOR.get_temp(temp_id), 1)
+            logger.debug(
+                f"Current temperature value: {current_temp}°C, Target temperature: {target_temp_pot}°C"
+            )
+
+            if current_temp != prev_values["current_temp"]:
+                DataRepository.create_log(current_temp, temp_sensor_id)
 
             if current_temp < lower_bound:
                 if current_temp <= max_lower:
@@ -422,20 +509,43 @@ async def climate_control(temp_id):
 
                 HEATING.set_power(max(0, min(100, heater_power)))
                 AIRCO.off()
-                DataRepository.create_log(heater_power, heater_id)
-                DataRepository.create_log(0, fan_id)
+
+                if heater_power != prev_values["heater_power"]:
+                    DataRepository.create_log(heater_power, heater_id)
+
+                if 0 != prev_values["fan_state"]:
+                    DataRepository.create_log(0, fan_id)
+
+                prev_values["heater_power"] = heater_power
+                prev_values["fan_state"] = 0
 
             elif current_temp > upper_bound:
                 HEATING.off()
-                AIRCO.on()
-                DataRepository.create_log(0, heater_id)
-                DataRepository.create_log(1, fan_id)
+
+                if 0 != prev_values["heater_power"]:
+                    DataRepository.create_log(0, heater_id)
+
+                if 1 != prev_values["fan_state"]:
+                    DataRepository.create_log(1, fan_id)
+
+                prev_values["heater_power"] = 0
+                prev_values["fan_state"] = 1
 
             else:
                 HEATING.off()
                 AIRCO.off()
-                DataRepository.create_log(0, heater_id)
-                DataRepository.create_log(0, fan_id)
+
+                if 0 != prev_values["heater_power"]:
+                    DataRepository.create_log(0, heater_id)
+
+                if 0 != prev_values["fan_state"]:
+                    DataRepository.create_log(0, fan_id)
+
+                prev_values["heater_power"] = 0
+                prev_values["fan_state"] = 0
+
+            prev_values["target_temp_pot"] = target_temp_pot
+            prev_values["current_temp"] = current_temp
 
             temp = current_temp
             await asyncio.sleep(3)
@@ -621,7 +731,6 @@ async def get_logs_between_1_and_2_weeks_by_component_id(id: int):
     tags=["schedules"],
 )
 async def get_all_schedules(frame_name: str):
-    print(frame_name)
     data = DataRepository.read_all_schedules_by_frame_id(frame_name)
     if data is None or len(data) == 0:
         raise HTTPException(

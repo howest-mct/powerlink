@@ -4,6 +4,10 @@ import time
 import RPi.GPIO as GPIO
 import asyncio
 from mfrc522 import SimpleMFRC522
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # region Sensors ---------------------------------
 
@@ -106,7 +110,7 @@ class INA219:
             raw = self._read_register(self.REG_POWER)
             return raw * self.power_lsb
         except Exception as e:
-            print(f"Error reading power from INA219: {e}")
+            logger.error(f"Error reading power from INA219: {e}")
             return 0.0
 
     def get_current_amps(self):
@@ -114,7 +118,7 @@ class INA219:
             raw = self._read_signed(self.REG_CURRENT)
             return raw * self.current_lsb
         except Exception as e:
-            print(f"Error reading current from INA219: {e}")
+            logger.error(f"Error reading current from INA219: {e}")
             return 0.0
 
     def get_bus_voltage(self):
@@ -123,7 +127,7 @@ class INA219:
             voltage_raw = raw >> 3
             return voltage_raw * 0.004
         except Exception as e:
-            print(f"Error reading bus voltage from INA219: {e}")
+            logger.error(f"Error reading bus voltage from INA219: {e}")
             return 0.0
 
     def close(self):
@@ -131,7 +135,7 @@ class INA219:
             try:
                 self.bus.close()
             except Exception as e:
-                print(f"Error closing INA219 I2C bus: {e}")
+                logger.error(f"Error closing INA219 I2C bus: {e}")
 
 
 # endregion Sensors ********************************
@@ -387,7 +391,7 @@ class PCF8574:
             try:
                 self.bus.close()
             except Exception as e:
-                print(f"Error closing PCF8574 I2C bus: {e}")
+                logger.error(f"Error closing PCF8574 I2C bus: {e}")
 
 
 class TCA9548A:
@@ -428,7 +432,7 @@ class TCA9548A:
                 self.disable_all_channels()
                 self.bus.close()
             except Exception as e:
-                print(f"Error closing TCA9548A I2C bus: {e}")
+                logger.error(f"Error closing TCA9548A I2C bus: {e}")
 
 
 class PowerMonitoringSystem:
@@ -458,9 +462,11 @@ class PowerMonitoringSystem:
                 test_ina.get_bus_voltage()
                 test_ina.close()
                 working_sensors[sensor_name] = channel
-                print(f"Sensor '{sensor_name}' on channel {channel}: OK")
+                logger.info(f"Sensor '{sensor_name}' on channel {channel}: OK")
             except Exception as e:
-                print(f"Sensor '{sensor_name}' on channel {channel}: FAILED - {e}")
+                logger.error(
+                    f"Sensor '{sensor_name}' on channel {channel}: FAILED - {e}"
+                )
         self.tca.disable_all_channels()
         self.sensors = working_sensors
 
@@ -482,7 +488,7 @@ class PowerMonitoringSystem:
             ina.close()
             return power
         except Exception as e:
-            print(f"Error reading sensor {sensor_name}: {e}")
+            logger.error(f"Error reading sensor {sensor_name}: {e}")
             return 0.0
         finally:
             self.tca.disable_all_channels()
@@ -509,7 +515,7 @@ class PowerMonitoringSystem:
             ina.close()
             return details
         except Exception as e:
-            print(f"Error reading sensor details {sensor_name}: {e}")
+            logger.error(f"Error reading sensor details {sensor_name}: {e}")
             return {"power_watts": 0.0, "current_amps": 0.0, "bus_voltage": 0.0}
         finally:
             self.tca.disable_all_channels()
