@@ -620,15 +620,16 @@ async def get_logs_between_1_and_2_weeks_by_component_id(id: int):
 
 
 @app.get(
-    ENDPOINT + "/schedules/{frame_id}/",
+    ENDPOINT + "/schedules/{frame_name}/",
     response_model=list[Schedule],
     summary="Retrieve all schedules",
     response_description="A list of all available schedules",
     tags=["schedules"],
 )
-async def get_all_schedules(frame_id: int):
+async def get_all_schedules(frame_name: str):
     # Fetch all resources from the repository
-    data = DataRepository.read_all_schedules_by_frame_id(frame_id)
+    print(frame_name)
+    data = DataRepository.read_all_schedules_by_frame_id(frame_name)
     # Check if resources exist
     if data is None or len(data) == 0:
         raise HTTPException(

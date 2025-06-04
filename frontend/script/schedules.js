@@ -149,7 +149,7 @@ const showAllSchedules = (schedules) => {
 
       if (type_id === 1) {
         htmlSchedules += `
-          <div class="c-temperature-control js-schedule__container js-temperature-control c-hover--shadow">
+          <div class="c-temperature-control js-schedule__container js-temperature-control c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
             <h4 class="c-schedule-card__title">${type_name}</h4>
             <div class="c-circular-progress">
               <div class="c-progress-ring" id="progressRing"></div>
@@ -183,7 +183,7 @@ const showAllSchedules = (schedules) => {
           </div>`;
       } else if (type_id === 2) {
         htmlSchedules += `
-          <div class="c-lighting-card js-schedule__container c-hover--shadow">
+          <div class="c-lighting-card js-schedule__container c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
             <h4 class="c-schedule-card__title">${type_name}</h4>
             <div class="c-lighting-card__content">
               <div class="c-bulb-icon" id="bulbIconLower">
@@ -444,7 +444,10 @@ class TemperatureControl {
 // #region ***  Data Access - get___                     ***********
 
 const getAllSchedules = async () => {
-  const url = ENDPOINT + '/schedules/2/';
+  const url_params = new URLSearchParams(window.location.search);
+  const url_param = url_params.get('param');
+  const url = ENDPOINT + `/schedules/${url_param}/`;
+  console.log(url_param);
   const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
   const json = await response.json().catch((err) => console.error('JSON-error:', err));
   showAllSchedules(json);
@@ -461,6 +464,7 @@ const init = () => {
 
   // showDropdown();
   // new TemperatureControl();
+
   getAllSchedules();
 };
 

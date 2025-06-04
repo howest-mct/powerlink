@@ -588,12 +588,13 @@ body {
 }
 
 @media (min-width: 48rem) {
-    body {
-        padding-top: 5rem;
-    }
 
     .c-header {
         padding: 1.5rem;
+    }
+
+    .c-room{
+        padding: 0rem;
     }
 
     .c-header__logo {
@@ -653,6 +654,7 @@ body {
         gap: 2rem;
         padding-left: 2rem;
         padding-right: 2rem;
+        
     }
 
     .c-room__container>.c-lighting-card {
