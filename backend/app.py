@@ -465,7 +465,7 @@ async def lifespan_manager(app: FastAPI):
     logger.info("Starting application...")
     GPIO.setmode(GPIO.BCM)
 
-    tasks = []
+    # tasks = []
 
     try:
         global MOTION_SENSOR, LED_BUTTON, REED_SWITCH, TEMP_SENSOR
@@ -473,71 +473,71 @@ async def lifespan_manager(app: FastAPI):
         global HEATING, AIRCO, MCP, CARD_READER
         global temp_id, ip_address
 
-        MOTION_SENSOR = 26
-        GPIO.setup(MOTION_SENSOR, GPIO.IN)
-        LED_BUTTON = 13
-        GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        POWER_BUTTON = 27
-        GPIO.setup(POWER_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        REED_SWITCH = 22
-        GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        TEMP_SENSOR = DS18B20()
-        temp_id = TEMP_SENSOR.get_id()
-        CARD_READER = RFIDReader()
-        LCD = LCD_Display(0x38, 5, 6)
-        DOOR_LOCK = SolenoidLock(18)
-        LED_OUTDOORS = LED(14)
-        LED_BOTTOM = LED(25)
-        LED_TOP = LED(21)
-        HEATING = HeatingPad(20)
-        AIRCO = DCMotor(12)
-        MCP = MCP3008(0, 1)
-        I2C_EXPANDER = TCA9548A()
+        # MOTION_SENSOR = 26
+        # GPIO.setup(MOTION_SENSOR, GPIO.IN)
+        # LED_BUTTON = 13
+        # GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        # POWER_BUTTON = 27
+        # GPIO.setup(POWER_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        # REED_SWITCH = 22
+        # GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        # TEMP_SENSOR = DS18B20()
+        # temp_id = TEMP_SENSOR.get_id()
+        # CARD_READER = RFIDReader()
+        # LCD = LCD_Display(0x38, 5, 6)
+        # DOOR_LOCK = SolenoidLock(18)
+        # LED_OUTDOORS = LED(14)
+        # LED_BOTTOM = LED(25)
+        # LED_TOP = LED(21)
+        # HEATING = HeatingPad(20)
+        # AIRCO = DCMotor(12)
+        # MCP = MCP3008(0, 1)
+        # I2C_EXPANDER = TCA9548A()
 
-        threading.Thread(
-            target=gpio_keep_alive,
-            daemon=True,
-        ).start()
+        # threading.Thread(
+        #     target=gpio_keep_alive,
+        #     daemon=True,
+        # ).start()
 
-        tasks = [
-            asyncio.create_task(run_lights_bottom()),
-            asyncio.create_task(lights_top()),
-            asyncio.create_task(display_lcd()),
-            asyncio.create_task(get_wattage()),
-            # asyncio.create_task(climate_control(25.0, temp_id)),
-        ]
+        # tasks = [
+        # asyncio.create_task(run_lights_bottom()),
+        # asyncio.create_task(lights_top()),
+        # asyncio.create_task(display_lcd()),
+        # asyncio.create_task(get_wattage()),
+        # asyncio.create_task(climate_control(25.0, temp_id)),
+        # ]
 
-        GPIO.add_event_detect(
-            LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=150
-        )
-        GPIO.add_event_detect(
-            POWER_BUTTON, GPIO.FALLING, callback=power_button, bouncetime=150
-        )
+        # GPIO.add_event_detect(
+        #     LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=150
+        # )
+        # GPIO.add_event_detect(
+        #     POWER_BUTTON, GPIO.FALLING, callback=power_button, bouncetime=150
+        # )
 
-        GPIO.add_event_detect(
-            MOTION_SENSOR, GPIO.FALLING, callback=motion_sensor_callback, bouncetime=150
-        )
+        # GPIO.add_event_detect(
+        #     MOTION_SENSOR, GPIO.FALLING, callback=motion_sensor_callback, bouncetime=150
+        # )
 
         yield
 
     finally:
         logger.info("Shutting down application...")
-        for task in tasks:
-            task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
-        CARD_READER.cleanup()
-        LCD.close()
-        DOOR_LOCK.cleanup()
-        LED_OUTDOORS.cleanup()
-        LED_BOTTOM.cleanup()
-        LED_TOP.cleanup()
-        HEATING.cleanup()
-        AIRCO.cleanup()
-        MCP.close()
-        GPIO.cleanup()
-        I2C_EXPANDER.close()
-        CARD_READER.cleanup()
-        power_monitor.close()
+        # for task in tasks:
+        #     task.cancel()
+        # await asyncio.gather(*tasks, return_exceptions=True)
+        # CARD_READER.cleanup()
+        # LCD.close()
+        # DOOR_LOCK.cleanup()
+        # LED_OUTDOORS.cleanup()
+        # LED_BOTTOM.cleanup()
+        # LED_TOP.cleanup()
+        # HEATING.cleanup()
+        # AIRCO.cleanup()
+        # MCP.close()
+        # GPIO.cleanup()
+        # I2C_EXPANDER.close()
+        # CARD_READER.cleanup()
+        # power_monitor.close()
         logger.info("GPIO cleaned up. Bye!")
 
 
@@ -620,15 +620,15 @@ async def get_logs_between_1_and_2_weeks_by_component_id(id: int):
 
 
 @app.get(
-    ENDPOINT + "/schedules/",
+    ENDPOINT + "/schedules/{frame_id}/",
     response_model=list[Schedule],
     summary="Retrieve all schedules",
     response_description="A list of all available schedules",
     tags=["schedules"],
 )
-async def get_all_schedules():
+async def get_all_schedules(frame_id: int):
     # Fetch all resources from the repository
-    data = DataRepository.read_all_schedules()
+    data = DataRepository.read_all_schedules_by_frame_id(frame_id)
     # Check if resources exist
     if data is None or len(data) == 0:
         raise HTTPException(
