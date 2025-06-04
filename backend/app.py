@@ -589,13 +589,11 @@ async def get_last_log_by_id(id: int):
     return data
 
 
-@app.get(ENDPOINT + "/logs/last/", response_model=Log, tags=["logs"])
-async def get_all_last_logs(id: int):
-    data = DataRepository.read_all_last_logs(id)
+@app.get(ENDPOINT + "/logs/last/", response_model=list[Log], tags=["logs"])
+async def get_all_last_logs():
+    data = DataRepository.read_all_last_logs()
     if not data:
-        raise HTTPException(
-            status_code=404, detail=f"No last log for component ID {id}"
-        )
+        raise HTTPException(status_code=404, detail="No last logs found")
     return data
 
 

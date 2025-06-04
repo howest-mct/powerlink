@@ -355,6 +355,12 @@ body {
     padding-bottom: 3rem;
 }
 
+.c-room__content{
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
 .c-lower {
     display: flex;
     flex-direction: column;
