@@ -67,19 +67,20 @@ class DS18B20:
                 temp_celsius = int(temp_value) / 1000
             return temp_celsius
         except Exception as e:
-            raise Exception(f"Error reading file {sensor_file}: {e}")
+            raise Exception(f"Error reading file {sensSor_file}: {e}")
 
 
 class RFIDReader:
     def __init__(self):
-        self.reader = SimpleMFRC522(0, 0, 23)
+        self.reader = SimpleMFRC522()
 
-    def read(self):
-        id, _ = self.reader.read()
-        return id
-
-    def cleanup(self):
-        GPIO.cleanup()
+    def read_no_block(self):
+        try:
+            card_id, text = self.reader.read_no_block()
+            if card_id is not None:
+                return card_id
+        except Exception:
+            return None, None
 
 
 class INA219:

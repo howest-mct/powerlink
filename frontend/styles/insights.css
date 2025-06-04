@@ -151,7 +151,6 @@ body {
     text-decoration: underline;
 }
 
-
 .c-loading-message {
     display: flex;
     justify-content: center;
@@ -161,8 +160,6 @@ body {
     font-size: 2rem;
     color: var(--main-color);
 }
-
-
 
 .c-overlay {
     position: fixed;
