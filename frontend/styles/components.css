@@ -240,6 +240,12 @@ body {
     fill: var(--text_main-color);
 }
 
+.c-article__icon{
+    width: 1.5rem;
+    height: 1.5rem;
+    object-fit: contain;
+}
+
 .c-card {
     display: flex;
     flex-direction: column;
