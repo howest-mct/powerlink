@@ -44,28 +44,67 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 # endregion Setup ********************************
 
+# region Socket.IO Setup Functions ---------------------------------
+sio = socketio.AsyncServer(cors_allowed_origins="*", async_mode="asgi", logger=True)
+
+
+async def log_and_emit_async(value, component_id):
+    log_id = DataRepository.create_log(value, component_id)
+    if log_id is None:
+        logger.error(
+            f"Failed to create log for component {component_id} with value {value}"
+        )
+        return
+
+    data = DataRepository.read_last_log_by_id(log_id)
+    data["datetime"] = data["datetime"].isoformat()
+
+    await sio.emit("B2F_new_log", data)
+
+
+def log_and_emit_sync(value, component_id):
+    log_id = DataRepository.create_log(value, component_id)
+    if log_id is None:
+        logger.error(
+            f"Failed to create log for component {component_id} with value {value}"
+        )
+        return
+
+    data = DataRepository.read_last_log_by_id(log_id)
+    data["datetime"] = data["datetime"].isoformat()
+
+    try:
+        loop = asyncio.get_event_loop()
+        time.sleep(0.5)
+        loop.create_task(sio.emit("B2F_new_log", data))
+    except RuntimeError:
+        sio.emit("B2F_new_log", data)
+
+
+# endregion Socket.IO Setup **************************************************
+
 # region Global Variables ---------------------------------
 # Database IDs
-heater_id = 1
-fan_id = 2
-led_bottom_id = 3
-led_top_id = 4
-led_outdoors_id = 5
-solenoid_lock_id = 6
-motion_sensor_id = 7
-button_lights_id = 8
-reed_switch_id = 9
-card_reader_id = 10
-temp_sensor_id = 11
-light_sensor_id = 12
-wh_led_bottom_id = 13
+wh_bat_in_id = 1
+wh_bat_out_id = 2
+pot_id = 3
+temp_sensor_id = 4
+heater_id = 5
+wh_heater_id = 6
+fan_id = 7
+wh_fan_id = 8
+button_lights_id = 9
+led_bottom_id = 10
+wh_led_bottom_id = 11
+motion_sensor_id = 12
+led_top_id = 13
 wh_led_top_id = 14
-wh_heater_id = 15
-wh_airco_id = 16
-wh_bat_in_id = 17
-wh_bat_out_id = 18
-button_power_id = 19
-pot_id = 20
+card_reader_id = 15
+reed_switch_id = 16
+servo_lock_id = 17
+light_sensor_id = 18
+led_outdoors_id = 19
+button_power_id = 20
 
 # Devices
 MOTION_SENSOR = None
@@ -120,11 +159,12 @@ def lights_button(pin):
     global switch_state, button_lights_id, led_bottom_id
     try:
         switch_state = not switch_state
-        DataRepository.create_log(switch_state, button_lights_id)
+        # Log and emit button state
+        log_and_emit_sync(switch_state, button_lights_id)
         if switch_state:
-            DataRepository.create_log(100, led_bottom_id)
+            log_and_emit_sync(100, led_bottom_id)
         else:
-            DataRepository.create_log(0, led_bottom_id)
+            log_and_emit_sync(0, led_bottom_id)
     except Exception as e:
         logger.error(f"Error in lights_button: {e}")
 
@@ -133,7 +173,7 @@ def power_button(pin):
     global switch_state_power, button_power_id
     try:
         switch_state_power = not switch_state_power
-        DataRepository.create_log(switch_state_power, button_power_id)
+        log_and_emit_sync(switch_state_power, button_power_id)
     except Exception as e:
         logger.error(f"Error in power_button: {e}")
 
@@ -156,11 +196,11 @@ async def lights_top():
                 GPIO.output(LED_TOP, GPIO.HIGH)
 
                 if 1 != prev_values["motion_sensor"]:
-                    DataRepository.create_log(1, motion_sensor_id)
+                    await log_and_emit_async(1, motion_sensor_id)
                 prev_values["motion_sensor"] = 1
 
                 if 100 != prev_values["led_brightness"]:
-                    DataRepository.create_log(100, led_top_id)
+                    await log_and_emit_async(100, led_top_id)
                 prev_values["led_brightness"] = 100
 
                 await asyncio.sleep(light_duration)
@@ -169,11 +209,11 @@ async def lights_top():
                 GPIO.output(LED_TOP, GPIO.LOW)
 
                 if 0 != prev_values["motion_sensor"]:
-                    DataRepository.create_log(0, motion_sensor_id)
+                    await log_and_emit_async(0, motion_sensor_id)
                 prev_values["motion_sensor"] = 0
 
                 if 0 != prev_values["led_brightness"]:
-                    DataRepository.create_log(0, led_top_id)
+                    await log_and_emit_async(0, led_top_id)
                 prev_values["led_brightness"] = 0
 
             last_motion = motion_now
@@ -199,7 +239,7 @@ def lights_bottom():
                 LED_BOTTOM.set_brightness(100)
 
                 if 100 != prev_led_brightness:
-                    DataRepository.create_log(100, led_bottom_id)
+                    log_and_emit_sync(100, led_bottom_id)
                 prev_led_brightness = 100
 
                 last_log_time_switch = current_time
@@ -208,7 +248,7 @@ def lights_bottom():
             LED_BOTTOM.off()
 
             if 0 != prev_led_brightness:
-                DataRepository.create_log(0, led_bottom_id)
+                log_and_emit_sync(0, led_bottom_id)
             prev_led_brightness = 0
 
             previous_state_switch = False
@@ -241,22 +281,22 @@ async def lights_outdoors():
                 if current_state:
                     LED_OUTDOORS.set_brightness(100)
                     if 100 != prev_values["led_brightness"]:
-                        DataRepository.create_log(100, led_outdoors_id)
+                        await log_and_emit_async(100, led_outdoors_id)
                     prev_values["led_brightness"] = 100
                 else:
                     LED_OUTDOORS.off()
                     if prev_values["led_brightness"] != 0:
-                        DataRepository.create_log(0, led_outdoors_id)
+                        await log_and_emit_async(0, led_outdoors_id)
                     prev_values["led_brightness"] = 0
 
                 if ldr_value != prev_values["ldr_value"]:
-                    DataRepository.create_log(ldr_value, light_sensor_id)
+                    await log_and_emit_async(ldr_value, light_sensor_id)
                 prev_values["ldr_value"] = ldr_value
 
                 last_state_led = current_state
             else:
                 if ldr_value != prev_values["ldr_value"]:
-                    DataRepository.create_log(ldr_value, light_sensor_id)
+                    await log_and_emit_async(ldr_value, light_sensor_id)
                     prev_values["ldr_value"] = ldr_value
 
             await asyncio.sleep(1)
@@ -275,7 +315,7 @@ def cut_card(card_id):
 
 def front_door():
     global DOOR_LOCK, REED_SWITCH, CARD_READER, scanned_card
-    global solenoid_lock_id, reed_switch_id, card_reader_id
+    global servo_lock_id, reed_switch_id, card_reader_id
 
     scanned_card = CARD_READER.read_no_block()
 
@@ -289,11 +329,11 @@ def front_door():
 
             if checked_card is None:
                 logger.info("Invalid card scanned")
-                DataRepository.create_log(-1, card_reader_id)
+                log_and_emit_sync(-1, card_reader_id)
                 return
 
             logger.info("Valid card scanned")
-            DataRepository.create_log(snipped_card, card_reader_id)
+            log_and_emit_sync(snipped_card, card_reader_id)
 
             if DOOR_LOCK.is_unlocked():
                 logger.debug("Door is already unlocked")
@@ -301,7 +341,7 @@ def front_door():
 
             DOOR_LOCK.unlock()
             logger.debug("Door is unlocked")
-            DataRepository.create_log(1, solenoid_lock_id)
+            log_and_emit_sync(1, servo_lock_id)
 
             logger.debug("Waiting for door to open")
             start_time = time.time()
@@ -310,12 +350,12 @@ def front_door():
                 if time.time() - start_time > 5:
                     logger.info("Door did not open in time (5 seconds) - locking again")
                     DOOR_LOCK.lock()
-                    DataRepository.create_log(0, solenoid_lock_id)
+                    log_and_emit_sync(0, servo_lock_id)
                     return
                 time.sleep(0.1)
 
             logger.debug("Door is opened")
-            DataRepository.create_log(1, reed_switch_id)
+            log_and_emit_sync(1, reed_switch_id)
 
             logger.debug("Waiting for door to close")
             start_time = time.time()
@@ -329,11 +369,11 @@ def front_door():
                 time.sleep(0.1)
 
             logger.debug("Door is closed")
-            DataRepository.create_log(0, reed_switch_id)
+            log_and_emit_sync(0, reed_switch_id)
 
             DOOR_LOCK.lock()
             logger.debug("Door is locked")
-            DataRepository.create_log(0, solenoid_lock_id)
+            log_and_emit_sync(0, servo_lock_id)
 
         except Exception as e:
             logger.error(f"Error: {e}")
@@ -414,13 +454,13 @@ async def get_wattage():
 
             readings = power_monitor.read_all_sensors()
 
-            kw_led_bottom = round(readings.get("led_bottom", 0.0), 3)
-            kw_led_top = round(readings.get("led_top", 0.0), 3)
-            kw_heating = round(readings.get("heating", 0.0), 3)
-            kw_airco = round(readings.get("airco", 0.0), 3)
+            kw_led_bottom = round(readings.get("led_bottom", 0.0), 2)
+            kw_led_top = round(readings.get("led_top", 0.0), 2)
+            kw_heating = round(readings.get("heating", 0.0), 2)
+            kw_airco = round(readings.get("airco", 0.0), 2)
 
-            battery_in_power = round(readings.get("battery_in", 0.0), 3)
-            battery_out_power = round(readings.get("battery_out", 0.0), 3)
+            battery_in_power = round(readings.get("battery_in", 0.0), 2)
+            battery_out_power = round(readings.get("battery_out", 0.0), 2)
 
             current_usage = kw_led_bottom + kw_led_top + kw_heating + kw_airco
 
@@ -432,22 +472,22 @@ async def get_wattage():
                 battery_level = 100.0
 
             if kw_led_bottom != 0 or prev_values["led_bottom"] != 0:
-                DataRepository.create_log(kw_led_bottom, wh_led_bottom_id)
+                await log_and_emit_async(kw_led_bottom, wh_led_bottom_id)
 
             if kw_led_top != 0 or prev_values["led_top"] != 0:
-                DataRepository.create_log(kw_led_top, wh_led_top_id)
+                await log_and_emit_async(kw_led_top, wh_led_top_id)
 
             if kw_heating != 0 or prev_values["heating"] != 0:
-                DataRepository.create_log(kw_heating, wh_heater_id)
+                await log_and_emit_async(kw_heating, wh_heater_id)
 
             if kw_airco != 0 or prev_values["airco"] != 0:
-                DataRepository.create_log(kw_airco, wh_airco_id)
+                await log_and_emit_async(kw_airco, wh_fan_id)
 
             if battery_in_power != 0 or prev_values["battery_in"] != 0:
-                DataRepository.create_log(battery_in_power, wh_bat_in_id)
+                await log_and_emit_async(battery_in_power, wh_bat_in_id)
 
             if battery_out_power != 0 or prev_values["battery_out"] != 0:
-                DataRepository.create_log(battery_out_power, wh_bat_out_id)
+                await log_and_emit_async(battery_out_power, wh_bat_out_id)
 
             prev_values["led_bottom"] = kw_led_bottom
             prev_values["led_top"] = kw_led_top
@@ -472,7 +512,6 @@ async def climate_control(temp_id):
     global HEATING, AIRCO, temp, temp_sensor_id, pot_id, MCP, TEMP_SENSOR
     hysteresis = 0.5
     max_range = 2.0
-    min_heater_power = 20
 
     prev_values = {
         "target_temp_pot": None,
@@ -486,48 +525,47 @@ async def climate_control(temp_id):
             current_pot = MCP.read_channel(0)
             target_temp_pot = round((16 + (current_pot / 1023) * 14) * 2) / 2
             if target_temp_pot != prev_values["target_temp_pot"]:
-                DataRepository.create_log(target_temp_pot, pot_id)
+                await log_and_emit_async(target_temp_pot, pot_id)
 
             lower_bound = target_temp_pot - hysteresis / 2
             upper_bound = target_temp_pot + hysteresis / 2
             max_lower = target_temp_pot - max_range
 
             current_temp = round(TEMP_SENSOR.get_temp(temp_id), 1)
-            logger.debug(
-                f"Current temperature value: {current_temp}°C, Target temperature: {target_temp_pot}°C"
-            )
 
             if current_temp != prev_values["current_temp"]:
-                DataRepository.create_log(current_temp, temp_sensor_id)
+                await log_and_emit_async(current_temp, temp_sensor_id)
 
             if current_temp < lower_bound:
                 if current_temp <= max_lower:
                     heater_power = 100
                 else:
-                    heater_power = min_heater_power + (100 - min_heater_power) * (
-                        lower_bound - current_temp
-                    ) / (lower_bound - max_lower)
+                    heater_power = round(
+                        100 * (lower_bound - current_temp) / (lower_bound - max_lower),
+                        2,
+                    )
 
                 HEATING.set_power(max(0, min(100, heater_power)))
                 AIRCO.off()
 
                 if heater_power != prev_values["heater_power"]:
-                    DataRepository.create_log(heater_power, heater_id)
+                    await log_and_emit_async(heater_power, heater_id)
 
                 if 0 != prev_values["fan_state"]:
-                    DataRepository.create_log(0, fan_id)
+                    await log_and_emit_async(0, fan_id)
 
                 prev_values["heater_power"] = heater_power
                 prev_values["fan_state"] = 0
 
             elif current_temp > upper_bound:
                 HEATING.off()
+                AIRCO.on()
 
                 if 0 != prev_values["heater_power"]:
-                    DataRepository.create_log(0, heater_id)
+                    await log_and_emit_async(0, heater_id)
 
                 if 1 != prev_values["fan_state"]:
-                    DataRepository.create_log(1, fan_id)
+                    await log_and_emit_async(1, fan_id)
 
                 prev_values["heater_power"] = 0
                 prev_values["fan_state"] = 1
@@ -537,10 +575,10 @@ async def climate_control(temp_id):
                 AIRCO.off()
 
                 if 0 != prev_values["heater_power"]:
-                    DataRepository.create_log(0, heater_id)
+                    await log_and_emit_async(0, heater_id)
 
                 if 0 != prev_values["fan_state"]:
-                    DataRepository.create_log(0, fan_id)
+                    await log_and_emit_async(0, fan_id)
 
                 prev_values["heater_power"] = 0
                 prev_values["fan_state"] = 0
@@ -549,7 +587,7 @@ async def climate_control(temp_id):
             prev_values["current_temp"] = current_temp
 
             temp = current_temp
-            await asyncio.sleep(3)
+            await asyncio.sleep(1)
 
     except Exception as e:
         logger.error(f"Error in climate_control: {e}")
@@ -655,7 +693,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-sio = socketio.AsyncServer(cors_allowed_origins="*", async_mode="asgi", logger=True)
 sio_app = socketio.ASGIApp(sio, app)
 
 ENDPOINT = "/api/v1"
@@ -669,14 +706,14 @@ async def root():
 
 
 @app.get(
-    ENDPOINT + "/logs/last/",
+    ENDPOINT + "/components/last/{frame_name}/",
     response_model=list[Log],
     summary="Retrieve all logs",
     response_description="A list of all available logs",
     tags=["logs"],
 )
-async def read_all_last_logs():
-    data = DataRepository.read_all_last_logs()
+async def read_all_last_logs(frame_name: str):
+    data = DataRepository.read_all_last_logs(frame_name)
     if data is None or len(data) == 0:
         raise HTTPException(status_code=404, detail=f"No logs found in the database")
     return data
@@ -741,6 +778,7 @@ async def connect(sid, environ):
 
 
 # endregion Socket.IO Handlers *************************
+
 
 # region Run The App ---------------------------------
 if __name__ == "__main__":

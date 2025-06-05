@@ -7,13 +7,15 @@ class DataRepository:
     # region Read ---------------------------------
 
     @staticmethod
-    def read_log_by_id(log_id):
+    def read_last_log_by_id(log_id):
         sql = """
             SELECT cl.*, c.component_name, c.value_unit, r.room_name 
             FROM component_logs cl
             JOIN components c ON cl.component_id = c.component_id
             JOIN rooms r ON c.room_id = r.room_id
             WHERE cl.log_id = %s
+            ORDER BY cl.datetime DESC
+            LIMIT 1
         """
         params = [log_id]
         return Database.get_one_row(sql, params)
@@ -55,20 +57,22 @@ class DataRepository:
         return Database.get_one_row(sql, params)
 
     @staticmethod
-    def read_all_last_logs():
+    def read_all_last_logs(frame_name):
         sql = """
             SELECT cl.*, c.component_name, c.value_unit, r.room_id, r.room_name
             FROM component_logs cl
             JOIN components c ON cl.component_id = c.component_id
             JOIN rooms r ON c.room_id = r.room_id
+            JOIN components_frames sf ON cl.component_id = sf.component_id
+            JOIN frames f ON sf.frame_id = f.frame_id
             WHERE cl.datetime = (
                 SELECT MAX(datetime)
                 FROM component_logs cl2
                 WHERE cl2.component_id = cl.component_id
-            )
-            ORDER BY r.room_id;
+            ) AND f.frame_name = %s
+            ORDER BY c.component_id;
         """
-        params = []
+        params = [frame_name]
         return Database.get_rows(sql, params)
 
     @staticmethod

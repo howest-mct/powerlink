@@ -137,7 +137,7 @@ const showAllSchedules = (schedules) => {
     `;
 
     for (const schedule of room_data) {
-      const { schedule_id, schedule_name, start_time, end_time, value, value_unit, enabled, type_id, component_id, room_id, room_name, type_name } = schedule;
+      const { schedule_id, start_time, end_time, value, enabled, type_id, component_id, room_id, type_name } = schedule;
 
       if (type_id === 1) {
         htmlSchedules += `
