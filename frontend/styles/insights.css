@@ -155,7 +155,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20rem;
+    padding: 1.5rem;
+    height: 90vh;
     font-family: "Manrope", sans-serif;
     font-size: 2rem;
     color: var(--main-color);
