@@ -8,7 +8,7 @@ const ENDPOINT = 'http://192.168.168.169:8000/api/v1';
 
 // #region ***  Callback-Visualisation - showVisuals     ***********
 
-function showDropdown() {
+const showDropdown = () => {
   const hamburger = document.querySelector('.c-hamburger');
   const navPopup = document.querySelector('.c-nav-popup');
   const overlay = document.querySelector('.c-overlay');
@@ -81,9 +81,9 @@ function showDropdown() {
       overlay.setAttribute('aria-hidden', 'true');
     }
   });
-}
+};
 
-function showSliders(sliderId, valueDisplayId, bulbIconId) {
+const showSliders = (sliderId, valueDisplayId, bulbIconId) => {
   const slider = document.getElementById(sliderId);
   const valueDisplay = document.getElementById(valueDisplayId);
   const bulbIcon = document.getElementById(bulbIconId);
@@ -136,160 +136,13 @@ function showSliders(sliderId, valueDisplayId, bulbIconId) {
 
   const initialValue = parseFloat(slider.value);
   updateVisuals(initialValue);
-}
+};
+
+const showAllItems = (components, schedules) => {};
 
 // #endregion
 
 // #region ***  Callback-Visualisation - showData         ***********
-
-const showBatteryIn = (json) => {
-  const solarDisplay = document.querySelector('.js-solar_value');
-  const solarState = document.querySelector('.js-solar_state');
-
-  let batteryInTotal = 0;
-  for (const log of json) {
-    const batteryIn = parseFloat(log.value);
-    batteryInTotal += batteryIn;
-  }
-  solarDisplay.innerHTML = batteryInTotal + ' Watt';
-
-  const lastValue = parseFloat(json[json.length - 1].value);
-  if (lastValue > 0) {
-    solarState.innerHTML = 'Charging battery';
-  } else {
-    solarState.innerHTML = 'Inactive';
-  }
-};
-
-const showEnergyToday = (json) => {
-  let energyTodayTotal = 0;
-  for (const log of json) {
-    const energyToday = parseFloat(log.value);
-    energyTodayTotal += energyToday;
-  }
-  const energyTodayDisplay = document.querySelector('.js-energy_today_value');
-  energyTodayDisplay.innerHTML = energyTodayTotal + ' Watt';
-};
-
-const showEnergyWeek = (json) => {
-  let energyWeekTotal = 0;
-  for (const log of json) {
-    const energyWeek = parseFloat(log.value);
-    energyWeekTotal += energyWeek;
-  }
-  const energyWeekDisplay = document.querySelector('.js-energy_week_value');
-  energyWeekDisplay.innerHTML = energyWeekTotal + ' Watt';
-};
-
-const showTemperatureSchedule = (json, json2) => {
-  const scheduleEnabled = json.enabled;
-  const scheduleEnabled2 = json2.enabled;
-  const scheduleDisplay = document.querySelector('.js-temperature_schedule');
-  if (scheduleEnabled === scheduleEnabled2) {
-    if (scheduleEnabled) {
-      scheduleDisplay.innerHTML = `Schedule active`;
-      scheduleDisplay.classList.add('c-active');
-    } else {
-      scheduleDisplay.innerHTML = `Schedule inactive`;
-      scheduleDisplay.classList.remove('c-active');
-    }
-  } else {
-    console.error('Schedules enable dont correspond');
-  }
-};
-
-const showLightingLower = (json) => {
-  const slider = document.getElementById('lightSliderLower');
-  const value = parseFloat(json.value);
-  if (!isNaN(value)) {
-    slider.value = value;
-    const event = new Event('input', { bubbles: true });
-    slider.dispatchEvent(event);
-  } else {
-    console.error('Invalid lighting lower value:', json.value);
-    slider.value = 0;
-    const event = new Event('input', { bubbles: true });
-    slider.dispatchEvent(event);
-  }
-};
-
-const showLightingUpper = (json) => {
-  const slider = document.getElementById('lightSliderUpper');
-  const value = parseFloat(json.value);
-  if (!isNaN(value)) {
-    slider.value = value;
-    const event = new Event('input', { bubbles: true });
-    slider.dispatchEvent(event);
-  } else {
-    console.error('Invalid lighting upper value:', json.value);
-    slider.value = 0;
-    const event = new Event('input', { bubbles: true });
-    slider.dispatchEvent(event);
-  }
-};
-
-const showLightingLowerSchedule = (json) => {
-  const lightingLowerScheduleDisplay = document.querySelector('.js-schedule_lower');
-  const scheduleEnabled = json.enabled;
-  if (scheduleEnabled) {
-    lightingLowerScheduleDisplay.innerHTML = `Schedule active`;
-    lightingLowerScheduleDisplay.classList.add('c-active');
-  } else {
-    lightingLowerScheduleDisplay.innerHTML = `Schedule inactive`;
-    lightingLowerScheduleDisplay.classList.remove('c-active');
-  }
-};
-
-const showLightingUpperSchedule = (json) => {
-  const lightingUpperScheduleDisplay = document.querySelector('.js-schedule_upper');
-  const scheduleEnabled = json.enabled;
-  if (scheduleEnabled) {
-    lightingUpperScheduleDisplay.innerHTML = `Schedule active`;
-    lightingUpperScheduleDisplay.classList.add('c-active');
-  } else {
-    lightingUpperScheduleDisplay.innerHTML = `Schedule inactive`;
-    lightingUpperScheduleDisplay.classList.remove('c-active');
-  }
-};
-
-const showLastInhabitant = (json, datetime) => {
-  const lastInhabitantDisplay = document.querySelector('.js-last_inhabitant');
-  lastInhabitantDisplay.innerHTML = json.first_name;
-  const lastInhabitantDateDisplay = document.querySelector('.js-last_inhabitant_date');
-  const displayedDate = formatDateTime(datetime);
-  lastInhabitantDateDisplay.innerHTML = displayedDate;
-};
-
-const showLockState = (json) => {
-  const doorStateDisplay = document.querySelector('.js-door_state');
-  const doorStateIcon = document.querySelector('.js-door_state_icon');
-  const doorState = parseInt(json.value);
-
-  if (doorState === 0) {
-    doorStateIcon.innerHTML = `
-      <svg class="c-door__lock-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#000000" viewBox="0 0 256 256"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Z"></path></svg>`;
-    doorStateDisplay.innerHTML = 'Locked';
-    doorStateDisplay.classList.remove('c-active');
-  } else {
-    doorStateIcon.innerHTML = `
-      <svg class="c-door__lock-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#4A90E2" viewBox="0 0 256 256"><path d="M208,80H96V56a32,32,0,0,1,32-32c15.37,0,29.2,11,32.16,25.59a8,8,0,0,0,15.68-3.18C171.32,24.15,151.2,8,128,8A48.05,48.05,0,0,0,80,56V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm0,128H48V96H208V208Z"></path></svg>`;
-    doorStateDisplay.innerHTML = 'Unlocked';
-    doorStateDisplay.classList.add('c-active');
-  }
-};
-
-const showLightingOutside = (json) => {
-  const lightingOutsideDisplay = document.querySelector('.js-lighting_outside_icon');
-  const lightingOutsideState = document.querySelector('.js-lighting_outside_state');
-  const lightingOutsideValue = parseFloat(json.value);
-  if (json.value === '0') {
-    lightingOutsideDisplay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256"><path d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z"></path></svg>`;
-    lightingOutsideState.innerHTML = 'Off';
-  } else {
-    lightingOutsideDisplay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#4A90E2" viewBox="0 0 256 256"><path d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z"></path></svg>`;
-    lightingOutsideState.innerHTML = 'On';
-  }
-};
 
 // #endregion
 
@@ -510,95 +363,19 @@ class TemperatureControl {
 
 // #region ***  Data Access - get___                     ***********
 
-const getBatteryIn = async () => {
-  const url = ENDPOINT + `/logs/17/24h/`;
+const getAllComponents = async () => {
+  const url_params = new URLSearchParams(window.location.search);
+  const url_param = url_params.get('param');
+  const url = ENDPOINT + `/components/${url_param}/`;
   const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
   const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showBatteryIn(json);
-};
 
-const getEnergyToday = async () => {
-  const url = ENDPOINT + `/logs/18/24h/`;
-  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showEnergyToday(json);
-};
-
-const getEnergyWeek = async () => {
-  const url = ENDPOINT + `/logs/18/week/`;
-  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showEnergyWeek(json);
-};
-
-const getLightingLower = async () => {
-  const url = ENDPOINT + `/logs/3/last/`;
-  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showLightingLower(json);
-};
-
-const getLightingUpper = async () => {
-  const url = ENDPOINT + `/logs/4/last/`;
-  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showLightingUpper(json);
-};
-
-const getTemperatureSchedule = async () => {
-  let url = ENDPOINT + `/schedules/1/`;
-  let response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-
-  url = ENDPOINT + `/schedules/2/`;
+  url = ENDPOINT + `/schedules/${url_param}/`;
   response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
   const json2 = await response.json().catch((err) => console.error('JSON-error:', err));
-
-  showTemperatureSchedule(json, json2);
+  showAllItems(json, json2);
 };
 
-const getLightingLowerSchedule = async () => {
-  let url = ENDPOINT + `/schedules/3/`;
-  let response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showLightingLowerSchedule(json);
-};
-
-const getLightingUpperSchedule = async () => {
-  let url = ENDPOINT + `/schedules/4/`;
-  let response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showLightingUpperSchedule(json);
-};
-
-const getLastDoor = async () => {
-  const url = ENDPOINT + `/logs/10/last/`;
-  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  getLastInhabitant(json.value, json.datetime);
-};
-
-const getLastInhabitant = async (value, datetime) => {
-  const card_id = String(value);
-  const url = ENDPOINT + `/inhabitants/${card_id}/`;
-  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showLastInhabitant(json, datetime);
-};
-
-const getLockState = async () => {
-  const url = ENDPOINT + `/logs/6/last/`;
-  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showLockState(json);
-};
-
-const getLightingOutside = async () => {
-  const url = ENDPOINT + `/logs/5/last/`;
-  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showLightingOutside(json);
-};
 // #endregion
 
 // #region ***  Event Listeners - listenTo___            ***********
@@ -610,22 +387,9 @@ let tempControl; // Global instance for TemperatureControl
 
 const init = () => {
   console.info('DOM loaded');
-  showSliders('lightSliderLower', 'valueDisplayLower', 'bulbIconLower');
-  showSliders('lightSliderUpper', 'valueDisplayUpper', 'bulbIconUpper');
   showDropdown();
-  tempControl = new TemperatureControl();
 
-  getBatteryIn();
-  getEnergyToday();
-  getEnergyWeek();
-  getTemperatureSchedule();
-  getLightingLower();
-  getLightingUpper();
-  getLightingLowerSchedule();
-  getLightingUpperSchedule();
-  getLastDoor();
-  getLockState();
-  getLightingOutside();
+  getAllItems();
 };
 
 document.addEventListener('DOMContentLoaded', init);

@@ -96,6 +96,7 @@ ldr_value = None
 scanned_card = None
 door_state = None
 light_duration = 10
+prev_led_brightness = None
 power_monitor = None
 current_usage = 0.0
 battery_level = 0.0

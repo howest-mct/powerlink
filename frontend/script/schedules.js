@@ -191,53 +191,63 @@ const showAllSchedules = (schedules) => {
             </div>
           </div>`;
 
-        chartsToRender.push({
-          containerId: `chart_${schedule_id}`,
-          options: {
-            series: [((value - 16) / (30 - 16)) * 100],
-            chart: {
-              height: 280,
-              type: 'radialBar',
-              offsetY: -10,
+        const chartId = `chart_${schedule_id}`;
+        const chartOptions = {
+          series: [((value - 16) / (30 - 16)) * 100],
+          chart: {
+            type: 'radialBar',
+            offsetY: 0,
+            sparkline: {
+              enabled: false,
             },
-            plotOptions: {
-              radialBar: {
-                startAngle: -90,
-                endAngle: 90,
-                dataLabels: {
-                  name: {
-                    fontSize: '2.025rem',
-                    color: undefined,
-                    offsetY: 120,
-                  },
-                  value: {
-                    offsetY: -15,
-                    fontSize: '2.025rem',
-                    color: '#4a90e2',
-                    formatter: function (val) {
-                      const temp = (val / 100) * (30 - 16) + 16;
-                      return temp.toFixed(1) + '°C';
-                    },
+          },
+          plotOptions: {
+            radialBar: {
+              startAngle: -90,
+              endAngle: 90,
+              track: {
+                background: '#E0E0E0',
+                strokeWidth: '97%',
+                margin: 0,
+                dropShadow: {
+                  enabled: false,
+                  top: 2,
+                  left: 0,
+                  color: '#444',
+                  opacity: 1,
+                  blur: 2,
+                },
+              },
+              dataLabels: {
+                name: {
+                  show: false,
+                },
+                value: {
+                  offsetY: 0,
+                  fontSize: '40px',
+                  formatter: function (val) {
+                    const temp = (val / 100) * (30 - 16) + 16;
+                    return temp.toFixed(1) + '°C';
                   },
                 },
               },
             },
-            fill: {
-              type: 'gradient',
-              gradient: {
-                shade: 'dark',
-                shadeIntensity: 0.15,
-                inverseColors: false,
-                opacityFrom: 1,
-                opacityTo: 1,
-                stops: [0, 50, 65, 91],
-              },
-            },
-            stroke: {
-              dashArray: 4,
-            },
-            labels: [''],
           },
+          grid: {
+            padding: {
+              top: 0,
+            },
+          },
+          fill: {
+            type: 'linear',
+            colors: ['#4A90E2'],
+          },
+          labels: [''],
+        };
+
+        chartsToRender.push({
+          id: chartId,
+          options: chartOptions,
         });
       } else if (type_id === 2) {
         htmlSchedules += `
@@ -276,6 +286,8 @@ const showAllSchedules = (schedules) => {
               </div>
             </div>
           </div>`;
+      }
+      if (enabled) {
       }
     }
 
@@ -333,6 +345,7 @@ const showAllSchedules = (schedules) => {
     });
   });
   listenToSubmitLightingSchedules();
+  listenToTemperatureControl();
 };
 // #endregion
 
@@ -577,20 +590,10 @@ const listenToSubmitLightingSchedules = () => {
       const enabled_input = schedule_container.querySelector('.js-schedule__checkbox');
       const slider_input = schedule_container.querySelector('.c-slider');
 
-      if (!start_time_input || !end_time_input || !enabled_input || !slider_input) {
-        console.error('Required input elements not found for schedule:', schedule_id);
-        return;
-      }
-
       const start_time = start_time_input.value;
       const end_time = end_time_input.value;
       const value = parseFloat(slider_input.value) || 0;
       const enabled = enabled_input.checked ? 1 : 0;
-
-      if (!start_time || !end_time) {
-        console.error('Start time and end time are required for schedule:', schedule_id);
-        return;
-      }
 
       console.info(`Saving schedule ${schedule_id} with start_time: ${start_time}, end_time: ${end_time}, value: ${value}, enabled: ${enabled}`);
 
@@ -598,6 +601,19 @@ const listenToSubmitLightingSchedules = () => {
     });
   });
 };
+
+const listenToTemperatureControl = () => {
+  const tempControls = document.querySelectorAll('.js-temperature-control');
+  tempControls.forEach((control) => {
+    control.addEventListener('click', (e) => {
+      console.log('Temperature control clicked');
+    });
+    const decreaseBtn = control.querySelector('.c-control-btn#decrease_btn_');
+    const increaseBtn = control.querySelector('.c-control-btn#increase_btn_');
+    const tempDisplay = control.querySelector('.c-temperature-card__meta .c-temperature-card__info p');
+  });
+};
+
 // #endregion
 
 // #region ***  Init / DOMContentLoaded                  ***********
