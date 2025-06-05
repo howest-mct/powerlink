@@ -16,6 +16,7 @@ class Log(P1BaseModel):
     component_id: int
     component_name: str
     value_unit: str
+    room_id: int
     room_name: str
 
 

@@ -214,10 +214,10 @@ body {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    max-height: 15.526875rem;
+    height: fit-content;
 }
 
-.c-lighting-card__content {
+.c-card__content {
     display: flex;
     align-items: center;
     position: relative;
@@ -287,19 +287,19 @@ body {
     gap: 2rem;
 }
 
-.c-lighting-card__meta {
+.c-card__meta {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
 }
 
-.c-lighting-card__info {
+.c-card__info {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
-.c-lighting-card__status {
+.c-card__status {
     font-size: 0.875rem;
     line-height: 1.5rem;
     font-weight: 400;
@@ -308,15 +308,23 @@ body {
     text-align: left;
 }
 
-.c-lighting-card__schedule{
+.c-card__schedule{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.c-card__schedule-time{
     display: flex;
     flex-direction: row;
     gap: 0.5rem;
-    font-size: 0.875rem;
 }
 
-.c-lighting-card__schedule-from,
-.c-lighting-card__schedule-to {
+.c-card__schedule-from,
+.c-card__schedule-to {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -328,7 +336,7 @@ body {
     transition: background-color 0.2s ease;
     height: 100%;
 }
-.c-lighting-card__schedule-save{
+.c-card__schedule-save{
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -340,7 +348,7 @@ body {
     transition: background-color 0.2s ease;
     height: 100%;
 }
-.c-lighting-card__schedule-save:hover {
+.c-card__schedule-save:hover {
     background-color: var(--main-color);
     color: var(--white-color);
     cursor: pointer;
@@ -348,14 +356,14 @@ body {
 }
 
 
-.c-lighting-card__state {
+.c-card__state {
     font-size: 0.875rem;
     line-height: 1rem;
     color: var(--text_sub-color);
     margin: 0.125rem 0 0 0;
 }
 
-.c-lighting-card__edit {
+.c-card__edit {
     align-items: flex-end;
     background: none;
     font-size: 0.875rem;
@@ -407,7 +415,7 @@ body {
     text-decoration: none;
 }
 
-.c-lighting-card__edit:hover {
+.c-card__edit:hover {
     color: var(--main-color);
     text-decoration: underline;
 }
@@ -452,15 +460,23 @@ body {
 }
 
 .c-circular-progress{
-    overflow: visible;
     font-size: 1.5rem;
-    max-height: 12.5rem;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.c-circular-progress__chart{
+    height: fit-content;
+    width: fit-content;
 }
 
 .c-controls {
     position: relative;
     display: flex;
     gap: 45%;
+    padding-bottom: 2rem;
     justify-content: center;
     align-items: center;
 }
@@ -684,7 +700,7 @@ input:checked+.slider:before {
     }
 
     .c-room__container>.c-lighting-card {
-        max-height: 15.23875rem;
+        height: fit-content;
         width: 100%;
     }
 

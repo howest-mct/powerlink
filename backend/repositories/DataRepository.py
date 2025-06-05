@@ -57,7 +57,7 @@ class DataRepository:
     @staticmethod
     def read_all_last_logs():
         sql = """
-            SELECT cl.*, c.component_name, c.value_unit, r.room_name
+            SELECT cl.*, c.component_name, c.value_unit, r.room_id, r.room_name
             FROM component_logs cl
             JOIN components c ON cl.component_id = c.component_id
             JOIN rooms r ON c.room_id = r.room_id

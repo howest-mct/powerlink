@@ -668,59 +668,17 @@ async def root():
     return "Server werkt, maar hier geen API endpoint gevonden."
 
 
-@app.get(ENDPOINT + "/logs/{id}/all/", response_model=list[Log], tags=["logs"])
-async def get_all_logs_by_component_id(id: int):
-    data = DataRepository.read_all_logs_by_component_id(id)
-    if not data:
-        raise HTTPException(status_code=404, detail=f"No logs for component ID {id}")
-    return data
-
-
-@app.get(ENDPOINT + "/logs/{id}/last/", response_model=Log, tags=["logs"])
-async def get_last_log_by_id(id: int):
-    data = DataRepository.read_last_log_by_component_id(id)
-    if not data:
-        raise HTTPException(
-            status_code=404, detail=f"No last log for component ID {id}"
-        )
-    return data
-
-
-@app.get(ENDPOINT + "/logs/last/", response_model=list[Log], tags=["logs"])
-async def get_all_last_logs():
+@app.get(
+    ENDPOINT + "/logs/last/",
+    response_model=list[Log],
+    summary="Retrieve all logs",
+    response_description="A list of all available logs",
+    tags=["logs"],
+)
+async def read_all_last_logs():
     data = DataRepository.read_all_last_logs()
-    if not data:
-        raise HTTPException(status_code=404, detail="No last logs found")
-    return data
-
-
-@app.get(ENDPOINT + "/logs/{id}/24h/", response_model=list[Log], tags=["logs"])
-async def get_logs_last_24_hours_by_id(id: int):
-    data = DataRepository.read_logs_last_24_hours_by_component_id(id)
-    if not data:
-        raise HTTPException(
-            status_code=404, detail=f"No logs for last 24h for component ID {id}"
-        )
-    return data
-
-
-@app.get(ENDPOINT + "/logs/{id}/week/", response_model=list[Log], tags=["logs"])
-async def get_logs_last_week_by_id(id: int):
-    data = DataRepository.read_logs_last_week_by_component_id(id)
-    if not data:
-        raise HTTPException(
-            status_code=404, detail=f"No logs for last week for component ID {id}"
-        )
-    return data
-
-
-@app.get(ENDPOINT + "/logs/{id}/week2/", response_model=list[Log], tags=["logs"])
-async def get_logs_between_1_and_2_weeks_by_component_id(id: int):
-    data = DataRepository.read_logs_between_1_and_2_weeks_by_component_id(id)
-    if not data:
-        raise HTTPException(
-            status_code=404, detail=f"No logs between 1-2 weeks for component ID {id}"
-        )
+    if data is None or len(data) == 0:
+        raise HTTPException(status_code=404, detail=f"No logs found in the database")
     return data
 
 
@@ -740,24 +698,16 @@ async def get_all_schedules(frame_name: str):
     return data
 
 
-@app.get(ENDPOINT + "/schedules/{id}/", response_model=Schedule, tags=["schedules"])
-async def get_schedule_by_id(id: int):
-    data = DataRepository.read_schedule_by_id(id)
-    if not data:
-        raise HTTPException(status_code=404, detail=f"Schedule with ID {id} not found")
-    return data
-
-
 @app.put(
-    ENDPOINT + "/schedules/{id}/lighting/",
+    ENDPOINT + "/schedule/{id}/",
     response_model=UpdatedSchedule,
-    tags=["schedules"],
+    tags=["schedule"],
 )
 async def update_lighting_schedule(id: int, schedule: DTOSchedule):
     existing = DataRepository.read_schedule_by_id(id)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Schedule with ID {id} not found")
-    updated = DataRepository.update_lighting_schedule(
+    updated = DataRepository.update_schedule(
         id, schedule.start_time, schedule.end_time, schedule.value, schedule.enabled
     )
     if updated == 0:
