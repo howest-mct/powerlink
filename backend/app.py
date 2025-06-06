@@ -75,7 +75,7 @@ def log_and_emit_sync(value, component_id):
 
     try:
         loop = asyncio.get_event_loop()
-        time.sleep(0.5)
+        time.sleep(1)
         loop.create_task(sio.emit("B2F_new_log", data))
     except RuntimeError:
         sio.emit("B2F_new_log", data)
@@ -124,25 +124,28 @@ MCP = None
 I2C_EXPANDER = None
 
 # Values and States
-switch_state = False
-switch_state_power = False
-last_log_time_switch = 0
-previous_state_switch = False
-last_state_led = None
-temp_id = None
-temp = None
-ldr_value = None
-scanned_card = None
-door_state = None
-light_duration = 10
-prev_led_brightness = None
-power_monitor = None
-current_usage = 0.0
 battery_level = 0.0
 kw_led_bottom = 0.0
 kw_led_top = 0.0
 kw_heating = 0.0
 kw_airco = 0.0
+kw_bat_out = 0.0
+current_usage = 0.0
+power_monitor = None
+temp_id = None
+temp = None
+switch_state = False
+last_log_time_switch = 0
+previous_state_switch = False
+last_state_led = None
+light_duration = 10
+prev_led_brightness = None
+ldr_value = None
+scanned_card = None
+door_state = None
+switch_state_power = False
+dict_schedules = None
+
 
 GPIO.setmode(GPIO.BCM)
 # endregion Global Variables **************************
@@ -159,12 +162,7 @@ def lights_button(pin):
     global switch_state, button_lights_id, led_bottom_id
     try:
         switch_state = not switch_state
-        # Log and emit button state
         log_and_emit_sync(switch_state, button_lights_id)
-        if switch_state:
-            log_and_emit_sync(100, led_bottom_id)
-        else:
-            log_and_emit_sync(0, led_bottom_id)
     except Exception as e:
         logger.error(f"Error in lights_button: {e}")
 
@@ -176,6 +174,35 @@ def power_button(pin):
         log_and_emit_sync(switch_state_power, button_power_id)
     except Exception as e:
         logger.error(f"Error in power_button: {e}")
+
+
+def lights_bottom():
+    global LED_BOTTOM, switch_state, last_log_time_switch, previous_state_switch
+    global prev_led_brightness
+
+    try:
+        if switch_state and not previous_state_switch:
+            current_time = time.time()
+            if current_time - last_log_time_switch >= 1:
+                LED_BOTTOM.set_brightness(100)
+
+                if 100 != prev_led_brightness:
+                    log_and_emit_sync(100, led_bottom_id)
+                prev_led_brightness = 100
+
+                last_log_time_switch = current_time
+            previous_state_switch = True
+        elif not switch_state:
+            LED_BOTTOM.off()
+
+            if 0 != prev_led_brightness:
+                log_and_emit_sync(0, led_bottom_id)
+            prev_led_brightness = 0
+
+            previous_state_switch = False
+    except Exception as e:
+        logger.error(f"Error in lights_bottom: {e}")
+        prev_led_brightness = None
 
 
 async def lights_top():
@@ -226,35 +253,6 @@ async def lights_top():
             prev_values["motion_sensor"] = None
             prev_values["led_brightness"] = None
             await asyncio.sleep(1)
-
-
-def lights_bottom():
-    global LED_BOTTOM, switch_state, last_log_time_switch, previous_state_switch
-    global prev_led_brightness
-
-    try:
-        if switch_state and not previous_state_switch:
-            current_time = time.time()
-            if current_time - last_log_time_switch >= 1:
-                LED_BOTTOM.set_brightness(100)
-
-                if 100 != prev_led_brightness:
-                    log_and_emit_sync(100, led_bottom_id)
-                prev_led_brightness = 100
-
-                last_log_time_switch = current_time
-            previous_state_switch = True
-        elif not switch_state:
-            LED_BOTTOM.off()
-
-            if 0 != prev_led_brightness:
-                log_and_emit_sync(0, led_bottom_id)
-            prev_led_brightness = 0
-
-            previous_state_switch = False
-    except Exception as e:
-        logger.error(f"Error in lights_bottom: {e}")
-        prev_led_brightness = None
 
 
 async def lights_outdoors():
@@ -509,7 +507,7 @@ async def get_wattage():
 
 
 async def climate_control(temp_id):
-    global HEATING, AIRCO, temp, temp_sensor_id, pot_id, MCP, TEMP_SENSOR
+    global HEATING, AIRCO, temp, temp_sensor_id, pot_id, MCP, TEMP_SENSOR, dict_schedules
     hysteresis = 0.5
     max_range = 2.0
 
@@ -610,8 +608,8 @@ async def run_lights_bottom():
 @asynccontextmanager
 async def lifespan_manager(app: FastAPI):
     logger.info("Starting application...")
+    dict_schedules = DataRepository.read_all_schedules()
     GPIO.setmode(GPIO.BCM)
-
     tasks = []
 
     try:
@@ -719,22 +717,6 @@ async def read_all_last_logs(frame_name: str):
     return data
 
 
-@app.get(
-    ENDPOINT + "/schedules/{frame_name}/",
-    response_model=list[Schedule],
-    summary="Retrieve all schedules",
-    response_description="A list of all available schedules",
-    tags=["schedules"],
-)
-async def get_all_schedules(frame_name: str):
-    data = DataRepository.read_all_schedules_by_frame_id(frame_name)
-    if data is None or len(data) == 0:
-        raise HTTPException(
-            status_code=404, detail=f"No schedules found in the database"
-        )
-    return data
-
-
 @app.put(
     ENDPOINT + "/schedule/{id}/",
     response_model=UpdatedSchedule,
@@ -750,6 +732,22 @@ async def update_lighting_schedule(id: int, schedule: DTOSchedule):
     if updated == 0:
         raise HTTPException(status_code=400, detail="Failed to update schedule")
     return DataRepository.read_schedule_by_id(id)
+
+
+@app.get(
+    ENDPOINT + "/schedules/{frame_name}/",
+    response_model=list[Schedule],
+    summary="Retrieve all schedules",
+    response_description="A list of all available schedules",
+    tags=["schedules"],
+)
+async def get_all_schedules(frame_name: str):
+    data = DataRepository.read_all_schedules_by_frame_id(frame_name)
+    if data is None or len(data) == 0:
+        raise HTTPException(
+            status_code=404, detail=f"No schedules found in the database"
+        )
+    return data
 
 
 @app.get(
@@ -775,6 +773,12 @@ async def get_inhabitant_by_id(card_id: int):
 @sio.event
 async def connect(sid, environ):
     logger.info(f"Client connected: {sid}")
+
+
+@sio.on("BF2_schedule_updated")
+async def handler(sid, data):
+    global switch_state
+    switch_state = not switch_state
 
 
 # endregion Socket.IO Handlers *************************

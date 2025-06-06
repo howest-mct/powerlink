@@ -7,6 +7,22 @@ class DataRepository:
     # region Read ---------------------------------
 
     @staticmethod
+    def read_all_component_ids():
+        sql = """
+            SELECT component_name, component_id
+            FROM components
+        """
+        return Database.get_rows(sql)
+
+    @staticmethod
+    def read_all_schedules():
+        sql = """
+            SELECT schedule_id, start_time, end_time, value, enabled
+            FROM schedules s
+        """
+        return Database.get_rows(sql)
+
+    @staticmethod
     def read_last_log_by_id(log_id):
         sql = """
             SELECT cl.*, c.component_name, c.value_unit, r.room_name 
@@ -18,42 +34,6 @@ class DataRepository:
             LIMIT 1
         """
         params = [log_id]
-        return Database.get_one_row(sql, params)
-
-    @staticmethod
-    def read_all_logs():
-        sql = """
-            SELECT cl.*, c.component_name, c.value_unit, r.room_name 
-            FROM component_logs cl
-            JOIN components c ON cl.component_id = c.component_id
-            JOIN rooms r ON c.room_id = r.room_id
-        """
-        return Database.get_rows(sql)
-
-    @staticmethod
-    def read_all_logs_by_component_id(component_id):
-        sql = """
-            SELECT cl.*, c.component_name, c.value_unit, r.room_name 
-            FROM component_logs cl
-            JOIN components c ON cl.component_id = c.component_id
-            JOIN rooms r ON c.room_id = r.room_id
-            WHERE cl.component_id = %s
-        """
-        params = [component_id]
-        return Database.get_rows(sql, params)
-
-    @staticmethod
-    def read_last_log_by_component_id(component_id):
-        sql = """
-            SELECT cl.*, c.component_name, c.value_unit, r.room_name 
-            FROM component_logs cl
-            JOIN components c ON cl.component_id = c.component_id
-            JOIN rooms r ON c.room_id = r.room_id
-            WHERE cl.component_id = %s 
-            ORDER BY cl.datetime DESC 
-            LIMIT 1
-        """
-        params = [component_id]
         return Database.get_one_row(sql, params)
 
     @staticmethod
