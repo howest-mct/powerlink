@@ -311,10 +311,10 @@ body {
 .c-card__schedule{
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
     font-size: 0.875rem;
     flex-wrap: wrap;
     gap: 1rem;
+    justify-content: space-between;
 }
 
 .c-card__schedule-time{
@@ -504,14 +504,13 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    justify-content: baseline;
 }
 
 .c-temperature-card__info {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
     gap: 0.5rem;
+    width: 100%;    
 }
 
 .c-temperature-card__status {

@@ -163,18 +163,20 @@ const showAllSchedules = (schedules) => {
             <div class="c-temperature-card__meta">
               <div class="c-temperature-card__info">
                 <p class="c-temperature-card__status">Turn on climate control</p>
-                <div class="c-temperature-card__schedule">
-                  <div class="c-temperature-card__schedule-from">
+                <div class="c-card__schedule">
+                <div class="c-card__schedule-time">
+                  <div class="c-card__schedule-from">
                     <p>from</p>
                     <input type="time" class="js-input_container" value="${start_time}">
                   </div>
-                  <div class="c-temperature-card__schedule-to">
+                  <div class="c-card__schedule-to">
                     <p>to</p>
                     <input type="time" class="js-input_container" value="${end_time}">
                   </div>
-                  <div class="c-card__schedule-save__container">
-                    <button class="js-card__schedule-save c-card__schedule-save" type="button">SAVE CHANGES</button>
-                  </div>
+                </div>
+                <div class="c-card__schedule-save__container">
+                  <button class="js-card__schedule-save c-card__schedule-save" type="button">SAVE CHANGES</button>
+                </div>
                 </div>
               </div>
             </div>

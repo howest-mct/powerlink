@@ -147,7 +147,6 @@ switch_state_power = False
 
 # Schedules
 all_schedules = DataRepository.read_all_schedules()
-
 dict_schedules = {}
 for schedule in all_schedules:
     if schedule["schedule_name"] not in dict_schedules:
@@ -518,8 +517,6 @@ async def climate_control(temp_id):
     global HEATING, AIRCO, temp, temp_sensor_id, pot_id, MCP, TEMP_SENSOR, dict_schedules
     hysteresis = 0.5
     max_range = 2.0
-    target_temp_pot = None
-    target_temp = None
 
     prev_values = {
         "target_temp_pot": None,
@@ -556,68 +553,63 @@ async def climate_control(temp_id):
                 if target_temp_pot != prev_values["target_temp_pot"]:
                     await log_and_emit_async(target_temp_pot, pot_id)
 
-            if (not enabled) or (
-                enabled and not (start_time <= current_time <= end_time)
-            ):
-                current_temp = round(TEMP_SENSOR.get_temp(temp_id), 1)
-                if current_temp != prev_values["current_temp"]:
-                    await log_and_emit_async(current_temp, temp_sensor_id)
+            current_temp = round(TEMP_SENSOR.get_temp(temp_id), 1)
+            if current_temp != prev_values["current_temp"]:
+                await log_and_emit_async(current_temp, temp_sensor_id)
 
-                if current_temp < lower_bound:
-                    if current_temp <= max_lower:
-                        heater_power = 100
-                    else:
-                        heater_power = round(
-                            100
-                            * (lower_bound - current_temp)
-                            / (lower_bound - max_lower),
-                            2,
-                        )
-
-                    HEATING.set_power(max(0, min(100, heater_power)))
-                    AIRCO.off()
-
-                    if heater_power != prev_values["heater_power"]:
-                        await log_and_emit_async(heater_power, heater_id)
-
-                    if 0 != prev_values["fan_state"]:
-                        await log_and_emit_async(0, fan_id)
-
-                    prev_values["heater_power"] = heater_power
-                    prev_values["fan_state"] = 0
-
-                elif current_temp > upper_bound:
-                    HEATING.off()
-                    AIRCO.on()
-
-                    if 0 != prev_values["heater_power"]:
-                        await log_and_emit_async(0, heater_id)
-
-                    if 1 != prev_values["fan_state"]:
-                        await log_and_emit_async(1, fan_id)
-
-                    prev_values["heater_power"] = 0
-                    prev_values["fan_state"] = 1
-
+            if current_temp < lower_bound:
+                if current_temp <= max_lower:
+                    heater_power = 100
                 else:
-                    HEATING.off()
-                    AIRCO.off()
+                    heater_power = round(
+                        100 * (lower_bound - current_temp) / (lower_bound - max_lower),
+                        2,
+                    )
 
-                    if 0 != prev_values["heater_power"]:
-                        await log_and_emit_async(0, heater_id)
+                HEATING.set_power(max(0, min(100, heater_power)))
+                AIRCO.off()
 
-                    if 0 != prev_values["fan_state"]:
-                        await log_and_emit_async(0, fan_id)
+                if heater_power != prev_values["heater_power"]:
+                    await log_and_emit_async(heater_power, heater_id)
 
-                    prev_values["heater_power"] = 0
-                    prev_values["fan_state"] = 0
+                if 0 != prev_values["fan_state"]:
+                    await log_and_emit_async(0, fan_id)
 
-                prev_values["target_temp_pot"] = target_temp_pot
-                prev_values["target_temp"] = target_temp
-                prev_values["current_temp"] = current_temp
+                prev_values["heater_power"] = heater_power
+                prev_values["fan_state"] = 0
 
-                temp = current_temp
-                await asyncio.sleep(1)
+            elif current_temp > upper_bound:
+                HEATING.off()
+                AIRCO.on()
+
+                if 0 != prev_values["heater_power"]:
+                    await log_and_emit_async(0, heater_id)
+
+                if 1 != prev_values["fan_state"]:
+                    await log_and_emit_async(1, fan_id)
+
+                prev_values["heater_power"] = 0
+                prev_values["fan_state"] = 1
+
+            else:
+                HEATING.off()
+                AIRCO.off()
+
+                if 0 != prev_values["heater_power"]:
+                    await log_and_emit_async(0, heater_id)
+
+                if 0 != prev_values["fan_state"]:
+                    await log_and_emit_async(0, fan_id)
+
+                prev_values["heater_power"] = 0
+                prev_values["fan_state"] = 0
+
+            prev_values["target_temp_pot"] = target_temp_pot
+            prev_values["target_temp"] = target_temp
+            prev_values["current_temp"] = current_temp
+
+            temp = current_temp
+            await asyncio.sleep(1)
 
     except Exception as e:
         logger.error(f"Error in climate_control: {e}")
@@ -810,7 +802,6 @@ async def connect(sid, environ):
 async def handler(sid, data):
     global dict_schedules
     dict_schedules[data["schedule_name"]] = data
-    print(dict_schedules["heater_schedule"])
 
 
 # endregion Socket.IO Handlers *************************
