@@ -511,6 +511,12 @@ async def climate_control(temp_id):
     hysteresis = 0.5
     max_range = 2.0
 
+    schedule = dict_schedules.get("heater_schedule", [])
+    start_time = schedule["start_time"]
+    end_time = schedule["end_time"]
+    target_temp = schedule["value"]
+    enabled = schedule["enabled"]
+
     prev_values = {
         "target_temp_pot": None,
         "current_temp": None,
@@ -525,12 +531,17 @@ async def climate_control(temp_id):
             if target_temp_pot != prev_values["target_temp_pot"]:
                 await log_and_emit_async(target_temp_pot, pot_id)
 
-            lower_bound = target_temp_pot - hysteresis / 2
-            upper_bound = target_temp_pot + hysteresis / 2
-            max_lower = target_temp_pot - max_range
+            if enabled:
+                lower_bound = target_temp - hysteresis / 2
+                upper_bound = target_temp + hysteresis / 2
+                max_lower = target_temp - max_range
+
+            else:
+                lower_bound = target_temp_pot - hysteresis / 2
+                upper_bound = target_temp_pot + hysteresis / 2
+                max_lower = target_temp_pot - max_range
 
             current_temp = round(TEMP_SENSOR.get_temp(temp_id), 1)
-
             if current_temp != prev_values["current_temp"]:
                 await log_and_emit_async(current_temp, temp_sensor_id)
 
@@ -609,12 +620,14 @@ async def run_lights_bottom():
 async def lifespan_manager(app: FastAPI):
     logger.info("Starting application...")
     all_schedules = DataRepository.read_all_schedules()
+
+    global dict_schedules
     dict_schedules = {}
     for schedule in all_schedules:
-        if schedule.schedule_name not in dict_schedules:
-            dict_schedules[schedule.schedule_name] = []
-        dict_schedules[schedule.schedule_name].append(schedule)
-    print(dict_schedules)
+        if schedule["schedule_name"] not in dict_schedules:
+            dict_schedules[schedule["schedule_name"]] = []
+        dict_schedules[schedule["schedule_name"]].append(schedule)
+
     GPIO.setmode(GPIO.BCM)
     tasks = []
 
@@ -783,7 +796,8 @@ async def connect(sid, environ):
 
 @sio.on("BF2_schedule_updated")
 async def handler(sid, data):
-    print(f"Received schedule update from {data}")
+    global dict_schedules
+    print(f"Received schedule update: {data}")
 
 
 # endregion Socket.IO Handlers *************************

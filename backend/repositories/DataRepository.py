@@ -17,7 +17,7 @@ class DataRepository:
     @staticmethod
     def read_all_schedules():
         sql = """
-            SELECT schedule_id, start_time, end_time, value, enabled
+            SELECT schedule_name, schedule_id, start_time, end_time, value, enabled
             FROM schedules s
         """
         return Database.get_rows(sql)
