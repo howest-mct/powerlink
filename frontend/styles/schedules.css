@@ -155,6 +155,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    text-align: center;
     padding: 1.5rem;
     height: 90vh;
     font-family: "Manrope", sans-serif;
