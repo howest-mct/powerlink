@@ -380,11 +380,12 @@ const getPutSchedule = async (schedule_id, start_time, end_time, value, enabled)
   console.log(json);
 
   sio.emit('BF2_schedule_updated', {
-    schedule_id: schedule_id,
-    start_time: start_time,
-    end_time: end_time,
-    value: value,
-    enabled: enabled,
+    schedule_id: json.schedule_id,
+    schedule_name: json.schedule_name,
+    start_time: json.start_time,
+    end_time: json.end_time,
+    value: json.value,
+    enabled: json.enabled,
   });
 };
 

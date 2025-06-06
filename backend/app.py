@@ -608,7 +608,13 @@ async def run_lights_bottom():
 @asynccontextmanager
 async def lifespan_manager(app: FastAPI):
     logger.info("Starting application...")
-    dict_schedules = DataRepository.read_all_schedules()
+    all_schedules = DataRepository.read_all_schedules()
+    dict_schedules = {}
+    for schedule in all_schedules:
+        if schedule.schedule_name not in dict_schedules:
+            dict_schedules[schedule.schedule_name] = []
+        dict_schedules[schedule.schedule_name].append(schedule)
+    print(dict_schedules)
     GPIO.setmode(GPIO.BCM)
     tasks = []
 
@@ -777,8 +783,7 @@ async def connect(sid, environ):
 
 @sio.on("BF2_schedule_updated")
 async def handler(sid, data):
-    global switch_state
-    switch_state = not switch_state
+    print(f"Received schedule update from {data}")
 
 
 # endregion Socket.IO Handlers *************************
