@@ -248,8 +248,8 @@ body {
     width: 1rem;
     height: 3rem;
     background: white;
+    outline: solid var(--border-color) 1px;
     cursor: pointer;
-    box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.2);
 }
 
 .c-slider::-moz-range-thumb {
@@ -258,7 +258,7 @@ body {
     background: white;
     border: none;
     cursor: pointer;
-    box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.2);
+    outline: solid var(--border-color) 1px;
 }
 
 .c-bulb-icon {

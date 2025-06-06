@@ -144,7 +144,15 @@ ldr_value = None
 scanned_card = None
 door_state = None
 switch_state_power = False
-dict_schedules = None
+
+# Schedules
+all_schedules = DataRepository.read_all_schedules()
+
+dict_schedules = {}
+for schedule in all_schedules:
+    if schedule["schedule_name"] not in dict_schedules:
+        dict_schedules[schedule["schedule_name"]] = {}
+    dict_schedules[schedule["schedule_name"]] = schedule
 
 
 GPIO.setmode(GPIO.BCM)
@@ -510,15 +518,12 @@ async def climate_control(temp_id):
     global HEATING, AIRCO, temp, temp_sensor_id, pot_id, MCP, TEMP_SENSOR, dict_schedules
     hysteresis = 0.5
     max_range = 2.0
-
-    schedule = dict_schedules.get("heater_schedule", [])
-    start_time = schedule["start_time"]
-    end_time = schedule["end_time"]
-    target_temp = schedule["value"]
-    enabled = schedule["enabled"]
+    target_temp_pot = None
+    target_temp = None
 
     prev_values = {
         "target_temp_pot": None,
+        "target_temp": None,
         "current_temp": None,
         "heater_power": None,
         "fan_state": None,
@@ -526,77 +531,93 @@ async def climate_control(temp_id):
 
     try:
         while True:
+            current_time = time.localtime()
+            current_time = str(time.strftime("%H:%M", current_time))
+            schedule = dict_schedules.get("heater_schedule", {})
             current_pot = MCP.read_channel(0)
             target_temp_pot = round((16 + (current_pot / 1023) * 14) * 2) / 2
-            if target_temp_pot != prev_values["target_temp_pot"]:
-                await log_and_emit_async(target_temp_pot, pot_id)
+            enabled = schedule["enabled"]
 
-            if enabled:
+            if enabled == 1:
+                start_time = schedule["start_time"]
+                end_time = schedule["end_time"]
+                target_temp = schedule["value"]
+                enabled = schedule["enabled"]
                 lower_bound = target_temp - hysteresis / 2
                 upper_bound = target_temp + hysteresis / 2
                 max_lower = target_temp - max_range
+                # if target_temp != prev_values["target_temp"]:
+                #     await log_and_emit_async(target_temp, pot_id)
 
             else:
                 lower_bound = target_temp_pot - hysteresis / 2
                 upper_bound = target_temp_pot + hysteresis / 2
                 max_lower = target_temp_pot - max_range
+                if target_temp_pot != prev_values["target_temp_pot"]:
+                    await log_and_emit_async(target_temp_pot, pot_id)
 
-            current_temp = round(TEMP_SENSOR.get_temp(temp_id), 1)
-            if current_temp != prev_values["current_temp"]:
-                await log_and_emit_async(current_temp, temp_sensor_id)
+            if (not enabled) or (
+                enabled and not (start_time <= current_time <= end_time)
+            ):
+                current_temp = round(TEMP_SENSOR.get_temp(temp_id), 1)
+                if current_temp != prev_values["current_temp"]:
+                    await log_and_emit_async(current_temp, temp_sensor_id)
 
-            if current_temp < lower_bound:
-                if current_temp <= max_lower:
-                    heater_power = 100
+                if current_temp < lower_bound:
+                    if current_temp <= max_lower:
+                        heater_power = 100
+                    else:
+                        heater_power = round(
+                            100
+                            * (lower_bound - current_temp)
+                            / (lower_bound - max_lower),
+                            2,
+                        )
+
+                    HEATING.set_power(max(0, min(100, heater_power)))
+                    AIRCO.off()
+
+                    if heater_power != prev_values["heater_power"]:
+                        await log_and_emit_async(heater_power, heater_id)
+
+                    if 0 != prev_values["fan_state"]:
+                        await log_and_emit_async(0, fan_id)
+
+                    prev_values["heater_power"] = heater_power
+                    prev_values["fan_state"] = 0
+
+                elif current_temp > upper_bound:
+                    HEATING.off()
+                    AIRCO.on()
+
+                    if 0 != prev_values["heater_power"]:
+                        await log_and_emit_async(0, heater_id)
+
+                    if 1 != prev_values["fan_state"]:
+                        await log_and_emit_async(1, fan_id)
+
+                    prev_values["heater_power"] = 0
+                    prev_values["fan_state"] = 1
+
                 else:
-                    heater_power = round(
-                        100 * (lower_bound - current_temp) / (lower_bound - max_lower),
-                        2,
-                    )
+                    HEATING.off()
+                    AIRCO.off()
 
-                HEATING.set_power(max(0, min(100, heater_power)))
-                AIRCO.off()
+                    if 0 != prev_values["heater_power"]:
+                        await log_and_emit_async(0, heater_id)
 
-                if heater_power != prev_values["heater_power"]:
-                    await log_and_emit_async(heater_power, heater_id)
+                    if 0 != prev_values["fan_state"]:
+                        await log_and_emit_async(0, fan_id)
 
-                if 0 != prev_values["fan_state"]:
-                    await log_and_emit_async(0, fan_id)
+                    prev_values["heater_power"] = 0
+                    prev_values["fan_state"] = 0
 
-                prev_values["heater_power"] = heater_power
-                prev_values["fan_state"] = 0
+                prev_values["target_temp_pot"] = target_temp_pot
+                prev_values["target_temp"] = target_temp
+                prev_values["current_temp"] = current_temp
 
-            elif current_temp > upper_bound:
-                HEATING.off()
-                AIRCO.on()
-
-                if 0 != prev_values["heater_power"]:
-                    await log_and_emit_async(0, heater_id)
-
-                if 1 != prev_values["fan_state"]:
-                    await log_and_emit_async(1, fan_id)
-
-                prev_values["heater_power"] = 0
-                prev_values["fan_state"] = 1
-
-            else:
-                HEATING.off()
-                AIRCO.off()
-
-                if 0 != prev_values["heater_power"]:
-                    await log_and_emit_async(0, heater_id)
-
-                if 0 != prev_values["fan_state"]:
-                    await log_and_emit_async(0, fan_id)
-
-                prev_values["heater_power"] = 0
-                prev_values["fan_state"] = 0
-
-            prev_values["target_temp_pot"] = target_temp_pot
-            prev_values["current_temp"] = current_temp
-
-            temp = current_temp
-            await asyncio.sleep(1)
+                temp = current_temp
+                await asyncio.sleep(1)
 
     except Exception as e:
         logger.error(f"Error in climate_control: {e}")
@@ -619,15 +640,6 @@ async def run_lights_bottom():
 @asynccontextmanager
 async def lifespan_manager(app: FastAPI):
     logger.info("Starting application...")
-    all_schedules = DataRepository.read_all_schedules()
-
-    global dict_schedules
-    dict_schedules = {}
-    for schedule in all_schedules:
-        if schedule["schedule_name"] not in dict_schedules:
-            dict_schedules[schedule["schedule_name"]] = []
-        dict_schedules[schedule["schedule_name"]].append(schedule)
-
     GPIO.setmode(GPIO.BCM)
     tasks = []
 
@@ -797,7 +809,8 @@ async def connect(sid, environ):
 @sio.on("BF2_schedule_updated")
 async def handler(sid, data):
     global dict_schedules
-    print(f"Received schedule update: {data}")
+    dict_schedules[data["schedule_name"]] = data
+    print(dict_schedules["heater_schedule"])
 
 
 # endregion Socket.IO Handlers *************************
