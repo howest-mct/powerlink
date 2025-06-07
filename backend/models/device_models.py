@@ -43,14 +43,45 @@ class DS18B20:
 class RFIDReader:
     def __init__(self):
         self.reader = SimpleMFRC522()
+        self._is_active = True
 
     def read_no_block(self):
+        if not self._is_active:
+            return None
+
         try:
             card_id, text = self.reader.read_no_block()
             if card_id is not None:
                 return card_id
-        except Exception:
-            return None, None
+            return None
+        except Exception as e:
+            return None
+
+    def cleanup(self):
+        try:
+            if hasattr(self.reader, "cleanup"):
+                self.reader.cleanup()
+            elif hasattr(self.reader, "GPIO"):
+                self.reader.GPIO.cleanup()
+
+            self._is_active = False
+            logger.info("RFID Reader cleaned up successfully")
+
+        except Exception as e:
+            logger.error(f"Error during RFID cleanup: {e}")
+
+    def is_active(self):
+        return self._is_active
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.cleanup()
+
+    def __del__(self):
+        if hasattr(self, "_is_active") and self._is_active:
+            self.cleanup()
 
 
 class INA219:

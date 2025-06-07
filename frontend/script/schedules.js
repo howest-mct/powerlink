@@ -294,13 +294,16 @@ const showAllSchedules = (schedules) => {
 
   roomsContainer.innerHTML = htmlRooms;
 
-  chartsToRender.forEach(({ id, options }) => {
-    const container = document.getElementById(id);
-    if (container) {
-      container.chart = new ApexCharts(container, options);
-      container.chart.render();
-    }
-  });
+  setTimeout(() => {
+    chartsToRender.forEach(({ id, options }) => {
+      const container = document.getElementById(id);
+      if (container) {
+        container.chart = new ApexCharts(container, options);
+        container.chart.render();
+      }
+    });
+    listenToTemperatureControl();
+  }, 100);
 
   const room_containers = document.querySelectorAll('.js-room__container');
   room_containers.forEach((room_container) => {
@@ -340,7 +343,6 @@ const showAllSchedules = (schedules) => {
     });
   });
   listenToSubmitSchedule();
-  listenToTemperatureControl();
 };
 // #endregion
 

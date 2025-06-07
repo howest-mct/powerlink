@@ -317,7 +317,7 @@ async def climate_control(temp_id):
             current_pot = MCP.read_channel(0)
             pot_temp = round((16 + (current_pot / 1023) * 14) * 2) / 2
 
-            schedule = dict_schedules.get("heater_schedule", {})
+            schedule = dict_schedules.get("Heater Schedule", {})
             use_schedule = schedule.get("enabled") == 1
 
             if (
@@ -424,22 +424,40 @@ def lights_button(pin):
 
 
 def lights_bottom():
-    global LED_BOTTOM, switch_state, last_log_time_switch, previous_state_switch
+    global LED_BOTTOM, switch_state, last_log_time_switch, previous_state_switch, dict_schedules
     global prev_led_brightness
 
     try:
-        if switch_state and not previous_state_switch:
-            current_time = time.time()
-            if current_time - last_log_time_switch >= 1:
-                LED_BOTTOM.set_brightness(100)
+        current_time = time.strftime("%H:%M", time.localtime())
 
-                if 100 != prev_led_brightness:
-                    log_and_emit_sync(100, led_bottom_id)
-                prev_led_brightness = 100
+        schedule = dict_schedules.get("lighting_lower_schedule", {})
+        use_schedule = schedule.get("enabled") == 1
 
-                last_log_time_switch = current_time
+        lights_should_be_on = False
+        scheduled_brightness = 100
+
+        if use_schedule:
+            if schedule["start_time"] <= current_time <= schedule["end_time"]:
+                lights_should_be_on = True
+                scheduled_brightness = schedule.get("value", 100)
+            else:
+                lights_should_be_on = False
+        else:
+            lights_should_be_on = switch_state
+
+        if lights_should_be_on and not previous_state_switch:
+            current_time_stamp = time.time()
+            if current_time_stamp - last_log_time_switch >= 1:
+                LED_BOTTOM.set_brightness(scheduled_brightness)
+
+                if scheduled_brightness != prev_led_brightness:
+                    log_and_emit_sync(scheduled_brightness, led_bottom_id)
+                prev_led_brightness = scheduled_brightness
+
+                last_log_time_switch = current_time_stamp
             previous_state_switch = True
-        elif not switch_state:
+
+        elif not lights_should_be_on:
             LED_BOTTOM.off()
 
             if 0 != prev_led_brightness:
@@ -447,6 +465,7 @@ def lights_bottom():
             prev_led_brightness = 0
 
             previous_state_switch = False
+
     except Exception as e:
         logger.error(f"Error in lights_bottom: {e}")
         prev_led_brightness = None
@@ -467,15 +486,26 @@ async def lights_top():
             motion_now = GPIO.input(MOTION_SENSOR)
 
             if motion_now == 1 and last_motion == 0:
-                GPIO.output(LED_TOP, GPIO.HIGH)
+                current_time = time.strftime("%H:%M", time.localtime())
+                schedule = dict_schedules.get("Lights Upstairs Schedule", {})
+                use_schedule = schedule.get("enabled") == 1
 
+                if (
+                    use_schedule
+                    and schedule["start_time"] <= current_time <= schedule["end_time"]
+                ):
+                    brightness = schedule["value"]
+                else:
+                    brightness = 100
+
+                GPIO.output(LED_TOP, GPIO.HIGH)
                 if 1 != prev_values["motion_sensor"]:
                     await log_and_emit_async(1, motion_sensor_id)
                 prev_values["motion_sensor"] = 1
 
                 if 100 != prev_values["led_brightness"]:
-                    await log_and_emit_async(100, led_top_id)
-                prev_values["led_brightness"] = 100
+                    await log_and_emit_async(brightness, led_top_id)
+                prev_values["led_brightness"] = brightness
 
                 await asyncio.sleep(light_duration)
 
@@ -650,6 +680,12 @@ async def run_lights_bottom():
     while True:
         lights_bottom()
         await asyncio.sleep(0.1)
+
+
+async def run_front_door():
+    while True:
+        front_door()
+        await asyncio.sleep(0.5)
 
 
 # endregion Async Containers ******************************
