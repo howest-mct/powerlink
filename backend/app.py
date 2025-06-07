@@ -165,229 +165,6 @@ def gpio_keep_alive():
         time.sleep(0.5)
 
 
-def lights_button(pin):
-    global switch_state, button_lights_id, led_bottom_id
-    try:
-        switch_state = not switch_state
-        log_and_emit_sync(switch_state, button_lights_id)
-    except Exception as e:
-        logger.error(f"Error in lights_button: {e}")
-
-
-def power_button(pin):
-    global switch_state_power, button_power_id
-    try:
-        switch_state_power = not switch_state_power
-        log_and_emit_sync(switch_state_power, button_power_id)
-    except Exception as e:
-        logger.error(f"Error in power_button: {e}")
-
-
-def lights_bottom():
-    global LED_BOTTOM, switch_state, last_log_time_switch, previous_state_switch
-    global prev_led_brightness
-
-    try:
-        if switch_state and not previous_state_switch:
-            current_time = time.time()
-            if current_time - last_log_time_switch >= 1:
-                LED_BOTTOM.set_brightness(100)
-
-                if 100 != prev_led_brightness:
-                    log_and_emit_sync(100, led_bottom_id)
-                prev_led_brightness = 100
-
-                last_log_time_switch = current_time
-            previous_state_switch = True
-        elif not switch_state:
-            LED_BOTTOM.off()
-
-            if 0 != prev_led_brightness:
-                log_and_emit_sync(0, led_bottom_id)
-            prev_led_brightness = 0
-
-            previous_state_switch = False
-    except Exception as e:
-        logger.error(f"Error in lights_bottom: {e}")
-        prev_led_brightness = None
-
-
-async def lights_top():
-    global LED_TOP, led_top_id, motion_sensor_id, MOTION_SENSOR, light_duration
-
-    last_motion = 0
-
-    prev_values = {
-        "motion_sensor": None,
-        "led_brightness": None,
-    }
-
-    while True:
-        try:
-            motion_now = GPIO.input(MOTION_SENSOR)
-
-            if motion_now == 1 and last_motion == 0:
-                GPIO.output(LED_TOP, GPIO.HIGH)
-
-                if 1 != prev_values["motion_sensor"]:
-                    await log_and_emit_async(1, motion_sensor_id)
-                prev_values["motion_sensor"] = 1
-
-                if 100 != prev_values["led_brightness"]:
-                    await log_and_emit_async(100, led_top_id)
-                prev_values["led_brightness"] = 100
-
-                await asyncio.sleep(light_duration)
-
-            elif motion_now == 0 and last_motion == 1:
-                GPIO.output(LED_TOP, GPIO.LOW)
-
-                if 0 != prev_values["motion_sensor"]:
-                    await log_and_emit_async(0, motion_sensor_id)
-                prev_values["motion_sensor"] = 0
-
-                if 0 != prev_values["led_brightness"]:
-                    await log_and_emit_async(0, led_top_id)
-                prev_values["led_brightness"] = 0
-
-            last_motion = motion_now
-
-            await asyncio.sleep(0.5)
-
-        except Exception as e:
-            logger.error(f"Something went wrong: {e}")
-            last_motion = 0
-            prev_values["motion_sensor"] = None
-            prev_values["led_brightness"] = None
-            await asyncio.sleep(1)
-
-
-async def lights_outdoors():
-    global LED_OUTDOORS, MCP, last_state_led, ldr_value, light_sensor_id, led_outdoors_id
-
-    prev_values = {
-        "ldr_value": None,
-        "led_brightness": None,
-    }
-
-    while True:
-        try:
-            raw_ldr = MCP.read_channel(1)
-            ldr_value = round((raw_ldr * 100) / 1023, 0)
-            if last_state_led is None:
-                last_state_led = False
-
-            if not last_state_led:
-                current_state = ldr_value > 70
-            else:
-                current_state = ldr_value >= 65
-
-            if current_state != last_state_led:
-                if current_state:
-                    LED_OUTDOORS.set_brightness(100)
-                    if 100 != prev_values["led_brightness"]:
-                        await log_and_emit_async(100, led_outdoors_id)
-                    prev_values["led_brightness"] = 100
-                else:
-                    LED_OUTDOORS.off()
-                    if prev_values["led_brightness"] != 0:
-                        await log_and_emit_async(0, led_outdoors_id)
-                    prev_values["led_brightness"] = 0
-
-                if ldr_value != prev_values["ldr_value"]:
-                    await log_and_emit_async(ldr_value, light_sensor_id)
-                prev_values["ldr_value"] = ldr_value
-
-                last_state_led = current_state
-            else:
-                if ldr_value != prev_values["ldr_value"]:
-                    await log_and_emit_async(ldr_value, light_sensor_id)
-                    prev_values["ldr_value"] = ldr_value
-
-            await asyncio.sleep(1)
-
-        except Exception as e:
-            logger.error(f"Error in lights_outdoors: {e}")
-            last_state_led = None
-            prev_values["ldr_value"] = None
-            prev_values["led_brightness"] = None
-            await asyncio.sleep(1)
-
-
-def cut_card(card_id):
-    return card_id[:6] + "000000"
-
-
-def front_door():
-    global DOOR_LOCK, REED_SWITCH, CARD_READER, scanned_card
-    global servo_lock_id, reed_switch_id, card_reader_id
-
-    scanned_card = CARD_READER.read_no_block()
-
-    if scanned_card is not None:
-        scanned_card = str(scanned_card)
-        snipped_card = cut_card(scanned_card)
-        logger.info(f"Snipped card: {snipped_card}")
-
-        try:
-            checked_card = DataRepository.read_card_by_id(snipped_card)
-
-            if checked_card is None:
-                logger.info("Invalid card scanned")
-                log_and_emit_sync(-1, card_reader_id)
-                return
-
-            logger.info("Valid card scanned")
-            log_and_emit_sync(snipped_card, card_reader_id)
-
-            if DOOR_LOCK.is_unlocked():
-                logger.debug("Door is already unlocked")
-                return
-
-            DOOR_LOCK.unlock()
-            logger.debug("Door is unlocked")
-            log_and_emit_sync(1, servo_lock_id)
-
-            logger.debug("Waiting for door to open")
-            start_time = time.time()
-
-            while GPIO.input(REED_SWITCH) == 1:
-                if time.time() - start_time > 5:
-                    logger.info("Door did not open in time (5 seconds) - locking again")
-                    DOOR_LOCK.lock()
-                    log_and_emit_sync(0, servo_lock_id)
-                    return
-                time.sleep(0.1)
-
-            logger.debug("Door is opened")
-            log_and_emit_sync(1, reed_switch_id)
-
-            logger.debug("Waiting for door to close")
-            start_time = time.time()
-
-            while GPIO.input(REED_SWITCH) == 0:
-                if time.time() - start_time > 10:
-                    logger.info(
-                        "Door did not close in time (10 seconds) - locking again"
-                    )
-                    return
-                time.sleep(0.1)
-
-            logger.debug("Door is closed")
-            log_and_emit_sync(0, reed_switch_id)
-
-            DOOR_LOCK.lock()
-            logger.debug("Door is locked")
-            log_and_emit_sync(0, servo_lock_id)
-
-        except Exception as e:
-            logger.error(f"Error: {e}")
-            try:
-                DOOR_LOCK.lock()
-            except Exception as e:
-                logger.error(f"Error locking door: {e}")
-
-
 def get_ip(interface):
     try:
         output = subprocess.check_output(["ip", "a", "show", interface]).decode()
@@ -518,6 +295,7 @@ async def climate_control(temp_id):
 
     hysteresis = 0.5
     max_range = 2.0
+    fan_active = False
 
     prev_values = {
         "target_temp": None,
@@ -541,10 +319,15 @@ async def climate_control(temp_id):
                 and schedule["start_time"] <= current_time <= schedule["end_time"]
             ):
                 target_temp = schedule.get("value", pot_temp)
+                fan_active = True
+
             elif use_schedule:
                 target_temp = 16
+                fan_active = False
+
             else:
                 target_temp = pot_temp
+                fan_active = True
 
             if target_temp != prev_values["target_temp"]:
                 await log_and_emit_async(target_temp, pot_id)
@@ -580,17 +363,28 @@ async def climate_control(temp_id):
 
             elif current_temp > upper_bound:
                 HEATING.off()
-                AIRCO.on()
+                if fan_active:
+                    AIRCO.on()
 
-                if prev_values["heater_power"] != 0:
-                    await log_and_emit_async(0, heater_id)
+                    if prev_values["heater_power"] != 0:
+                        await log_and_emit_async(0, heater_id)
 
-                if prev_values["fan_state"] != 1:
-                    await log_and_emit_async(1, fan_id)
+                    if prev_values["fan_state"] != 1:
+                        await log_and_emit_async(1, fan_id)
 
-                prev_values["heater_power"] = 0
-                prev_values["fan_state"] = 1
+                    prev_values["heater_power"] = 0
+                    prev_values["fan_state"] = 1
+                else:
+                    AIRCO.off()
 
+                    if prev_values["heater_power"] != 0:
+                        await log_and_emit_async(0, heater_id)
+
+                    if prev_values["fan_state"] != 0:
+                        await log_and_emit_async(0, fan_id)
+
+                    prev_values["heater_power"] = 0
+                    prev_values["fan_state"] = 0
             else:
                 HEATING.off()
                 AIRCO.off()
@@ -612,6 +406,229 @@ async def climate_control(temp_id):
 
     except Exception as e:
         logger.error(f"Error in climate_control: {e}")
+
+
+def lights_button(pin):
+    global switch_state, button_lights_id, led_bottom_id
+    try:
+        switch_state = not switch_state
+        log_and_emit_sync(switch_state, button_lights_id)
+    except Exception as e:
+        logger.error(f"Error in lights_button: {e}")
+
+
+def lights_bottom():
+    global LED_BOTTOM, switch_state, last_log_time_switch, previous_state_switch
+    global prev_led_brightness
+
+    try:
+        if switch_state and not previous_state_switch:
+            current_time = time.time()
+            if current_time - last_log_time_switch >= 1:
+                LED_BOTTOM.set_brightness(100)
+
+                if 100 != prev_led_brightness:
+                    log_and_emit_sync(100, led_bottom_id)
+                prev_led_brightness = 100
+
+                last_log_time_switch = current_time
+            previous_state_switch = True
+        elif not switch_state:
+            LED_BOTTOM.off()
+
+            if 0 != prev_led_brightness:
+                log_and_emit_sync(0, led_bottom_id)
+            prev_led_brightness = 0
+
+            previous_state_switch = False
+    except Exception as e:
+        logger.error(f"Error in lights_bottom: {e}")
+        prev_led_brightness = None
+
+
+async def lights_top():
+    global LED_TOP, led_top_id, motion_sensor_id, MOTION_SENSOR, light_duration, dict_schedules
+
+    last_motion = 0
+
+    prev_values = {
+        "motion_sensor": None,
+        "led_brightness": None,
+    }
+
+    while True:
+        try:
+            motion_now = GPIO.input(MOTION_SENSOR)
+
+            if motion_now == 1 and last_motion == 0:
+                GPIO.output(LED_TOP, GPIO.HIGH)
+
+                if 1 != prev_values["motion_sensor"]:
+                    await log_and_emit_async(1, motion_sensor_id)
+                prev_values["motion_sensor"] = 1
+
+                if 100 != prev_values["led_brightness"]:
+                    await log_and_emit_async(100, led_top_id)
+                prev_values["led_brightness"] = 100
+
+                await asyncio.sleep(light_duration)
+
+            elif motion_now == 0 and last_motion == 1:
+                GPIO.output(LED_TOP, GPIO.LOW)
+
+                if 0 != prev_values["motion_sensor"]:
+                    await log_and_emit_async(0, motion_sensor_id)
+                prev_values["motion_sensor"] = 0
+
+                if 0 != prev_values["led_brightness"]:
+                    await log_and_emit_async(0, led_top_id)
+                prev_values["led_brightness"] = 0
+
+            last_motion = motion_now
+
+            await asyncio.sleep(0.5)
+
+        except Exception as e:
+            logger.error(f"Something went wrong: {e}")
+            last_motion = 0
+            prev_values["motion_sensor"] = None
+            prev_values["led_brightness"] = None
+            await asyncio.sleep(1)
+
+
+def cut_card(card_id):
+    return card_id[:6] + "000000"
+
+
+def front_door():
+    global DOOR_LOCK, REED_SWITCH, CARD_READER, scanned_card
+    global servo_lock_id, reed_switch_id, card_reader_id
+
+    scanned_card = CARD_READER.read_no_block()
+
+    if scanned_card is not None:
+        scanned_card = str(scanned_card)
+        snipped_card = cut_card(scanned_card)
+        logger.info(f"Snipped card: {snipped_card}")
+
+        try:
+            checked_card = DataRepository.read_card_by_id(snipped_card)
+
+            if checked_card is None:
+                logger.info("Invalid card scanned")
+                log_and_emit_sync(-1, card_reader_id)
+                return
+
+            logger.info("Valid card scanned")
+            log_and_emit_sync(snipped_card, card_reader_id)
+
+            if DOOR_LOCK.is_unlocked():
+                logger.debug("Door is already unlocked")
+                return
+
+            DOOR_LOCK.unlock()
+            logger.debug("Door is unlocked")
+            log_and_emit_sync(1, servo_lock_id)
+
+            logger.debug("Waiting for door to open")
+            start_time = time.time()
+
+            while GPIO.input(REED_SWITCH) == 1:
+                if time.time() - start_time > 5:
+                    logger.info("Door did not open in time (5 seconds) - locking again")
+                    DOOR_LOCK.lock()
+                    log_and_emit_sync(0, servo_lock_id)
+                    return
+                time.sleep(0.1)
+
+            logger.debug("Door is opened")
+            log_and_emit_sync(1, reed_switch_id)
+
+            logger.debug("Waiting for door to close")
+            start_time = time.time()
+
+            while GPIO.input(REED_SWITCH) == 0:
+                if time.time() - start_time > 10:
+                    logger.info(
+                        "Door did not close in time (10 seconds) - locking again"
+                    )
+                    return
+                time.sleep(0.1)
+
+            logger.debug("Door is closed")
+            log_and_emit_sync(0, reed_switch_id)
+
+            DOOR_LOCK.lock()
+            logger.debug("Door is locked")
+            log_and_emit_sync(0, servo_lock_id)
+
+        except Exception as e:
+            logger.error(f"Error: {e}")
+            try:
+                DOOR_LOCK.lock()
+            except Exception as e:
+                logger.error(f"Error locking door: {e}")
+
+
+async def lights_outdoors():
+    global LED_OUTDOORS, MCP, last_state_led, ldr_value, light_sensor_id, led_outdoors_id
+
+    prev_values = {
+        "ldr_value": None,
+        "led_brightness": None,
+    }
+
+    while True:
+        try:
+            raw_ldr = MCP.read_channel(1)
+            ldr_value = round((raw_ldr * 100) / 1023, 0)
+            if last_state_led is None:
+                last_state_led = False
+
+            if not last_state_led:
+                current_state = ldr_value > 70
+            else:
+                current_state = ldr_value >= 65
+
+            if current_state != last_state_led:
+                if current_state:
+                    LED_OUTDOORS.set_brightness(100)
+                    if 100 != prev_values["led_brightness"]:
+                        await log_and_emit_async(100, led_outdoors_id)
+                    prev_values["led_brightness"] = 100
+                else:
+                    LED_OUTDOORS.off()
+                    if prev_values["led_brightness"] != 0:
+                        await log_and_emit_async(0, led_outdoors_id)
+                    prev_values["led_brightness"] = 0
+
+                if ldr_value != prev_values["ldr_value"]:
+                    await log_and_emit_async(ldr_value, light_sensor_id)
+                prev_values["ldr_value"] = ldr_value
+
+                last_state_led = current_state
+            else:
+                if ldr_value != prev_values["ldr_value"]:
+                    await log_and_emit_async(ldr_value, light_sensor_id)
+                    prev_values["ldr_value"] = ldr_value
+
+            await asyncio.sleep(1)
+
+        except Exception as e:
+            logger.error(f"Error in lights_outdoors: {e}")
+            last_state_led = None
+            prev_values["ldr_value"] = None
+            prev_values["led_brightness"] = None
+            await asyncio.sleep(1)
+
+
+def power_button(pin):
+    global switch_state_power, button_power_id
+    try:
+        switch_state_power = not switch_state_power
+        log_and_emit_sync(switch_state_power, button_power_id)
+    except Exception as e:
+        logger.error(f"Error in power_button: {e}")
 
 
 # endregion Functions ****************************
@@ -812,6 +829,7 @@ async def connect(sid, environ):
 async def handler(sid, data):
     global dict_schedules
     dict_schedules[data["schedule_name"]] = data
+    print(f"Received schedule update: {data}")
 
 
 # endregion Socket.IO Handlers *************************

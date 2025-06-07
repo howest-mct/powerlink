@@ -474,12 +474,12 @@ body {
 }
 
 .c-controls {
-    position: relative;
     display: flex;
-    gap: 45%;
-    padding-bottom: 2rem;
     justify-content: center;
     align-items: center;
+    gap: 10rem;
+    position: relative;
+    bottom: 0.5rem;  
 }
 
 

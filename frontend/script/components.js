@@ -22,8 +22,8 @@ const svg_icons = {
   15: 'img/svg/scan.svg',
   16: 'img/svg/door.svg',
   17: 'img/svg/lock-simple.svg',
-  18: 'img/svg/door.svg',
-  19: 'img/svg/sun.svg',
+  18: 'img/svg/sun.svg',
+  19: 'img/svg/lightbulb.svg',
   20: 'img/svg/power.svg',
 };
 // #endregion

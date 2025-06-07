@@ -175,7 +175,7 @@ const showAllSchedules = (schedules) => {
                   </div>
                 </div>
                 <div class="c-card__schedule-save__container">
-                  <button class="js-card__schedule-save c-card__schedule-save" type="button">SAVE CHANGES</button>
+                  <button class="js-card__schedule-save c-card__schedule-save" type="button">Save Changes</button>
                 </div>
                 </div>
               </div>
@@ -275,7 +275,7 @@ const showAllSchedules = (schedules) => {
                   </div>
                 </div>
                 <div class="c-card__schedule-save__container">
-                  <button class="js-card__schedule-save c-card__schedule-save" type="button">SAVE CHANGES</button>
+                  <button class="js-card__schedule-save c-card__schedule-save" type="button">Save Changes</button>
                 </div>
               </div>
             </div>
@@ -396,15 +396,16 @@ const getPutSchedule = async (schedule_id, start_time, end_time, value, enabled)
 // #region ***  Event Listeners - listenTo___            ***********
 
 const listenToSubmitSchedule = () => {
-  const saveButtons = document.querySelectorAll('.js-card__schedule-save');
-  saveButtons.forEach((button) => {
+  const save_buttons = document.querySelectorAll('.js-card__schedule-save');
+  save_buttons.forEach((button) => {
     button.removeEventListener('click', listenToSaveCLicked);
     button.addEventListener('click', listenToSaveCLicked);
   });
 };
 
 const listenToSaveCLicked = (e) => {
-  const schedule_container = e.target.closest('.js-schedule__container');
+  const button = e.target;
+  const schedule_container = button.closest('.js-schedule__container');
   const schedule_id = parseInt(schedule_container.dataset.schedule_id);
 
   const time_inputs = schedule_container.querySelectorAll('.js-input_container');
@@ -424,6 +425,15 @@ const listenToSaveCLicked = (e) => {
     console.error('Unknown schedule type');
     return;
   }
+
+  button.textContent = 'Saved';
+  button.disabled = true;
+
+  button.timeoutId = setTimeout(() => {
+    button.textContent = 'Save Changes';
+    button.disabled = false;
+    button.timeoutId = null;
+  }, 3000);
 
   getPutSchedule(schedule_id, start_time, end_time, value, enabled);
 };
