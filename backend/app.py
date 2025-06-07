@@ -146,16 +146,22 @@ door_state = None
 switch_state_power = False
 
 # Schedules
-all_schedules = DataRepository.read_all_schedules()
-dict_schedules = {}
-for schedule in all_schedules:
-    if schedule["schedule_name"] not in dict_schedules:
-        dict_schedules[schedule["schedule_name"]] = {}
-    dict_schedules[schedule["schedule_name"]] = schedule
+try:
+    all_schedules = DataRepository.read_all_schedules()
+    dict_schedules = {}
+    for schedule in all_schedules:
+        if schedule["schedule_name"] not in dict_schedules:
+            dict_schedules[schedule["schedule_name"]] = {}
+        dict_schedules[schedule["schedule_name"]] = schedule
+except Exception as e:
+    logger.error(f"Error reading schedules from database: {e}")
+    dict_schedules = {}
 
-
-GPIO.setmode(GPIO.BCM)
-# endregion Global Variables **************************
+try:
+    GPIO.setmode(GPIO.BCM)
+except RuntimeError as e:
+    logger.error(f"Error setting GPIO mode: {e}")
+    GPIO.cleanup()
 
 
 # region Functions ---------------------------------
@@ -304,8 +310,8 @@ async def climate_control(temp_id):
         "fan_state": None,
     }
 
-    try:
-        while True:
+    while True:
+        try:
             current_time = time.strftime("%H:%M", time.localtime())
 
             current_pot = MCP.read_channel(0)
@@ -404,8 +410,8 @@ async def climate_control(temp_id):
 
             await asyncio.sleep(1)
 
-    except Exception as e:
-        logger.error(f"Error in climate_control: {e}")
+        except Exception as e:
+            logger.error(f"Error in climate_control: {e}")
 
 
 def lights_button(pin):
@@ -504,70 +510,75 @@ def front_door():
     global DOOR_LOCK, REED_SWITCH, CARD_READER, scanned_card
     global servo_lock_id, reed_switch_id, card_reader_id
 
-    scanned_card = CARD_READER.read_no_block()
+    try:
+        scanned_card = CARD_READER.read_no_block()
 
-    if scanned_card is not None:
-        scanned_card = str(scanned_card)
-        snipped_card = cut_card(scanned_card)
-        logger.info(f"Snipped card: {snipped_card}")
+        if scanned_card is not None:
+            scanned_card = str(scanned_card)
+            snipped_card = cut_card(scanned_card)
+            logger.info(f"Snipped card: {snipped_card}")
 
-        try:
-            checked_card = DataRepository.read_card_by_id(snipped_card)
-
-            if checked_card is None:
-                logger.info("Invalid card scanned")
-                log_and_emit_sync(-1, card_reader_id)
-                return
-
-            logger.info("Valid card scanned")
-            log_and_emit_sync(snipped_card, card_reader_id)
-
-            if DOOR_LOCK.is_unlocked():
-                logger.debug("Door is already unlocked")
-                return
-
-            DOOR_LOCK.unlock()
-            logger.debug("Door is unlocked")
-            log_and_emit_sync(1, servo_lock_id)
-
-            logger.debug("Waiting for door to open")
-            start_time = time.time()
-
-            while GPIO.input(REED_SWITCH) == 1:
-                if time.time() - start_time > 5:
-                    logger.info("Door did not open in time (5 seconds) - locking again")
-                    DOOR_LOCK.lock()
-                    log_and_emit_sync(0, servo_lock_id)
-                    return
-                time.sleep(0.1)
-
-            logger.debug("Door is opened")
-            log_and_emit_sync(1, reed_switch_id)
-
-            logger.debug("Waiting for door to close")
-            start_time = time.time()
-
-            while GPIO.input(REED_SWITCH) == 0:
-                if time.time() - start_time > 10:
-                    logger.info(
-                        "Door did not close in time (10 seconds) - locking again"
-                    )
-                    return
-                time.sleep(0.1)
-
-            logger.debug("Door is closed")
-            log_and_emit_sync(0, reed_switch_id)
-
-            DOOR_LOCK.lock()
-            logger.debug("Door is locked")
-            log_and_emit_sync(0, servo_lock_id)
-
-        except Exception as e:
-            logger.error(f"Error: {e}")
             try:
+                checked_card = DataRepository.read_card_by_id(snipped_card)
+
+                if checked_card is None:
+                    logger.info("Invalid card scanned")
+                    log_and_emit_sync(-1, card_reader_id)
+                    return
+
+                logger.info("Valid card scanned")
+                log_and_emit_sync(snipped_card, card_reader_id)
+
+                if DOOR_LOCK.is_unlocked():
+                    logger.debug("Door is already unlocked")
+                    return
+
+                DOOR_LOCK.unlock()
+                logger.debug("Door is unlocked")
+                log_and_emit_sync(1, servo_lock_id)
+
+                logger.debug("Waiting for door to open")
+                start_time = time.time()
+
+                while GPIO.input(REED_SWITCH) == 1:
+                    if time.time() - start_time > 5:
+                        logger.info(
+                            "Door did not open in time (5 seconds) - locking again"
+                        )
+                        DOOR_LOCK.lock()
+                        log_and_emit_sync(0, servo_lock_id)
+                        return
+                    time.sleep(0.1)
+
+                logger.debug("Door is opened")
+                log_and_emit_sync(1, reed_switch_id)
+
+                logger.debug("Waiting for door to close")
+                start_time = time.time()
+
+                while GPIO.input(REED_SWITCH) == 0:
+                    if time.time() - start_time > 10:
+                        logger.info(
+                            "Door did not close in time (10 seconds) - locking again"
+                        )
+                        return
+                    time.sleep(0.1)
+
+                logger.debug("Door is closed")
+                log_and_emit_sync(0, reed_switch_id)
+
                 DOOR_LOCK.lock()
+                logger.debug("Door is locked")
+                log_and_emit_sync(0, servo_lock_id)
+
             except Exception as e:
-                logger.error(f"Error locking door: {e}")
+                logger.error(f"Error: {e}")
+                try:
+                    DOOR_LOCK.lock()
+                except Exception as e:
+                    logger.error(f"Error locking door: {e}")
+    except Exception as e:
+        logger.error(f"Error in front_door: {e}")
 
 
 async def lights_outdoors():
