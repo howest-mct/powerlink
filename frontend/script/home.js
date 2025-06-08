@@ -138,7 +138,28 @@ const showAllItems = (items) => {
     `;
 
     for (const item of room_data) {
-    }
+      if (item.component_id === 1) {
+        <article class="c-article__solar c-hover--shadow" onclick="window.location.href='/frontend/insights.html'">
+          <div class="c-solar">
+            <h3 class="c-solar_kw js-solar_value">8kW</h3>
+            <div class="c-solar__meta">
+              <p class="c-solar__status">Solar panels</p>
+              <p class="c-solar__capacity js-solar_state">Charging battery</p>
+            </div>
+          </div>
+        </article>;
+      } else if (item.component_id === 2) {
+        getEnergy24H()
+        getEnergy7D()
+      } else if (item.component_id === 3) {
+
+    } else if (item.component_id === 10) {
+      } else if (item.component_id === 13) {
+      } else if (item.component_id === 15) {
+      } else if (item.component_id === 17) {
+      } else if (item.component_id === 19) {
+      } else if (item.component_id === 20) {
+      }
 
     htmlRooms += htmlSchedules;
     htmlRooms += `

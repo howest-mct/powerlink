@@ -19,6 +19,7 @@ from models.backend_models import (
     DTOSchedule,
     Card,
     UpdatedSchedule,
+    EnergyLog,
 )
 
 from models.device_models import (
@@ -216,8 +217,20 @@ def get_ip(interface):
         return "Interface fout"
 
 
+def get_cpu_temperature():
+    global errors
+    try:
+        with open("/sys/class/thermal/thermal_zone0/temp", "r") as f:
+            temp_raw = f.read().strip()
+            return round(int(temp_raw) / 1000.0, 1)
+    except Exception as e:
+        errors += 1
+        logger.error(f"Error reading CPU temperature: {e}")
+        return "Temp Error"
+
+
 async def display_lcd():
-    global LCD, temp, current_usage, battery_level, eth0_ip, wlan0_ip
+    global LCD, current_usage, battery_level, eth0_ip, wlan0_ip
     global errors
 
     LCD.string(f"Project loaded", 1)
@@ -228,6 +241,8 @@ async def display_lcd():
         try:
             eth0_ip = get_ip("eth0")
             wlan0_ip = get_ip("wlan0")
+            cpu_temp = get_cpu_temperature()
+
             LCD.string("IP ETH0:", 1)
             LCD.string(eth0_ip, 2)
             await asyncio.sleep(sleep_lcd)
@@ -236,8 +251,8 @@ async def display_lcd():
             LCD.string(wlan0_ip, 2)
             await asyncio.sleep(sleep_lcd)
 
-            LCD.string("Current temp:", 1)
-            LCD.string(f"{temp} degrees C", 2)
+            LCD.string("CPU temp:", 1)
+            LCD.string(f"{cpu_temp} degrees C", 2)
             await asyncio.sleep(sleep_lcd)
 
             LCD.string("Current Watt:", 1)
@@ -652,7 +667,7 @@ async def front_door():
                             DOOR_LOCK.lock()
 
                             await log_and_emit_async(0, servo_lock_id)
-                            break
+                            continue
 
                         await asyncio.sleep(sleep_fast)
 
@@ -666,7 +681,7 @@ async def front_door():
                                     "Door did not close in time (10 seconds) - locking anyway"
                                 )
 
-                                break
+                                continue
 
                             await asyncio.sleep(sleep_fast)
 
@@ -958,6 +973,38 @@ async def get_inhabitant_by_id(card_id: int):
     if data is None:
         raise HTTPException(
             status_code=404, detail=f"inhabitant with ID {card_id} not found"
+        )
+    return data
+
+
+@app.get(
+    ENDPOINT + "/energy/{id}/24h",
+    response_model=EnergyLog,
+    summary="Retrieve a energy_log by ID",
+    response_description="The energy_log with the specified ID",
+    tags=["energy"],
+)
+async def get_energy_log_by_id(id: int):
+    data = DataRepository.read_energy_24h(id)
+    if data is None:
+        raise HTTPException(
+            status_code=404, detail=f"energy_log with ID {id} not found"
+        )
+    return data
+
+
+@app.get(
+    ENDPOINT + "/energy/{id}/7d",
+    response_model=EnergyLog,
+    summary="Retrieve a energy_log by ID",
+    response_description="The energy_log with the specified ID",
+    tags=["energy"],
+)
+async def get_energy_log_by_id(id: int):
+    data = DataRepository.read_energy_7d(id)
+    if data is None:
+        raise HTTPException(
+            status_code=404, detail=f"energy_log with ID {id} not found"
         )
     return data
 

@@ -55,6 +55,10 @@ class Card(P1BaseModel):
     card_id: str
 
 
+class EnergyLog(P1BaseModel):
+    total_kwh: float
+
+
 # endregion Models ********************************
 
 

@@ -79,7 +79,7 @@ class DataRepository:
         return Database.get_one_row(sql, params)
 
     @staticmethod
-    def read_energy_usage_today(component_id=2):
+    def read_energy_24h(component_id=2):
         sql = """
             WITH ordered_logs AS (
                 SELECT
@@ -100,7 +100,7 @@ class DataRepository:
         return Database.get_one_row(sql, params)
 
     @staticmethod
-    def read_energy_usage_last_7_days(component_id=2):
+    def read_energy_7d(component_id=2):
         sql = """
             WITH ordered_logs AS (
                 SELECT
