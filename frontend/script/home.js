@@ -318,8 +318,11 @@ const getAllItems = async () => {
   const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
   const json = await response.json().catch((err) => console.error('JSON-error:', err));
   console.log('Fetched components:', json);
-  // showAllItems(json);
+  showAllItems(json);
 };
+
+const getEnergy24H = async () => {};
+const getEnergy7D = async () => {};
 
 // #endregion
 
