@@ -315,7 +315,7 @@ async def get_wattage():
             battery_in_power = round(readings.get("battery_in", 0.0), 2)
             battery_out_power = round(readings.get("battery_out", 0.0), 2)
 
-            current_usage = kw_led_bottom + kw_led_top + kw_heating + kw_airco
+            current_usage = battery_out_power
 
             if battery_out_power > 0.1:
                 battery_level = max(
@@ -368,8 +368,8 @@ async def climate_control(temp_id):
     global HEATING, AIRCO, temp, temp_sensor_id, pot_id, MCP, TEMP_SENSOR, dict_schedules
     global errors, heater_id
 
-    hysteresis = 1.0
-    max_range = 2.0
+    hysteresis = 0.5
+    max_range = 1.0
     fan_active = False
     min_heater_power = 50
 
@@ -412,7 +412,7 @@ async def climate_control(temp_id):
             upper_bound = target_temp + hysteresis / 2
             max_lower = target_temp - max_range
 
-            current_temp = round(TEMP_SENSOR.get_temp(temp_id), 1)
+            current_temp = round(TEMP_SENSOR.get_temp(temp_id) * 2) / 2
             if current_temp != prev_values.get("current_temp"):
                 await log_and_emit_async(current_temp, temp_sensor_id)
 
