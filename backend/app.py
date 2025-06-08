@@ -48,44 +48,56 @@ sio = socketio.AsyncServer(cors_allowed_origins="*", async_mode="asgi", logger=F
 
 
 async def log_and_emit_async(value, component_id):
-    log_id = DataRepository.create_log(value, component_id)
-    if log_id is None:
-        logger.error(
-            f"Failed to create log for component {component_id} with value {value}"
-        )
+    try:
+        log_id = DataRepository.create_log(value, component_id)
+        if log_id is None:
+            logger.error(
+                f"Failed to create log for component {component_id} with value {value}"
+            )
+            return
+
+        data = DataRepository.read_last_log_by_id(log_id)
+        if data and "datetime" in data:
+            data["datetime"] = data["datetime"].isoformat()
+
+        await sio.emit("B2F_new_log", data)
+
+    except Exception as e:
+        logger.error(f"Error in log_and_emit_async: {e}")
+        errors += 1
         return
-
-    data = DataRepository.read_last_log_by_id(log_id)
-    if data and "datetime" in data:
-        data["datetime"] = data["datetime"].isoformat()
-
-    await sio.emit("B2F_new_log", data)
 
 
 def log_and_emit_sync(value, component_id):
-    log_id = DataRepository.create_log(value, component_id)
-    if log_id is None:
-        logger.error(
-            f"Failed to create log for component {component_id} with value {value}"
-        )
-        return
-
-    data = DataRepository.read_last_log_by_id(log_id)
-    if data and "datetime" in data:
-        data["datetime"] = data["datetime"].isoformat()
-
     try:
-        loop = asyncio.get_event_loop()
-        time.sleep(1)
-        loop.create_task(sio.emit("B2F_new_log", data))
+        log_id = DataRepository.create_log(value, component_id)
+        if log_id is None:
+            logger.error(
+                f"Failed to create log for component {component_id} with value {value}"
+            )
+            return
 
-    except RuntimeError:
-        sio.emit("B2F_new_log", data)
+        data = DataRepository.read_last_log_by_id(log_id)
+        if data and "datetime" in data:
+            data["datetime"] = data["datetime"].isoformat()
+
+        try:
+            loop = asyncio.get_event_loop()
+            time.sleep(1)
+            loop.create_task(sio.emit("B2F_new_log", data))
+
+        except RuntimeError:
+            sio.emit("B2F_new_log", data)
+
+    except Exception as e:
+        logger.error(f"Error in log_and_emit_sync: {e}")
+        errors += 1
+        return
 
 
 # endregion Socket.IO Setup **************************************************
 
-# region Global Variables ---------------------------------
+# region Globals ---------------------------------
 # Database IDs
 wh_bat_in_id = 1
 wh_bat_out_id = 2
@@ -150,7 +162,8 @@ switch_state_power = False
 errors = 0
 sleep_lcd = 3
 sleep_fast = 0.25
-sleep_slow = 0.5
+sleep_medium = 1
+sleep_slow = 2
 sleep_long = 5
 
 # Schedules
@@ -178,6 +191,8 @@ except RuntimeError as e:
     logger.error(f"Error setting GPIO mode: {e}")
     GPIO.cleanup()
     errors += 1
+
+# endregion Globals ******************************
 
 
 # region Functions ---------------------------------
@@ -338,9 +353,10 @@ async def climate_control(temp_id):
     global HEATING, AIRCO, temp, temp_sensor_id, pot_id, MCP, TEMP_SENSOR, dict_schedules
     global errors, heater_id
 
-    hysteresis = 0.5
+    hysteresis = 1.0
     max_range = 2.0
     fan_active = False
+    min_heater_power = 50
 
     prev_values = {
         "target_temp": None,
@@ -388,13 +404,15 @@ async def climate_control(temp_id):
             if current_temp < lower_bound:
                 if current_temp <= max_lower:
                     heater_power = 100
+
                 else:
-                    heater_power = round(
+                    calculated_power = round(
                         100 * (lower_bound - current_temp) / (lower_bound - max_lower),
                         2,
                     )
+                    heater_power = max(min_heater_power, calculated_power)
 
-                HEATING.set_power(min(100, max(0, heater_power)))
+                HEATING.set_power(heater_power)
                 AIRCO.off()
 
                 if heater_power != prev_values.get("heater_power"):
@@ -447,7 +465,7 @@ async def climate_control(temp_id):
             prev_values["current_temp"] = current_temp
             temp = current_temp
 
-            await asyncio.sleep(sleep_slow)
+            await asyncio.sleep(sleep_medium)
 
         except Exception as e:
             logger.error(f"Error in climate_control: {e}")
@@ -603,8 +621,6 @@ async def front_door():
     global DOOR_LOCK, REED_SWITCH, CARD_READER, scanned_card
     global servo_lock_id, reed_switch_id, card_reader_id, errors
 
-    logger.info("Starting front_door monitoring...")
-
     while True:
         try:
             scanned_card = CARD_READER.read_no_block()
@@ -720,7 +736,7 @@ async def lights_outdoors():
                     await log_and_emit_async(ldr_value, light_sensor_id)
                     prev_values["ldr_value"] = ldr_value
 
-            await asyncio.sleep(sleep_slow)
+            await asyncio.sleep(sleep_medium)
 
         except Exception as e:
             logger.error(f"Error in lights_outdoors: {e}")
@@ -803,29 +819,60 @@ async def lifespan_manager(app: FastAPI):
 
     finally:
         logger.info("Shutting down application...")
+
+        try:
+            log_and_emit_sync(0, heater_id)
+            log_and_emit_sync(0, fan_id)
+            log_and_emit_sync(0, led_bottom_id)
+            log_and_emit_sync(0, led_top_id)
+            log_and_emit_sync(0, led_outdoors_id)
+            log_and_emit_sync(0, servo_lock_id)
+            log_and_emit_sync(0, wh_heater_id)
+            log_and_emit_sync(0, wh_fan_id)
+            log_and_emit_sync(0, wh_led_bottom_id)
+            log_and_emit_sync(0, wh_led_top_id)
+            log_and_emit_sync(0, wh_bat_in_id)
+            log_and_emit_sync(0, wh_bat_out_id)
+
+            logger.info("All component shutdown states logged")
+
+        except Exception as e:
+            logger.error(f"Error logging shutdown states: {e}")
+
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
-        if CARD_READER:
-            CARD_READER.cleanup()
-        if LCD:
-            LCD.close()
-        if DOOR_LOCK:
-            DOOR_LOCK.cleanup()
+
         if LED_TOP:
             LED_TOP.cleanup()
+
         if LED_BOTTOM:
             LED_BOTTOM.cleanup()
+
         if HEATING:
             HEATING.cleanup()
+
         if AIRCO:
             AIRCO.cleanup()
+
+        if DOOR_LOCK:
+            DOOR_LOCK.cleanup()
+
+        if CARD_READER:
+            CARD_READER.cleanup()
+
+        if LCD:
+            LCD.close()
+
         if MCP:
             MCP.close()
+
         if I2C_EXPANDER:
             I2C_EXPANDER.close()
+
         if power_monitor:
             power_monitor.close()
+
         if GPIO:
             GPIO.cleanup()
         logger.info("GPIO cleaned up. Bye!")

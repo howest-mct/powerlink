@@ -7,14 +7,6 @@ class DataRepository:
     # region Read ---------------------------------
 
     @staticmethod
-    def read_all_component_ids():
-        sql = """
-            SELECT component_name, component_id
-            FROM components
-        """
-        return Database.get_rows(sql)
-
-    @staticmethod
     def read_all_schedules():
         sql = """
             SELECT schedule_name, schedule_id, start_time, end_time, value, enabled
@@ -56,46 +48,6 @@ class DataRepository:
         return Database.get_rows(sql, params)
 
     @staticmethod
-    def read_logs_last_24_hours_by_component_id(component_id):
-        one_day_ago = datetime.now() - timedelta(days=1)
-        sql = """
-            SELECT cl.*, c.component_name, c.value_unit, r.room_name 
-            FROM component_logs cl
-            JOIN components c ON cl.component_id = c.component_id
-            JOIN rooms r ON c.room_id = r.room_id
-            WHERE cl.component_id = %s AND cl.datetime >= %s
-        """
-        params = [component_id, one_day_ago]
-        return Database.get_rows(sql, params)
-
-    @staticmethod
-    def read_logs_last_week_by_component_id(component_id):
-        one_week_ago = datetime.now() - timedelta(weeks=1)
-        sql = """
-            SELECT cl.*, c.component_name, c.value_unit, r.room_name 
-            FROM component_logs cl
-            JOIN components c ON cl.component_id = c.component_id
-            JOIN rooms r ON c.room_id = r.room_id
-            WHERE cl.component_id = %s AND cl.datetime >= %s
-        """
-        params = [component_id, one_week_ago]
-        return Database.get_rows(sql, params)
-
-    @staticmethod
-    def read_logs_between_1_and_2_weeks_by_component_id(component_id):
-        one_week_ago = datetime.now() - timedelta(weeks=1)
-        two_weeks_ago = datetime.now() - timedelta(weeks=2)
-        sql = """
-            SELECT cl.*, c.component_name, c.value_unit, r.room_name 
-            FROM component_logs cl
-            JOIN components c ON cl.component_id = c.component_id
-            JOIN rooms r ON c.room_id = r.room_id
-            WHERE cl.component_id = %s AND cl.datetime >= %s AND cl.datetime < %s
-        """
-        params = [component_id, two_weeks_ago, one_week_ago]
-        return Database.get_rows(sql, params)
-
-    @staticmethod
     def read_all_schedules_by_frame_id(frame_name):
         sql = """
             SELECT s.*, r.room_name, t.type_name
@@ -124,6 +76,48 @@ class DataRepository:
     def read_inhabitant_by_card_id(card_id):
         sql = "SELECT * FROM inhabitants WHERE card_id = %s"
         params = [card_id]
+        return Database.get_one_row(sql, params)
+
+    @staticmethod
+    def read_energy_usage_today(component_id=2):
+        sql = """
+            WITH ordered_logs AS (
+                SELECT
+                    component_id,
+                    datetime,
+                    value,
+                    LEAD(datetime) OVER (PARTITION BY component_id ORDER BY datetime) AS next_datetime
+                FROM component_logs
+                WHERE component_id = %s
+                AND DATE(datetime) = CURDATE()
+            )
+            SELECT 
+                ROUND(SUM(value * TIMESTAMPDIFF(SECOND, datetime, next_datetime) / 3600), 2) AS total_kwh_today
+            FROM ordered_logs
+            WHERE next_datetime IS NOT NULL;
+        """
+        params = [component_id]
+        return Database.get_one_row(sql, params)
+
+    @staticmethod
+    def read_energy_usage_last_7_days(component_id=2):
+        sql = """
+            WITH ordered_logs AS (
+                SELECT
+                    component_id,
+                    datetime,
+                    value,
+                    LEAD(datetime) OVER (PARTITION BY component_id ORDER BY datetime) AS next_datetime
+                FROM component_logs
+                WHERE component_id = %s
+                AND datetime >= CURDATE() - INTERVAL 7 DAY
+            )
+            SELECT 
+                ROUND(SUM(value * TIMESTAMPDIFF(SECOND, datetime, next_datetime) / 3600), 2) AS total_kwh_week
+            FROM ordered_logs
+            WHERE next_datetime IS NOT NULL;
+        """
+        params = [component_id]
         return Database.get_one_row(sql, params)
 
     # endregion Read ********************************
