@@ -291,6 +291,7 @@ const listenToSocket = () => {
 // #region ***  Init / DOMContentLoaded                  ***********
 const init = () => {
   console.log('DOM loaded');
+  showDropdown();
   getLastComponentLogs();
   listenToSocket();
 };
