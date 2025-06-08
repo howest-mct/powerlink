@@ -148,6 +148,10 @@ scanned_card = None
 door_state = None
 switch_state_power = False
 errors = 0
+sleep_lcd = 3
+sleep_fast = 0.25
+sleep_slow = 0.5
+sleep_long = 5
 
 # Schedules
 try:
@@ -203,7 +207,7 @@ async def display_lcd():
 
     LCD.string(f"Project loaded", 1)
     LCD.string(f"{errors} errors", 2)
-    await asyncio.sleep(5)
+    await asyncio.sleep(sleep_long)
 
     while True:
         try:
@@ -211,32 +215,32 @@ async def display_lcd():
             wlan0_ip = get_ip("wlan0")
             LCD.string("IP ETH0:", 1)
             LCD.string(eth0_ip, 2)
-            await asyncio.sleep(3)
+            await asyncio.sleep(sleep_lcd)
 
             LCD.string("IP WLAN0:", 1)
             LCD.string(wlan0_ip, 2)
-            await asyncio.sleep(3)
+            await asyncio.sleep(sleep_lcd)
 
             LCD.string("Current temp:", 1)
             LCD.string(f"{temp} degrees C", 2)
-            await asyncio.sleep(3)
+            await asyncio.sleep(sleep_lcd)
 
             LCD.string("Current Watt:", 1)
             LCD.string(f"{round(current_usage, 3)}W", 2)
-            await asyncio.sleep(3)
+            await asyncio.sleep(sleep_lcd)
 
             LCD.string("Battery level:", 1)
             LCD.string(f"{battery_level}%", 2)
-            await asyncio.sleep(3)
+            await asyncio.sleep(sleep_lcd)
 
             LCD.string("Program running", 1)
             LCD.string(f"{errors} errors", 2)
-            await asyncio.sleep(3)
+            await asyncio.sleep(sleep_lcd)
 
         except Exception as e:
             errors += 1
             logger.error(f"Error in display_lcd: {e}")
-            await asyncio.sleep(1)
+            await asyncio.sleep(sleep_long)
 
 
 def initialize_power_monitoring():
@@ -269,7 +273,7 @@ async def get_wattage():
         try:
             if power_monitor is None:
                 initialize_power_monitoring()
-                await asyncio.sleep(5)
+                await asyncio.sleep(sleep_long)
                 continue
 
             readings = power_monitor.read_all_sensors()
@@ -327,7 +331,7 @@ async def get_wattage():
                     logger.error(f"Error closing power monitor: {e}")
                 power_monitor = None
 
-        await asyncio.sleep(2)
+        await asyncio.sleep(sleep_slow)
 
 
 async def climate_control(temp_id):
@@ -443,7 +447,7 @@ async def climate_control(temp_id):
             prev_values["current_temp"] = current_temp
             temp = current_temp
 
-            await asyncio.sleep(2)
+            await asyncio.sleep(sleep_slow)
 
         except Exception as e:
             logger.error(f"Error in climate_control: {e}")
@@ -466,12 +470,12 @@ async def do_lights_button():
                 switch_state = not switch_state
                 await log_and_emit_async(switch_state, button_lights_id)
 
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(sleep_fast)
 
         except Exception as e:
             logger.error(f"Error in do_lights_button: {e}")
             lights_button_pressed = False
-            await asyncio.sleep(1)
+            await asyncio.sleep(sleep_slow)
             errors += 1
 
 
@@ -516,13 +520,13 @@ async def lights_bottom():
                     prev_led_brightness = target_brightness
                     last_log_time_switch = current_time_stamp
 
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(sleep_fast)
 
         except Exception as e:
             logger.error(f"Error in lights_bottom: {e}")
             errors += 1
             prev_led_brightness = None
-            await asyncio.sleep(1)
+            await asyncio.sleep(sleep_slow)
 
 
 async def lights_top():
@@ -580,7 +584,7 @@ async def lights_top():
                 prev_values["led_brightness"] = 0
 
             last_motion = motion_now
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(sleep_fast)
 
         except Exception as e:
             logger.error(f"Something went wrong: {e}")
@@ -588,7 +592,7 @@ async def lights_top():
             prev_values["motion_sensor"] = None
             prev_values["led_brightness"] = None
             errors += 1
-            await asyncio.sleep(1)
+            await asyncio.sleep(sleep_slow)
 
 
 def cut_card(card_id):
@@ -614,11 +618,9 @@ async def front_door():
                     checked_card = DataRepository.read_card_by_id(snipped_card)
 
                     if checked_card is None:
-                        logger.info("Invalid card scanned")
-                        await log_and_emit_async(-1, card_reader_id)
+                        await log_and_emit_async(snipped_card, card_reader_id)
                         continue
 
-                    logger.info("Valid card scanned")
                     await log_and_emit_async(snipped_card, card_reader_id)
 
                     DOOR_LOCK.unlock()
@@ -636,7 +638,7 @@ async def front_door():
                             await log_and_emit_async(0, servo_lock_id)
                             break
 
-                        await asyncio.sleep(0.1)
+                        await asyncio.sleep(sleep_fast)
 
                     else:
                         await log_and_emit_async(1, reed_switch_id)
@@ -650,7 +652,7 @@ async def front_door():
 
                                 break
 
-                            await asyncio.sleep(0.1)
+                            await asyncio.sleep(sleep_fast)
 
                         await log_and_emit_async(0, reed_switch_id)
                         DOOR_LOCK.lock()
@@ -666,12 +668,12 @@ async def front_door():
                     except Exception as lock_error:
                         logger.error(f"Error locking door: {lock_error}")
 
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(sleep_fast)
 
         except Exception as e:
             logger.error(f"Error in front_door: {e}")
             errors += 1
-            await asyncio.sleep(1)
+            await asyncio.sleep(sleep_slow)
 
 
 async def lights_outdoors():
@@ -718,7 +720,7 @@ async def lights_outdoors():
                     await log_and_emit_async(ldr_value, light_sensor_id)
                     prev_values["ldr_value"] = ldr_value
 
-            await asyncio.sleep(1)
+            await asyncio.sleep(sleep_slow)
 
         except Exception as e:
             logger.error(f"Error in lights_outdoors: {e}")
@@ -726,7 +728,7 @@ async def lights_outdoors():
             prev_values["ldr_value"] = None
             prev_values["led_brightness"] = None
             errors += 1
-            await asyncio.sleep(1)
+            await asyncio.sleep(sleep_slow)
 
 
 def power_button(pin):

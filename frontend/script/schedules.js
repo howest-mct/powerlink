@@ -484,7 +484,6 @@ const listenToSocketIo = () => {
   sio.on('error', (error) => {
     console.log('Socket.IO error:', error);
   });
-  sio.on('BF2_schedule_updated', ({ schedule_id: schedule_id, start_time: start_time, end_time: end_time, value: value, enabled: enabled }) => {});
 };
 // #endregion
 

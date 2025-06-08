@@ -260,7 +260,7 @@ const formatDateTime = (isoString) => {
 // #endregion
 
 // #region ***  Data Access - get___                     ***********
-const getAllLastItems = async () => {
+const getLastComponentLogs = async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const urlParam = urlParams.get('param');
   let url = ENDPOINT + `/components/last/${urlParam}/`;
@@ -291,7 +291,7 @@ const listenToSocket = () => {
 // #region ***  Init / DOMContentLoaded                  ***********
 const init = () => {
   console.log('DOM loaded');
-  getAllLastItems();
+  getLastComponentLogs();
   listenToSocket();
 };
 

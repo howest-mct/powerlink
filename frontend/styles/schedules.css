@@ -13,7 +13,7 @@ body {
     background-color: var(--background-color);
     display: flex;
     flex-direction: column;
-    padding-top: 4rem;
+    padding-top: 5rem;
     color: var(--text_main-color);
 }
 
