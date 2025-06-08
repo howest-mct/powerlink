@@ -117,13 +117,15 @@ const showAllLastLogs = (json) => {
     room_components[room_id].push(schedule);
   }
 
+  let room_display_number = 0;
+
   for (const room_id in room_components) {
     const room_data = room_components[room_id];
     const room_name = room_data[0].room_name;
 
     let htmlComponents = '';
     htmlRooms += `
-      <div class="c-room__container js-room__container" data-room_id="${room_id}" data-room_name="${room_name}">
+      <div class="c-room__container js-room__container" data-room_id="${room_id}" data-room_name="${room_name}" data-room_number="${room_display_number}">
         <section class="c-room">
           <h2 class="c-section__title">${room_name}</h2>
           <div class="c-room__components">
@@ -158,16 +160,18 @@ const showAllLastLogs = (json) => {
         </section>
       </div>
     `;
+
+    room_display_number++;
   }
 
   room_containers.innerHTML = htmlRooms;
 
   const room_container = document.querySelectorAll('.js-room__container');
   room_container.forEach((room_container) => {
-    const room_id = parseInt(room_container.dataset.room_id);
+    const room_number = parseInt(room_container.dataset.room_number);
     const component_containers = room_container.querySelectorAll('.js-component__container');
 
-    if (room_id % 2 === 0) {
+    if (room_number % 2 === 0) {
       room_container.classList.add('c-grey-background');
       component_containers.forEach((component_container) => {
         component_container.classList.add('c-white-background');
