@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 # endregion Setup ********************************
 
 # region Socket.IO Setup Functions ---------------------------------
-sio = socketio.AsyncServer(cors_allowed_origins="*", async_mode="asgi", logger=True)
+sio = socketio.AsyncServer(cors_allowed_origins="*", async_mode="asgi", logger=False)
 
 
 async def log_and_emit_async(value, component_id):
@@ -56,7 +56,8 @@ async def log_and_emit_async(value, component_id):
         return
 
     data = DataRepository.read_last_log_by_id(log_id)
-    data["datetime"] = data["datetime"].isoformat()
+    if data and "datetime" in data:
+        data["datetime"] = data["datetime"].isoformat()
 
     await sio.emit("B2F_new_log", data)
 
@@ -70,12 +71,14 @@ def log_and_emit_sync(value, component_id):
         return
 
     data = DataRepository.read_last_log_by_id(log_id)
-    data["datetime"] = data["datetime"].isoformat()
+    if data and "datetime" in data:
+        data["datetime"] = data["datetime"].isoformat()
 
     try:
         loop = asyncio.get_event_loop()
         time.sleep(1)
         loop.create_task(sio.emit("B2F_new_log", data))
+
     except RuntimeError:
         sio.emit("B2F_new_log", data)
 
@@ -134,6 +137,7 @@ power_monitor = None
 temp_id = None
 temp = None
 switch_state = False
+lights_button_pressed = False
 last_log_time_switch = 0
 previous_state_switch = False
 last_state_led = None
@@ -149,10 +153,15 @@ errors = 0
 try:
     all_schedules = DataRepository.read_all_schedules()
     dict_schedules = {}
+
     for schedule in all_schedules:
-        if schedule["schedule_name"] not in dict_schedules:
-            dict_schedules[schedule["schedule_name"]] = {}
-        dict_schedules[schedule["schedule_name"]] = schedule
+        schedule_name = schedule.get("schedule_name")
+        if schedule_name and schedule_name not in dict_schedules:
+            dict_schedules[schedule_name] = {}
+
+        if schedule_name:
+            dict_schedules[schedule_name] = schedule
+
 except Exception as e:
     logger.error(f"Error reading schedules from database: {e}")
     dict_schedules = {}
@@ -160,6 +169,7 @@ except Exception as e:
 
 try:
     GPIO.setmode(GPIO.BCM)
+
 except RuntimeError as e:
     logger.error(f"Error setting GPIO mode: {e}")
     GPIO.cleanup()
@@ -171,13 +181,17 @@ except RuntimeError as e:
 
 def get_ip(interface):
     global errors
+
     try:
         output = subprocess.check_output(["ip", "a", "show", interface]).decode()
         match = re.search(r"inet (\d+\.\d+\.\d+\.\d+)", output)
+
         if match:
             return match.group(1)
+
         else:
             return "Geen IP"
+
     except subprocess.CalledProcessError:
         errors += 1
         return "Interface fout"
@@ -231,6 +245,7 @@ def initialize_power_monitoring():
     try:
         power_monitor = PowerMonitoringSystem(tca_address=0x70, ina_address=0x40)
         logger.info("Power monitoring system with TCA9548A initialized successfully")
+
     except Exception as e:
         logger.error(f"Failed to initialize power monitoring: {e}")
         power_monitor = None
@@ -263,7 +278,6 @@ async def get_wattage():
             kw_led_top = round(readings.get("led_top", 0.0), 2)
             kw_heating = round(readings.get("heating", 0.0), 2)
             kw_airco = round(readings.get("airco", 0.0), 2)
-
             battery_in_power = round(readings.get("battery_in", 0.0), 2)
             battery_out_power = round(readings.get("battery_out", 0.0), 2)
 
@@ -273,25 +287,26 @@ async def get_wattage():
                 battery_level = max(
                     0, min(100, (battery_in_power / battery_out_power) * 100)
                 )
+
             else:
                 battery_level = 100.0
 
-            if kw_led_bottom != 0 or prev_values["led_bottom"] != 0:
+            if kw_led_bottom != 0 or prev_values.get("led_bottom", 0) != 0:
                 await log_and_emit_async(kw_led_bottom, wh_led_bottom_id)
 
-            if kw_led_top != 0 or prev_values["led_top"] != 0:
+            if kw_led_top != 0 or prev_values.get("led_top", 0) != 0:
                 await log_and_emit_async(kw_led_top, wh_led_top_id)
 
-            if kw_heating != 0 or prev_values["heating"] != 0:
+            if kw_heating != 0 or prev_values.get("heating", 0) != 0:
                 await log_and_emit_async(kw_heating, wh_heater_id)
 
-            if kw_airco != 0 or prev_values["airco"] != 0:
+            if kw_airco != 0 or prev_values.get("airco", 0) != 0:
                 await log_and_emit_async(kw_airco, wh_fan_id)
 
-            if battery_in_power != 0 or prev_values["battery_in"] != 0:
+            if battery_in_power != 0 or prev_values.get("battery_in", 0) != 0:
                 await log_and_emit_async(battery_in_power, wh_bat_in_id)
 
-            if battery_out_power != 0 or prev_values["battery_out"] != 0:
+            if battery_out_power != 0 or prev_values.get("battery_out", 0) != 0:
                 await log_and_emit_async(battery_out_power, wh_bat_out_id)
 
             prev_values["led_bottom"] = kw_led_bottom
@@ -307,16 +322,17 @@ async def get_wattage():
             if power_monitor:
                 try:
                     power_monitor.close()
+
                 except Exception as e:
                     logger.error(f"Error closing power monitor: {e}")
                 power_monitor = None
 
-        await asyncio.sleep(3)
+        await asyncio.sleep(2)
 
 
 async def climate_control(temp_id):
     global HEATING, AIRCO, temp, temp_sensor_id, pot_id, MCP, TEMP_SENSOR, dict_schedules
-    global errors
+    global errors, heater_id
 
     hysteresis = 0.5
     max_range = 2.0
@@ -338,12 +354,12 @@ async def climate_control(temp_id):
 
             schedule = dict_schedules.get("Heater Schedule", {})
             use_schedule = schedule.get("enabled") == 1
+            schedule_start = schedule.get("start_time", "00:00")
+            schedule_end = schedule.get("end_time", "23:59")
+            schedule_value = schedule.get("value", pot_temp)
 
-            if (
-                use_schedule
-                and schedule["start_time"] <= current_time <= schedule["end_time"]
-            ):
-                target_temp = schedule.get("value", pot_temp)
+            if use_schedule and schedule_start <= current_time <= schedule_end:
+                target_temp = schedule_value
                 fan_active = True
 
             elif use_schedule:
@@ -354,7 +370,7 @@ async def climate_control(temp_id):
                 target_temp = pot_temp
                 fan_active = True
 
-            if target_temp != prev_values["target_temp"]:
+            if target_temp != prev_values.get("target_temp"):
                 await log_and_emit_async(target_temp, pot_id)
 
             lower_bound = target_temp - hysteresis / 2
@@ -362,7 +378,7 @@ async def climate_control(temp_id):
             max_lower = target_temp - max_range
 
             current_temp = round(TEMP_SENSOR.get_temp(temp_id), 1)
-            if current_temp != prev_values["current_temp"]:
+            if current_temp != prev_values.get("current_temp"):
                 await log_and_emit_async(current_temp, temp_sensor_id)
 
             if current_temp < lower_bound:
@@ -377,10 +393,10 @@ async def climate_control(temp_id):
                 HEATING.set_power(min(100, max(0, heater_power)))
                 AIRCO.off()
 
-                if heater_power != prev_values["heater_power"]:
+                if heater_power != prev_values.get("heater_power"):
                     await log_and_emit_async(heater_power, heater_id)
 
-                if prev_values["fan_state"] != 0:
+                if prev_values.get("fan_state") != 0:
                     await log_and_emit_async(0, fan_id)
 
                 prev_values["heater_power"] = heater_power
@@ -391,10 +407,10 @@ async def climate_control(temp_id):
                 if fan_active:
                     AIRCO.on()
 
-                    if prev_values["heater_power"] != 0:
+                    if prev_values.get("heater_power") != 0:
                         await log_and_emit_async(0, heater_id)
 
-                    if prev_values["fan_state"] != 1:
+                    if prev_values.get("fan_state") != 1:
                         await log_and_emit_async(1, fan_id)
 
                     prev_values["heater_power"] = 0
@@ -402,10 +418,10 @@ async def climate_control(temp_id):
                 else:
                     AIRCO.off()
 
-                    if prev_values["heater_power"] != 0:
+                    if prev_values.get("heater_power") != 0:
                         await log_and_emit_async(0, heater_id)
 
-                    if prev_values["fan_state"] != 0:
+                    if prev_values.get("fan_state") != 0:
                         await log_and_emit_async(0, fan_id)
 
                     prev_values["heater_power"] = 0
@@ -414,10 +430,10 @@ async def climate_control(temp_id):
                 HEATING.off()
                 AIRCO.off()
 
-                if prev_values["heater_power"] != 0:
+                if prev_values.get("heater_power") != 0:
                     await log_and_emit_async(0, heater_id)
 
-                if prev_values["fan_state"] != 0:
+                if prev_values.get("fan_state") != 0:
                     await log_and_emit_async(0, fan_id)
 
                 prev_values["heater_power"] = 0
@@ -427,7 +443,7 @@ async def climate_control(temp_id):
             prev_values["current_temp"] = current_temp
             temp = current_temp
 
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
 
         except Exception as e:
             logger.error(f"Error in climate_control: {e}")
@@ -436,84 +452,76 @@ async def climate_control(temp_id):
 
 def lights_button(pin):
     global lights_button_pressed
+
     lights_button_pressed = True
 
 
 async def do_lights_button():
-    global lights_button_pressed, switch_state
+    global lights_button_pressed, switch_state, lights_button_pressed, errors
 
     while True:
-        if lights_button_pressed:
-            lights_button_pressed = False
-            switch_state = not switch_state
-            await log_and_emit_async(switch_state, button_lights_id)
-            print(f"Lights button pressed, new state: {switch_state}")
+        try:
+            if lights_button_pressed:
+                lights_button_pressed = False
+                switch_state = not switch_state
+                await log_and_emit_async(switch_state, button_lights_id)
 
-        await asyncio.sleep(0.05)
+            await asyncio.sleep(0.1)
+
+        except Exception as e:
+            logger.error(f"Error in do_lights_button: {e}")
+            lights_button_pressed = False
+            await asyncio.sleep(1)
+            errors += 1
 
 
 async def lights_bottom():
     global LED_BOTTOM, switch_state, last_log_time_switch, previous_state_switch, dict_schedules
-    global prev_led_brightness, errors, lights_button_pressed
+    global prev_led_brightness, errors
+
+    prev_led_brightness = 0
+    previous_state_switch = False
+    last_log_time_switch = 0
 
     while True:
         try:
-            current_time = time.strftime("%H:%M", time.localtime())
+            schedule = dict_schedules.get("Lights Downstairs Schedule", {})
+            use_schedule = schedule.get("enabled", False)
 
-            schedule = dict_schedules.get("lighting_lower_schedule", {})
-            use_schedule = schedule.get("enabled") == 1
+            if switch_state:
+                if use_schedule:
+                    target_brightness = schedule.get("value", 0)
 
-            lights_should_be_on = False
-            scheduled_brightness = 100
-
-            if use_schedule:
-                start_time = schedule.get("start_time", "00:00")
-                end_time = schedule.get("end_time", "23:59")
-
-                if start_time <= end_time:
-                    lights_should_be_on = start_time <= current_time <= end_time
                 else:
-                    lights_should_be_on = (
-                        current_time >= start_time or current_time <= end_time
-                    )
-
-                if lights_should_be_on:
-                    scheduled_brightness = schedule.get("value", 100)
+                    target_brightness = 100
 
             else:
-                lights_should_be_on = switch_state
+                target_brightness = 0
 
-            if lights_should_be_on and not previous_state_switch:
+            if target_brightness != prev_led_brightness:
                 current_time_stamp = time.time()
+
                 if current_time_stamp - last_log_time_switch >= 1:
-                    LED_BOTTOM.set_brightness(scheduled_brightness)
-
-                    if scheduled_brightness != prev_led_brightness:
-                        await log_and_emit_async(scheduled_brightness, led_bottom_id)
+                    if target_brightness > 0:
+                        LED_BOTTOM.set_brightness(target_brightness)
                         logger.info(
-                            f"LED Bottom turned on with brightness: {scheduled_brightness}"
+                            f"LED Bottom brightness set to: {target_brightness}"
                         )
-                    prev_led_brightness = scheduled_brightness
+                    else:
+                        LED_BOTTOM.off()
+                        logger.info("LED Bottom turned off")
 
+                    await log_and_emit_async(target_brightness, led_bottom_id)
+
+                    prev_led_brightness = target_brightness
                     last_log_time_switch = current_time_stamp
-                previous_state_switch = True
-
-            elif not lights_should_be_on and previous_state_switch:
-                LED_BOTTOM.off()
-
-                if prev_led_brightness != 0:
-                    await log_and_emit_async(0, led_bottom_id)
-                    logger.info("LED Bottom turned off")
-                prev_led_brightness = 0
-
-                previous_state_switch = False
 
             await asyncio.sleep(0.5)
 
         except Exception as e:
             logger.error(f"Error in lights_bottom: {e}")
-            prev_led_brightness = None
             errors += 1
+            prev_led_brightness = None
             await asyncio.sleep(1)
 
 
@@ -535,23 +543,26 @@ async def lights_top():
             if motion_now == 1 and last_motion == 0:
                 current_time = time.strftime("%H:%M", time.localtime())
                 schedule = dict_schedules.get("Lights Upstairs Schedule", {})
-                use_schedule = schedule["enabled"] == 1
+                use_schedule = schedule.get("enabled") == 1
+                schedule_start = schedule.get("start_time", "00:00")
+                schedule_end = schedule.get("end_time", "23:59")
+                schedule_value = schedule.get("value", 100)
 
-                if (
-                    use_schedule
-                    and schedule["start_time"] <= current_time <= schedule["end_time"]
-                ):
-                    brightness = schedule["value"]
+                if use_schedule and schedule_start <= current_time <= schedule_end:
+                    brightness = schedule_value
+
                 else:
                     brightness = 100
 
                 LED_TOP.set_brightness(brightness)
-                if 1 != prev_values["motion_sensor"]:
+                if 1 != prev_values.get("motion_sensor"):
                     await log_and_emit_async(1, motion_sensor_id)
+
                 prev_values["motion_sensor"] = 1
 
-                if brightness != prev_values["led_brightness"]:
+                if brightness != prev_values.get("led_brightness"):
                     await log_and_emit_async(brightness, led_top_id)
+
                 prev_values["led_brightness"] = brightness
 
                 await asyncio.sleep(light_duration)
@@ -559,16 +570,16 @@ async def lights_top():
             elif motion_now == 0 and last_motion == 1:
                 LED_TOP.off()
 
-                if 0 != prev_values["motion_sensor"]:
+                if 0 != prev_values.get("motion_sensor"):
                     await log_and_emit_async(0, motion_sensor_id)
                 prev_values["motion_sensor"] = 0
 
-                if 0 != prev_values["led_brightness"]:
+                if 0 != prev_values.get("led_brightness"):
                     await log_and_emit_async(0, led_top_id)
+
                 prev_values["led_brightness"] = 0
 
             last_motion = motion_now
-
             await asyncio.sleep(0.5)
 
         except Exception as e:
@@ -621,9 +632,12 @@ async def front_door():
                                 "Door did not open in time (5 seconds) - locking again"
                             )
                             DOOR_LOCK.lock()
+
                             await log_and_emit_async(0, servo_lock_id)
                             break
+
                         await asyncio.sleep(0.1)
+
                     else:
                         await log_and_emit_async(1, reed_switch_id)
                         start_time = time.time()
@@ -633,11 +647,12 @@ async def front_door():
                                 logger.info(
                                     "Door did not close in time (10 seconds) - locking anyway"
                                 )
+
                                 break
+
                             await asyncio.sleep(0.1)
 
                         await log_and_emit_async(0, reed_switch_id)
-
                         DOOR_LOCK.lock()
                         await log_and_emit_async(0, servo_lock_id)
 
@@ -647,6 +662,7 @@ async def front_door():
                     try:
                         DOOR_LOCK.lock()
                         await log_and_emit_async(0, servo_lock_id)
+
                     except Exception as lock_error:
                         logger.error(f"Error locking door: {lock_error}")
 
@@ -674,29 +690,31 @@ async def lights_outdoors():
                 last_state_led = False
 
             if not last_state_led:
-                current_state = ldr_value > 70
+                current_state = ldr_value < 25
             else:
-                current_state = ldr_value >= 65
+                current_state = ldr_value < 30
 
             if current_state != last_state_led:
                 if current_state:
                     GPIO.output(LED_OUTDOORS, GPIO.HIGH)
-                    if 100 != prev_values["led_brightness"]:
+                    if 100 != prev_values.get("led_brightness"):
                         await log_and_emit_async(100, led_outdoors_id)
                     prev_values["led_brightness"] = 100
+
                 else:
                     GPIO.output(LED_OUTDOORS, GPIO.LOW)
-                    if prev_values["led_brightness"] != 0:
+                    if prev_values.get("led_brightness") != 0:
                         await log_and_emit_async(0, led_outdoors_id)
                     prev_values["led_brightness"] = 0
 
-                if ldr_value != prev_values["ldr_value"]:
+                if ldr_value != prev_values.get("ldr_value"):
                     await log_and_emit_async(ldr_value, light_sensor_id)
-                prev_values["ldr_value"] = ldr_value
 
+                prev_values["ldr_value"] = ldr_value
                 last_state_led = current_state
+
             else:
-                if ldr_value != prev_values["ldr_value"]:
+                if ldr_value != prev_values.get("ldr_value"):
                     await log_and_emit_async(ldr_value, light_sensor_id)
                     prev_values["ldr_value"] = ldr_value
 
@@ -713,9 +731,11 @@ async def lights_outdoors():
 
 def power_button(pin):
     global switch_state_power, button_power_id, errors
+
     try:
         switch_state_power = not switch_state_power
         log_and_emit_sync(switch_state_power, button_power_id)
+
     except Exception as e:
         logger.error(f"Error in power_button: {e}")
         errors += 1
@@ -771,10 +791,10 @@ async def lifespan_manager(app: FastAPI):
         ]
 
         GPIO.add_event_detect(
-            LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=150
+            LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=250
         )
         GPIO.add_event_detect(
-            POWER_BUTTON, GPIO.FALLING, callback=power_button, bouncetime=150
+            POWER_BUTTON, GPIO.FALLING, callback=power_button, bouncetime=250
         )
 
         yield

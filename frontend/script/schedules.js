@@ -123,6 +123,7 @@ const showAllSchedules = (schedules) => {
   }
 
   const chartsToRender = [];
+  let room_display_number = 0;
 
   for (const room_id in roomSchedules) {
     const room_data = roomSchedules[room_id];
@@ -130,7 +131,7 @@ const showAllSchedules = (schedules) => {
 
     let htmlSchedules = '';
     htmlRooms += `
-      <div class="c-room__container js-room__container" data-room_id="${room_id}">
+      <div class="c-room__container js-room__container" data-room_id="${room_id}" data-display_number="${room_display_number}">
         <section class="c-room">
           <h2 class="c-section__title">${room_name}</h2>
           <div class="c-schedules__container">
@@ -290,6 +291,8 @@ const showAllSchedules = (schedules) => {
           </div>
         </section>
       </div>`;
+
+    room_display_number++;
   }
 
   roomsContainer.innerHTML = htmlRooms;
@@ -307,12 +310,12 @@ const showAllSchedules = (schedules) => {
 
   const room_containers = document.querySelectorAll('.js-room__container');
   room_containers.forEach((room_container) => {
-    const room_id = parseInt(room_container.dataset.room_id);
+    const display_number = parseInt(room_container.dataset.display_number);
     const schedule_containers = room_container.querySelectorAll('.js-schedule__container');
     const input_containers = room_container.querySelectorAll('.js-input_container');
     const save_containers = room_container.querySelectorAll('.js-card__schedule-save');
 
-    if (room_id % 2 === 0) {
+    if (display_number % 2 === 0) {
       room_container.classList.add('c-grey-background');
       schedule_containers.forEach((schedule_container) => {
         schedule_container.classList.add('c-white-background');
