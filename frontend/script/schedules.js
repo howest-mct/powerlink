@@ -297,16 +297,14 @@ const showAllSchedules = (schedules) => {
 
   roomsContainer.innerHTML = htmlRooms;
 
-  setTimeout(() => {
-    chartsToRender.forEach(({ id, options }) => {
-      const container = document.getElementById(id);
-      if (container) {
-        container.chart = new ApexCharts(container, options);
-        container.chart.render();
-      }
-    });
-    listenToTemperatureControl();
-  }, 100);
+  chartsToRender.forEach(({ id, options }) => {
+    const container = document.getElementById(id);
+    if (container) {
+      container.chart = new ApexCharts(container, options);
+      container.chart.render();
+    }
+  });
+  listenToTemperatureControl();
 
   const room_containers = document.querySelectorAll('.js-room__container');
   room_containers.forEach((room_container) => {

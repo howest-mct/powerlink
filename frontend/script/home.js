@@ -109,17 +109,17 @@ const showDropdown = () => {
   });
 };
 
-const showAllSchedules = (schedules) => {
+const showAllItems = (items) => {
   let htmlRooms = '';
   const roomsContainer = document.querySelector('.js-main');
 
   let roomSchedules = {};
-  for (const schedule of schedules) {
-    const room_id = schedule.room_id;
+  for (const item of items) {
+    const room_id = item.room_id;
     if (!roomSchedules[room_id]) {
       roomSchedules[room_id] = [];
     }
-    roomSchedules[room_id].push(schedule);
+    roomSchedules[room_id].push(item);
   }
 
   const chartsToRender = [];
@@ -137,153 +137,7 @@ const showAllSchedules = (schedules) => {
           <div class="c-schedules__container">
     `;
 
-    for (const schedule of room_data) {
-      const { schedule_id, start_time, end_time, value, enabled, type_id, component_id, room_id, type_name } = schedule;
-
-      if (type_id === 1) {
-        htmlSchedules += `
-          <div class="c-temperature-control js-schedule__container js-temperature-control c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
-            <div class="c-switch">
-              <h4 class="c-schedule-card__title">${type_name}</h4>
-              <label class="switch">
-                <input type="checkbox" class="c-card__checkbox  js-schedule__checkbox" id="checkbox_${schedule_id}" ${enabled ? 'checked' : ''}>
-                <span class="slider round"></span>
-              </label>
-            </div>
-            <div class="c-circular-progress" data-value="${value}" data-schedule_id="${schedule_id}">
-              <div class="c-circular-progress__chart" id="chart_${schedule_id}"></div>
-            </div>
-            <div class="c-controls">
-              <svg class="c-control-btn" id="decrease_btn_${schedule_id}" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
-                <path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z"></path>
-              </svg>
-              <svg class="c-control-btn" id="increase_btn_${schedule_id}" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
-                <path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"></path>
-              </svg>
-            </div>
-            <div class="c-temperature-card__meta">
-              <div class="c-temperature-card__info">
-                <p class="c-temperature-card__status">Turn on climate control</p>
-                <div class="c-card__schedule">
-                <div class="c-card__schedule-time">
-                  <div class="c-card__schedule-from">
-                    <p>from</p>
-                    <input type="time" class="js-input_container" value="${start_time}">
-                  </div>
-                  <div class="c-card__schedule-to">
-                    <p>to</p>
-                    <input type="time" class="js-input_container" value="${end_time}">
-                  </div>
-                </div>
-                <div class="c-card__schedule-save__container">
-                  <button class="js-card__schedule-save c-card__schedule-save" type="button">Save Changes</button>
-                </div>
-                </div>
-              </div>
-            </div>
-          </div>`;
-
-        const chartId = `chart_${schedule_id}`;
-        const chartOptions = {
-          series: [((value - 16) / (30 - 16)) * 100],
-          chart: {
-            type: 'radialBar',
-            offsetY: 0,
-            sparkline: {
-              enabled: false,
-            },
-            width: '320px',
-            height: '320px',
-          },
-          plotOptions: {
-            radialBar: {
-              startAngle: -90,
-              endAngle: 90,
-              track: {
-                background: '#E0E0E0',
-                strokeWidth: '97%',
-                margin: 0,
-                dropShadow: {
-                  enabled: false,
-                  top: 2,
-                  left: 0,
-                  color: '#444',
-                  opacity: 1,
-                  blur: 2,
-                },
-              },
-              dataLabels: {
-                name: {
-                  show: false,
-                },
-                value: {
-                  offsetY: 0,
-                  fontSize: '40px',
-                  formatter: function (val) {
-                    const temp = (val / 100) * (30 - 16) + 16;
-                    return temp.toFixed(1) + '°C';
-                  },
-                },
-              },
-            },
-          },
-          grid: {
-            padding: {
-              top: 0,
-            },
-          },
-          fill: {
-            type: 'linear',
-            colors: ['#4A90E2'],
-          },
-          labels: [''],
-        };
-
-        chartsToRender.push({
-          id: chartId,
-          options: chartOptions,
-        });
-      } else if (type_id === 2) {
-        htmlSchedules += `
-          <div class="c-lighting-card js-schedule__container c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
-            <div class="c-schedule-card__header">    
-              <h4 class="c-schedule-card__title">${type_name}</h4>
-              <label class="switch">
-                <input type="checkbox" class="c-card__checkbox  js-schedule__checkbox" id="checkbox_${schedule_id}" ${enabled ? 'checked' : ''}>
-                <span class="slider round"></span>
-              </label>
-            </div>
-            <div class="c-card__content">
-              <div class="c-bulb-icon" id="bulb_icon_${schedule_id}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
-                  <path d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z"></path>
-                </svg>
-              </div>
-              <input type="range" min="0" max="100" value="${value}" class="c-slider" id="light_slider_${schedule_id}">
-              <div class="c-value-display" id="value_display_${schedule_id}">${value}%</div>
-            </div>
-            <div class="c-card__info">
-              <p class="c-card__status">Dim lights automatically</p>
-              <div class="c-card__schedule">
-                <div class="c-card__schedule-time">
-                  <div class="c-card__schedule-from">
-                    <p>from</p>
-                    <input type="time" class="js-input_container" value="${start_time}">
-                  </div>
-                  <div class="c-card__schedule-to">
-                    <p>to</p>
-                    <input type="time" class="js-input_container" value="${end_time}">
-                  </div>
-                </div>
-                <div class="c-card__schedule-save__container">
-                  <button class="js-card__schedule-save c-card__schedule-save" type="button">Save Changes</button>
-                </div>
-              </div>
-            </div>
-          </div>`;
-      }
-      if (enabled) {
-      }
+    for (const item of room_data) {
     }
 
     htmlRooms += htmlSchedules;
@@ -296,17 +150,6 @@ const showAllSchedules = (schedules) => {
   }
 
   roomsContainer.innerHTML = htmlRooms;
-
-  setTimeout(() => {
-    chartsToRender.forEach(({ id, options }) => {
-      const container = document.getElementById(id);
-      if (container) {
-        container.chart = new ApexCharts(container, options);
-        container.chart.render();
-      }
-    });
-    listenToTemperatureControl();
-  }, 100);
 
   const room_containers = document.querySelectorAll('.js-room__container');
   room_containers.forEach((room_container) => {
@@ -345,7 +188,6 @@ const showAllSchedules = (schedules) => {
       showSliders(`light_slider_${schedule_id}`, `value_display_${schedule_id}`, `bulb_icon_${schedule_id}`);
     });
   });
-  listenToSubmitSchedule();
 };
 // #endregion
 
@@ -355,124 +197,19 @@ const showAllSchedules = (schedules) => {
 
 // #region ***  Data Access - get___                     ***********
 
-const getAllSchedules = async () => {
+const getAllItems = async () => {
   const url_params = new URLSearchParams(window.location.search);
   const url_param = url_params.get('param');
-  const url = ENDPOINT + `/schedules/${url_param}/`;
+  const url = ENDPOINT + `/components/last/${url_param}/`;
   const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
   const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showAllSchedules(json);
-};
-
-const getPutSchedule = async (schedule_id, start_time, end_time, value, enabled) => {
-  const url = ENDPOINT + `/schedule/${schedule_id}/`;
-  const data = {
-    start_time: start_time,
-    end_time: end_time,
-    value: value,
-    enabled: enabled,
-  };
-  const response = await fetch(url, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  }).catch((err) => console.error('Fetch-error:', err));
-  if (!response.ok) {
-    console.error('Error updating schedule:', response.statusText);
-    return;
-  }
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  console.log(json);
-
-  sio.emit('BF2_schedule_updated', {
-    schedule_id: json.schedule_id,
-    schedule_name: json.schedule_name,
-    start_time: json.start_time,
-    end_time: json.end_time,
-    value: json.value,
-    enabled: json.enabled,
-  });
+  console.log('Fetched components:', json);
+  // showAllItems(json);
 };
 
 // #endregion
 
 // #region ***  Event Listeners - listenTo___            ***********
-
-const listenToSubmitSchedule = () => {
-  const save_buttons = document.querySelectorAll('.js-card__schedule-save');
-  save_buttons.forEach((button) => {
-    button.removeEventListener('click', listenToSaveCLicked);
-    button.addEventListener('click', listenToSaveCLicked);
-  });
-};
-
-const listenToSaveCLicked = (e) => {
-  const button = e.target;
-  const schedule_container = button.closest('.js-schedule__container');
-  const schedule_id = parseInt(schedule_container.dataset.schedule_id);
-
-  const time_inputs = schedule_container.querySelectorAll('.js-input_container');
-  const start_time = time_inputs[0].value;
-  const end_time = time_inputs[1].value;
-  const enabled_input = schedule_container.querySelector('.js-schedule__checkbox');
-  const enabled = enabled_input.checked ? 1 : 0;
-
-  let value;
-  if (schedule_container.classList.contains('c-temperature-control')) {
-    const progressDiv = schedule_container.querySelector('.c-circular-progress');
-    value = parseFloat(progressDiv.getAttribute('data-value'));
-  } else if (schedule_container.classList.contains('c-lighting-card')) {
-    const slider_input = schedule_container.querySelector('.c-slider');
-    value = parseFloat(slider_input.value);
-  } else {
-    console.error('Unknown schedule type');
-    return;
-  }
-
-  button.textContent = 'Saved';
-  button.disabled = true;
-
-  button.timeoutId = setTimeout(() => {
-    button.textContent = 'Save Changes';
-    button.disabled = false;
-    button.timeoutId = null;
-  }, 3000);
-
-  getPutSchedule(schedule_id, start_time, end_time, value, enabled);
-};
-
-const listenToTemperatureControl = () => {
-  const temp_controls = document.querySelectorAll('.js-temperature-control');
-  temp_controls.forEach((control) => {
-    const schedule_id = control.dataset.schedule_id;
-    const decrease_btn = control.querySelector(`#decrease_btn_${schedule_id}`);
-    const increase_btn = control.querySelector(`#increase_btn_${schedule_id}`);
-    const progressDiv = control.querySelector('.c-circular-progress');
-    const chartContainer = control.querySelector(`#chart_${schedule_id}`);
-
-    if (decrease_btn && increase_btn && progressDiv && chartContainer && chartContainer.chart) {
-      decrease_btn.addEventListener('click', () => {
-        let currentValue = parseFloat(progressDiv.getAttribute('data-value'));
-        currentValue -= 0.5;
-        if (currentValue < 16) currentValue = 16;
-        progressDiv.setAttribute('data-value', currentValue);
-        const newSeries = ((currentValue - 16) / (30 - 16)) * 100;
-        chartContainer.chart.updateSeries([newSeries]);
-      });
-
-      increase_btn.addEventListener('click', () => {
-        let currentValue = parseFloat(progressDiv.getAttribute('data-value'));
-        currentValue += 0.5;
-        if (currentValue > 30) currentValue = 30;
-        progressDiv.setAttribute('data-value', currentValue);
-        const newSeries = ((currentValue - 16) / (30 - 16)) * 100;
-        chartContainer.chart.updateSeries([newSeries]);
-      });
-    }
-  });
-};
 
 const listenToSocketIo = () => {
   sio.on('connect', () => {

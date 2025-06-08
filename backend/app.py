@@ -206,7 +206,7 @@ async def display_lcd():
     global errors
 
     LCD.string(f"Project loaded", 1)
-    LCD.string(f"{errors} errors", 2)
+    LCD.string(f"{errors} error(s)", 2)
     await asyncio.sleep(sleep_long)
 
     while True:
@@ -234,7 +234,7 @@ async def display_lcd():
             await asyncio.sleep(sleep_lcd)
 
             LCD.string("Program running", 1)
-            LCD.string(f"{errors} errors", 2)
+            LCD.string(f"{errors} error(s)", 2)
             await asyncio.sleep(sleep_lcd)
 
         except Exception as e:
@@ -866,6 +866,22 @@ async def read_all_last_logs(frame_name: str):
     return data
 
 
+@app.get(
+    ENDPOINT + "/schedules/{frame_name}/",
+    response_model=list[Schedule],
+    summary="Retrieve all schedules",
+    response_description="A list of all available schedules",
+    tags=["schedules"],
+)
+async def get_all_schedules(frame_name: str):
+    data = DataRepository.read_all_schedules_by_frame_id(frame_name)
+    if data is None or len(data) == 0:
+        raise HTTPException(
+            status_code=404, detail=f"No schedules found in the database"
+        )
+    return data
+
+
 @app.put(
     ENDPOINT + "/schedule/{id}/",
     response_model=UpdatedSchedule,
@@ -881,22 +897,6 @@ async def update_lighting_schedule(id: int, schedule: DTOSchedule):
     if updated == 0:
         raise HTTPException(status_code=400, detail="Failed to update schedule")
     return DataRepository.read_schedule_by_id(id)
-
-
-@app.get(
-    ENDPOINT + "/schedules/{frame_name}/",
-    response_model=list[Schedule],
-    summary="Retrieve all schedules",
-    response_description="A list of all available schedules",
-    tags=["schedules"],
-)
-async def get_all_schedules(frame_name: str):
-    data = DataRepository.read_all_schedules_by_frame_id(frame_name)
-    if data is None or len(data) == 0:
-        raise HTTPException(
-            status_code=404, detail=f"No schedules found in the database"
-        )
-    return data
 
 
 @app.get(
