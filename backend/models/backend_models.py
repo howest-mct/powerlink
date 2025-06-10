@@ -56,7 +56,7 @@ class Card(P1BaseModel):
 
 
 class EnergyLog(P1BaseModel):
-    total_kwh: float
+    total_kwh_today: float
 
 
 # endregion Models ********************************

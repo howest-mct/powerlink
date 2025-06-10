@@ -196,6 +196,147 @@ body {
     visibility: visible;
 }
 
+* {
+    box-sizing: border-box;
+}
+
+a {
+    text-decoration: none;
+    color: #379937;
+}
+
+.c-room__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.component-dropdown {
+    position: relative;
+    display: inline-block;
+    min-width: 200px;
+}
+
+.dropdown-trigger {
+    display: block;
+    padding: 10px 15px;
+    background: #fff;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    color: #333;
+}
+
+.dropdown-trigger:hover {
+    border-color: #bbb;
+    background: #f9f9f9;
+}
+
+.dropdown-trigger:after {
+    content: '▼';
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: #666;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 2px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-option {
+    display: block;
+    padding: 8px 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    color: #333;
+}
+
+.dropdown-option:hover {
+    background-color: #f5f5f5;
+}
+
+.dropdown-option:last-child {
+    border-bottom: none;
+}
+
+.dropdown-option.check-all-option {
+    font-weight: bold;
+    color: #007cba;
+    border-bottom: 2px solid #ddd;
+}
+
+.dropdown-option.check-all-option:hover {
+    background-color: #e6f3ff;
+}
+
+.dropdown-option.checkbox-option {
+    padding: 0;
+}
+
+.dropdown-option.checkbox-option label {
+    display: block;
+    padding: 8px 15px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.dropdown-option.checkbox-option input[type="checkbox"] {
+    margin-right: 8px;
+    margin-left: 0;
+}
+
+@media (max-width: 768px) {
+    .c-room__header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .component-dropdown {
+        min-width: auto;
+        width: 100%;
+    }
+}
+
+.c-grey-background .dropdown-trigger {
+    background: #f8f8f8;
+    border-color: #ccc;
+}
+
+.c-grey-background .dropdown-menu {
+    background: #f8f8f8;
+    border-color: #ccc;
+}
+
+.c-grey-background .dropdown-option {
+    border-bottom-color: #ddd;
+}
+
+.c-grey-background .dropdown-option:hover {
+    background-color: #efefef; }
+
 .c-main {
     display: flex;
     flex-direction: column;
@@ -215,6 +356,12 @@ body {
     gap: 1rem;
     max-width: 64rem;
     margin: 0 auto;
+}
+
+.c-room__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .c-room__components {
@@ -410,6 +557,8 @@ body {
 .c-footer__copyright {
     margin: 0;
 }
+
+
 
 @media (min-width: 30rem) {
     .c-room__components {

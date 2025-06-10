@@ -28,6 +28,131 @@ const svg_icons = {
 };
 // #endregion
 
+// #region ***  Dropdown Functions                      ***********
+function createComponentDropdown(roomId, components) {
+  let optionsHtml = '<div class="dropdown-option check-all-option" data-room="' + roomId + '">Check All</div>';
+
+  components.forEach((component) => {
+    optionsHtml += `
+      <div class="dropdown-option checkbox-option">
+        <label>
+          <input type="checkbox" value="${component.component_id}" data-room="${roomId}" data-name="${component.component_name}">
+          ${component.component_name}
+        </label>
+      </div>
+    `;
+  });
+
+  return `
+    <div class="component-dropdown" data-room="${roomId}">
+      <div class="dropdown-trigger">Select Components</div>
+      <div class="dropdown-menu">
+        ${optionsHtml}
+      </div>
+    </div>
+  `;
+}
+
+function initDropdownEvents() {
+  // Handle dropdown triggers
+  document.addEventListener('click', function (e) {
+    if (e.target.classList.contains('dropdown-trigger')) {
+      e.stopPropagation();
+      const dropdown = e.target.closest('.component-dropdown');
+      const menu = dropdown.querySelector('.dropdown-menu');
+
+      // Close all other dropdowns
+      document.querySelectorAll('.dropdown-menu').forEach((m) => {
+        if (m !== menu) m.style.display = 'none';
+      });
+
+      // Toggle current dropdown
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+
+    // Handle check all
+    if (e.target.classList.contains('check-all-option')) {
+      e.stopPropagation();
+      const roomId = e.target.dataset.room;
+      const dropdown = e.target.closest('.component-dropdown');
+      const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+      const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
+
+      checkboxes.forEach((checkbox) => {
+        if (allChecked) {
+          checkbox.checked = false;
+        } else {
+          checkbox.checked = true;
+        }
+        // Emit for each component
+        emitComponentSelection(checkbox);
+      });
+
+      updateDropdownLabel(dropdown);
+      e.target.textContent = allChecked ? 'Check All' : 'Uncheck All';
+    }
+
+    // Handle individual checkboxes
+    if (e.target.type === 'checkbox' && e.target.dataset.room) {
+      emitComponentSelection(e.target);
+      const dropdown = e.target.closest('.component-dropdown');
+      updateDropdownLabel(dropdown);
+      updateCheckAllButton(dropdown);
+    }
+
+    // Close dropdowns when clicking outside
+    if (!e.target.closest('.component-dropdown')) {
+      document.querySelectorAll('.dropdown-menu').forEach((menu) => {
+        menu.style.display = 'none';
+      });
+    }
+  });
+}
+
+function updateDropdownLabel(dropdown) {
+  const trigger = dropdown.querySelector('.dropdown-trigger');
+  const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+  const checkedBoxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+
+  if (checkedBoxes.length === 0) {
+    trigger.textContent = 'Select Components';
+  } else if (checkedBoxes.length === 1) {
+    trigger.textContent = checkedBoxes[0].dataset.name;
+  } else if (checkedBoxes.length === checkboxes.length) {
+    trigger.textContent = 'All Components Selected';
+  } else {
+    trigger.textContent = `${checkedBoxes.length} Components Selected`;
+  }
+}
+
+function updateCheckAllButton(dropdown) {
+  const checkAllBtn = dropdown.querySelector('.check-all-option');
+  const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+  const checkedBoxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+
+  if (checkedBoxes.length === checkboxes.length && checkboxes.length > 0) {
+    checkAllBtn.textContent = 'Uncheck All';
+  } else {
+    checkAllBtn.textContent = 'Check All';
+  }
+}
+
+function emitComponentSelection(checkbox) {
+  const componentId = parseInt(checkbox.value);
+  const roomId = parseInt(checkbox.dataset.room);
+  const isChecked = checkbox.checked;
+
+  console.log(`Component ${componentId} in room ${roomId} ${isChecked ? 'selected' : 'deselected'}`);
+
+  // Emit to socket
+  sio.emit('component_selection', {
+    component_id: componentId,
+    room_id: roomId,
+    selected: isChecked,
+  });
+}
+// #endregion
+
 // #region ***  Callback-Visualisation - show___         ***********
 const showDropdown = () => {
   const hamburger = document.querySelector('.c-hamburger');
@@ -124,17 +249,12 @@ const showAllLastLogs = (json) => {
     const room_name = room_data[0].room_name;
 
     let htmlComponents = '';
-    htmlRooms += `
-      <div class="c-room__container js-room__container" data-room_id="${room_id}" data-room_name="${room_name}" data-room_number="${room_display_number}">
-        <section class="c-room">
-          <h2 class="c-section__title">${room_name}</h2>
-          <div class="c-room__components">
-    `;
 
     for (const item of room_data) {
       const { log_id, datetime, value, component_id, component_name, value_unit, room_id } = item;
       const formatted_date = new Date(datetime);
       const svg_path = svg_icons[component_id] || 'img/svg/circuitry.svg';
+
       htmlComponents += `
         <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}">
           <div class="c-article__header">
@@ -154,8 +274,18 @@ const showAllLastLogs = (json) => {
       `;
     }
 
-    htmlRooms += htmlComponents;
+    // Create dropdown for this room
+    const dropdownHtml = createComponentDropdown(room_id, room_data);
+
     htmlRooms += `
+      <div class="c-room__container js-room__container" data-room_id="${room_id}" data-room_name="${room_name}" data-room_number="${room_display_number}">
+        <section class="c-room">
+          <div class="c-room__header">
+            <h2 class="c-section__title">${room_name}</h2>
+            ${dropdownHtml}
+          </div>
+          <div class="c-room__components">
+            ${htmlComponents}
           </div>
         </section>
       </div>
@@ -166,6 +296,7 @@ const showAllLastLogs = (json) => {
 
   room_containers.innerHTML = htmlRooms;
 
+  // Apply alternating backgrounds
   const room_container = document.querySelectorAll('.js-room__container');
   room_container.forEach((room_container) => {
     const room_number = parseInt(room_container.dataset.room_number);
@@ -183,6 +314,9 @@ const showAllLastLogs = (json) => {
       });
     }
   });
+
+  // Initialize dropdown events
+  initDropdownEvents();
 };
 
 const showLastLog = (log) => {
@@ -206,6 +340,7 @@ const showLastLog = (log) => {
     const room_container = document.querySelector(`.js-room__container[data-room_id="${log.room_id}"]`);
     if (room_container) {
       const components_div = room_container.querySelector('.c-room__components');
+      const dropdown = room_container.querySelector('.component-dropdown');
 
       if (components_div) {
         const svg_path = svg_icons[log.component_id] || 'img/svg/circuitry.svg';
@@ -226,6 +361,24 @@ const showLastLog = (log) => {
             </div>
           </article>
         `;
+
+        // Add new component to dropdown if it doesn't exist
+        if (dropdown) {
+          const existingInput = dropdown.querySelector(`input[value="${log.component_id}"]`);
+          if (!existingInput) {
+            const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+            const newOption = document.createElement('div');
+            newOption.className = 'dropdown-option checkbox-option';
+            newOption.innerHTML = `
+              <label>
+                <input type="checkbox" value="${log.component_id}" data-room="${log.room_id}" data-name="${log.component_name}">
+                ${log.component_name}
+              </label>
+            `;
+            dropdownMenu.appendChild(newOption);
+          }
+        }
+
         const new_log_container = components_div.querySelector(`.js-component__container[data-component_id="${log.component_id}"]`);
         if (new_log_container) {
           if (parseInt(log.room_id) % 2 === 0) {
@@ -233,14 +386,8 @@ const showLastLog = (log) => {
           } else {
             new_log_container.classList.add('c-grey-background');
           }
-        } else {
-          console.log(`Newly added component with ID ${log.component_id} not found`);
         }
-      } else {
-        console.log(`Components div not found in room ${log.room_id}`);
       }
-    } else {
-      console.log(`Room container for ID ${log.room_id} not found`);
     }
   }
 };
@@ -271,7 +418,6 @@ const getLastComponentLogs = async () => {
 // #endregion
 
 // #region ***  Event Listeners - listenTo___            ***********
-
 const listenToSocket = () => {
   sio.on('connect', () => {
     console.log('Socket connected');

@@ -140,85 +140,50 @@ const showAllItems = (items) => {
 
     for (const item of room_data) {
       if (item.component_id === 1) {
-        htmlSchedules += `
-          <article class="c-article__solar c-hover--shadow" onclick="window.location.href='/frontend/insights.html'">
-            <div class="c-solar">
-              <h3 class="c-solar_kw js-solar_value">8kW</h3>
-              <div class="c-solar__meta">
-                <p class="c-solar__status">Solar panels</p>
-                <p class="c-solar__capacity js-solar_state">Charging battery</p>
-              </div>
-            </div>
-          </article>
-        `;
+        htmlSchedules += ``;
       } else if (item.component_id === 2) {
-        getEnergy24H(item.component_id);
+        const kw_today = getEnergy24H(2);
+        console.log('Energy 24H for component 2:', kw_today);
       } else if (item.component_id === 3) {
-        htmlSchedules += `
-          <div class="c-temperature-control c-hover--shadow">
-            <div class="c-circular-progress">
-                <div class="c-progress-ring" id="progressRing"></div>
-                <div class="c-temperature-display" id="tempDisplay">
-                    <span class="js-temperature_value" id="tempValue">24</span><span class="unit">°C</span>
-                </div>
-            </div>
-            <div class="c-controls">
-                <svg class="c-control-btn" id="decreaseBtn" xmlns="http://www.w3.org/2000/svg" width="32"
-                    height="32" fill="#000000" viewBox="0 0 256 256">
-                    <path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z"></path>
-                </svg>
-                <svg class="c-control-btn" id="increaseBtn" xmlns="http://www.w3.org/2000/svg" width="32"
-                    height="32" fill="#000000" viewBox="0 0 256 256">
-                    <path
-                        d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z">
-                    </path>
-                </svg>
-            </div>
-            <div class="c-temperature-card__meta">
-                <div class="c-temperature-card__info">
-                    <p class="c-temperature-card__status">Climate Control</p>
-                    <p class="c-temperature-card__state js-temperature_schedule">Schedule inactive</p>
-                </div>
-                <a href="schedules.html" class="c-temperature-card__edit c-edit">Edit Schedule</a>
-            </div>
-          </div>`;
+        htmlSchedules += ``;
       } else if (item.component_id === 10 || item.component_id === 13) {
         htmlSchedules += `
-          <div class="c-lighting-card c-hover--shadow c-grey-background">
-            <div class="c-lighting-card__content">
-                <div class="c-bulb-icon" id="bulbIconLower">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
-                        <path
-                            d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z">
-                        </path>
-                    </svg>
-                </div class="c-hover--shadow">
-                <input type="range" min="0" max="100" value="0" class="c-slider" id="lightSliderLower">
-                <div class="c-value-display" id="valueDisplayLower">0%</div>
+        <div class="c-lighting-card__content">
+          <div class="c-bulb-icon" id="bulbIconUpper">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000"
+              viewBox="0 0 256 256">
+              <path
+                d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z">
+              </path>
+            </svg>
+            </div>
+              <input type="range" min="0" max="100" value="0" class="c-slider" id="lightSliderUpper">
+              <div class="c-value-display" id="valueDisplayUpper">0%</div>
             </div>
             <div class="c-lighting-card__meta">
-                <div class="c-lighting-card__info">
-                    <p class="c-lighting-card__status">Lighting</p>
-                    <p class="c-lighting-card__state js-schedule_lower">Schedule inactive</p>
-                </div>
-                <a href="schedules.html" class="c-lighting-card__edit c-edit">Edit Schedule</a>
+              <div class="c-lighting-card__info">
+                <p class="c-lighting-card__status">Lighting</p>
+                <p class="c-lighting-card__state js-schedule_upper">Schedule active</p>
+              </div>
+              <a href="schedules.html" class="c-lighting-card__edit c-edit">Edit Schedule</a>
             </div>
-          </div>`;
+          </div>
+        `;
       } else if (item.component_id === 15) {
-        htmlSchedules += `
-          <article class="c-article__door-log c-hover--shadow c-grey-background"
-            onclick="window.location.href='/frontend/insights.html'">
-            <div class="c-door-log">
-                <p class="c-door__name js-last_inhabitant">Michiel</p>
-                <div class="c-door__meta">
-                    <p class="c-door__last">Last entered</p>
-                    <p class="c-door__date js-last_inhabitant_date">Today at 11:00 AM</p>
-                </div>
-            </div>
-         </article>`;
+        htmlSchedules += ` PROBLEM
+        <div class="c-article__door-log c-hover--shadow c-grey-background"
+          onclick="window.location.href='/frontend/insights.html'">
+          <div class="c-door-log">
+              <p class="c-door__name js-last_inhabitant">Michiel</p>
+              <div class="c-door__meta">
+                  <p class="c-door__last">Last entered</p>
+                  <p class="c-door__date js-last_inhabitant_date">Today at 11:00 AM</p>
+              </div>
+          </div>
+        </div>`;
       } else if (item.component_id === 17) {
         htmlSchedules += `
-          <article class="c-article__door c-hover--shadow c-grey-background">
+          <div class="c-article__door c-hover--shadow c-grey-background">
             <div class="c-door">
                 <div class="js-door_state_icon">
                     <svg class="c-door__lock-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48"
@@ -233,24 +198,35 @@ const showAllItems = (items) => {
                     <p class="c-door__state js-door_state">Locked</p>
                 </div>
             </div>
-         </article>`;
+          </div>`;
       } else if (item.component_id === 19) {
         htmlSchedules += `
-          <article class="c-lighting-outside c-hover--shadow">
-            <div class="js-lighting_outside_icon">
-                <svg class="c-lighting-outside__icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32"
-                    fill="#000000" viewBox="0 0 256 256">
-                    <path
-                        d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z">
-                    </path>
-                </svg>
-            </div>
-            <div class="c-lighting-outside__meta">
-                <p class="c-lighting-outside__title">Lights</p>
-                <p class="c-lighting-outside__value-today js-lighting_outside_state">Off</p>
-            </div>
-         </article>`;
+        <div class="c-lighting-outside c-hover--shadow">
+          <div class="js-lighting_outside_icon">
+              <svg class="c-lighting-outside__icon" xmlns="http://www.w3.org/2000/svg" width="32"
+                  height="32" fill="#000000" viewBox="0 0 256 256">
+                  <path
+                      d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z">
+                  </path>
+              </svg>
+          </div>
+          <div class="c-lighting-outside__meta">
+              <p class="c-lighting-outside__title">Lights</p>
+              <p class="c-lighting-outside__value-today js-lighting_outside_state">Off</p>
+          </div>
+        </div>
+        `;
       } else if (item.component_id === 20) {
+        htmlSchedules += `
+        <div class="c-powerlink c-hover--shadow">
+          <svg class="js-door__lock-icon" class="c-powerlink__icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
+            <path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM88,160a8,8,0,1,1-8,8A8,8,0,0,1,88,160ZM48,48H80v97.38a24,24,0,1,0,16,0V115.31l48,48V208H48ZM208,208H160V160a8,8,0,0,0-2.34-5.66L96,92.69V48h32V72a8,8,0,0,0,2.34,5.66l16,16A23.74,23.74,0,0,0,144,104a24,24,0,1,0,24-24,23.74,23.74,0,0,0-10.34,2.35L144,68.69V48h64V208ZM168,96a8,8,0,1,1-8,8A8,8,0,0,1,168,96Z"></path>
+          </svg>
+          <div class="c-powerlink__meta">
+            <p class="c-powerlink__title">PowerLink</p>
+            <p class="c-powerlink__value-today c-active">Active</p>
+          </div>
+        </div>`;
       }
 
       htmlRooms += htmlSchedules;
@@ -328,6 +304,13 @@ const getEnergy24H = async (component_id) => {
   console.log('JSON:', json);
 };
 
+const getEnergy7D = async (component_id) => {
+  const url = ENDPOINT + `/energy/${component_id}/7d/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  console.log('JSON:', json);
+};
+
 // #endregion
 
 // #region ***  Event Listeners - listenTo___            ***********
@@ -349,8 +332,7 @@ const listenToSocketIo = () => {
 const init = () => {
   console.log('DOM loaded');
   showDropdown();
-  // getAllItems();
-  getEnergy24H(2);
+  getAllItems();
   listenToSocketIo();
 };
 

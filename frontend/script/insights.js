@@ -167,13 +167,14 @@ const showAllSchedules = (schedules) => {
 // #endregion
 
 // #region ***  Data Access - get___                     ***********
-const getAllItems = async () => {};
 
-const getSInsights = async () => {
-  const url = ENDPOINT + `/energy/2/24h/`;
-  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+const getAllItems = async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlParam = urlParams.get('param');
+  let url = ENDPOINT + `/components/last/${urlParam}/`;
+  let response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
   const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  console.log('JSON:', json);
+  showAllLastLogs(json);
 };
 
 // #endregion
