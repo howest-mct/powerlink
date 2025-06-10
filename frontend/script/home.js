@@ -134,7 +134,7 @@ const showAllItems = (items) => {
       <div class="c-room__container js-room__container" data-room_id="${room_id}" data-display_number="${room_display_number}">
         <section class="c-room">
           <h2 class="c-section__title">${room_name}</h2>
-          <div class="c-schedules__container">
+          <div class="c-items__container">
     `;
 
     for (const item of room_data) {
