@@ -167,10 +167,13 @@ const showAllSchedules = (schedules) => {
 // #endregion
 
 // #region ***  Data Access - get___                     ***********
-const getInsights24h = async (`/energy/${id}/24h/`) => {
-  const repsonse = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await repsonse.json().catch((err) => console.error('JSON-error:', err));
-  showInsights24h(json);
+const getAllItems = async () => {};
+
+const getAllSchedules = async () => {
+  const url = ENDPOINT + `/energy/${id}/24h/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  showAllSchedules(json);
 };
 
 // #endregion
@@ -181,8 +184,7 @@ const getInsights24h = async (`/energy/${id}/24h/`) => {
 // #region ***  Init / DOMContentLoaded                  ***********
 const init = () => {
   showDropdown();
-  getInsights24h();
-  getInsights7d();
+  getAllItems();
 };
 
 document.addEventListener('DOMContentLoaded', init);
