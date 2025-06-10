@@ -1,149 +1,151 @@
 'use strict';
-const lanIP = `http://192.168.168.169:8000`;
-const sio = io(lanIP);
-const ENDPOINT = 'http://192.168.168.169:8000/api/v1';
+
+const lan_ip = `http://192.168.168.169:8000`;
+const socket_connection = io(lan_ip);
+const api_endpoint = 'http://192.168.168.169:8000/api/v1';
 
 // #region ***  DOM references                           ***********
 // #endregion
 
 // #region ***  Callback-Visualisation - show___         ***********
 const showSliders = async (light_slider_id, value_display_id, bulb_icon_id) => {
-  const slider = document.getElementById(light_slider_id);
-  const value_display = document.getElementById(value_display_id);
-  const bulb_icon = document.getElementById(bulb_icon_id);
-  const bulb_svg = bulb_icon?.querySelector('svg');
+  const slider_element = document.getElementById(light_slider_id);
+  const value_display_element = document.getElementById(value_display_id);
+  const bulb_icon_element = document.getElementById(bulb_icon_id);
+  const bulb_svg_element = bulb_icon_element?.querySelector('svg');
 
-  slider.removeAttribute('title');
-  value_display.removeAttribute('title');
-  bulb_icon.removeAttribute('title');
+  slider_element.removeAttribute('title');
+  value_display_element.removeAttribute('title');
+  bulb_icon_element.removeAttribute('title');
 
-  function updateSliderVisuals(value) {
-    const percentage = value;
-    slider.style.background = `linear-gradient(to right, var(--main-color) 0%, var(--main-color) ${percentage}%, #e0e0e0 ${percentage}%, #e0e0e0 100%)`;
+  const updateSliderVisuals = (current_value) => {
+    const percentage_value = current_value;
 
-    value_display.textContent = `${value}%`;
+    slider_element.style.background = `linear-gradient(to right, var(--main-color) 0%, var(--main-color) ${percentage_value}%, #e0e0e0 ${percentage_value}%, #e0e0e0 100%)`;
 
-    if (value > 0) {
-      bulb_svg.style.fill = '#4A90E2';
-      bulb_svg.style.opacity = '1';
+    value_display_element.textContent = `${current_value}%`;
+
+    if (current_value > 0) {
+      bulb_svg_element.style.fill = '#4A90E2';
+      bulb_svg_element.style.opacity = '1';
     } else {
-      bulb_svg.style.fill = '#7B7B7B';
-      bulb_svg.style.opacity = '0.5';
+      bulb_svg_element.style.fill = '#7B7B7B';
+      bulb_svg_element.style.opacity = '0.5';
     }
-  }
+  };
 
-  slider.addEventListener('input', () => {
-    const value = parseInt(slider.value, 10);
-    updateSliderVisuals(value);
+  slider_element.addEventListener('input', () => {
+    const current_value = parseInt(slider_element.value, 10);
+    updateSliderVisuals(current_value);
   });
 
-  const initial_value = parseInt(slider.value, 10);
-  updateSliderVisuals(initial_value);
+  const initial_slider_value = parseInt(slider_element.value, 10);
+  updateSliderVisuals(initial_slider_value);
 };
 
 const showDropdown = () => {
-  const hamburger = document.querySelector('.c-hamburger');
-  const nav_popup = document.querySelector('.c-nav-popup');
-  const overlay = document.querySelector('.c-overlay');
-  const close_icon = document.querySelector('.c-nav-popup__close');
+  const hamburger_button = document.querySelector('.c-hamburger');
+  const navigation_popup = document.querySelector('.c-nav-popup');
+  const page_overlay = document.querySelector('.c-overlay');
+  const close_button = document.querySelector('.c-nav-popup__close');
 
-  function toggleMenu() {
-    const is_active = nav_popup.classList.toggle('c-nav-popup--active');
-    overlay.classList.toggle('c-overlay--active');
-    hamburger.setAttribute('aria-expanded', is_active);
-    nav_popup.setAttribute('aria-hidden', !is_active);
-    overlay.setAttribute('aria-hidden', !is_active);
-  }
+  const toggleMobileMenu = () => {
+    const menu_is_active = navigation_popup.classList.toggle('c-nav-popup--active');
+    page_overlay.classList.toggle('c-overlay--active');
+    hamburger_button.setAttribute('aria-expanded', menu_is_active);
+    navigation_popup.setAttribute('aria-hidden', !menu_is_active);
+    page_overlay.setAttribute('aria-hidden', !menu_is_active);
+  };
 
   if (window.matchMedia('(max-width: 767px)').matches) {
-    hamburger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleMenu();
+    hamburger_button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      toggleMobileMenu();
     });
 
-    close_icon.addEventListener('click', (e) => {
-      e.stopPropagation();
-      nav_popup.classList.remove('c-nav-popup--active');
-      overlay.classList.remove('c-overlay--active');
-      hamburger.setAttribute('aria-expanded', 'false');
-      nav_popup.setAttribute('aria-hidden', 'true');
-      overlay.setAttribute('aria-hidden', 'true');
+    close_button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      navigation_popup.classList.remove('c-nav-popup--active');
+      page_overlay.classList.remove('c-overlay--active');
+      hamburger_button.setAttribute('aria-expanded', 'false');
+      navigation_popup.setAttribute('aria-hidden', 'true');
+      page_overlay.setAttribute('aria-hidden', 'true');
     });
 
-    overlay.addEventListener('click', () => {
-      nav_popup.classList.remove('c-nav-popup--active');
-      overlay.classList.remove('c-overlay--active');
-      hamburger.setAttribute('aria-expanded', 'false');
-      nav_popup.setAttribute('aria-hidden', 'true');
-      overlay.setAttribute('aria-hidden', 'true');
+    page_overlay.addEventListener('click', () => {
+      navigation_popup.classList.remove('c-nav-popup--active');
+      page_overlay.classList.remove('c-overlay--active');
+      hamburger_button.setAttribute('aria-expanded', 'false');
+      navigation_popup.setAttribute('aria-hidden', 'true');
+      page_overlay.setAttribute('aria-hidden', 'true');
     });
 
-    const navLinks = document.querySelectorAll('.c-nav-popup__link');
-    navLinks.forEach((link) => {
+    const navigation_links = document.querySelectorAll('.c-nav-popup__link');
+    navigation_links.forEach((link) => {
       link.addEventListener('click', () => {
-        nav_popup.classList.remove('c-nav-popup--active');
-        overlay.classList.remove('c-overlay--active');
-        hamburger.setAttribute('aria-expanded', 'false');
-        nav_popup.setAttribute('aria-hidden', 'true');
-        overlay.setAttribute('aria-hidden', 'true');
+        navigation_popup.classList.remove('c-nav-popup--active');
+        page_overlay.classList.remove('c-overlay--active');
+        hamburger_button.setAttribute('aria-expanded', 'false');
+        navigation_popup.setAttribute('aria-hidden', 'true');
+        page_overlay.setAttribute('aria-hidden', 'true');
       });
     });
 
-    document.addEventListener('click', (e) => {
-      if (!nav_popup.contains(e.target) && !hamburger.contains(e.target)) {
-        nav_popup.classList.remove('c-nav-popup--active');
-        overlay.classList.remove('c-overlay--active');
-        hamburger.setAttribute('aria-expanded', 'false');
-        nav_popup.setAttribute('aria-hidden', 'true');
-        overlay.setAttribute('aria-hidden', 'true');
+    document.addEventListener('click', (event) => {
+      if (!navigation_popup.contains(event.target) && !hamburger_button.contains(event.target)) {
+        navigation_popup.classList.remove('c-nav-popup--active');
+        page_overlay.classList.remove('c-overlay--active');
+        hamburger_button.setAttribute('aria-expanded', 'false');
+        navigation_popup.setAttribute('aria-hidden', 'true');
+        page_overlay.setAttribute('aria-hidden', 'true');
       }
     });
   }
 
   window.addEventListener('resize', () => {
     if (window.matchMedia('(min-width: 768px)').matches) {
-      nav_popup.classList.remove('c-nav-popup--active');
-      overlay.classList.remove('c-overlay--active');
-      hamburger.setAttribute('aria-expanded', 'false');
-      nav_popup.setAttribute('aria-hidden', 'true');
-      overlay.setAttribute('aria-hidden', 'true');
+      navigation_popup.classList.remove('c-nav-popup--active');
+      page_overlay.classList.remove('c-overlay--active');
+      hamburger_button.setAttribute('aria-expanded', 'false');
+      navigation_popup.setAttribute('aria-hidden', 'true');
+      page_overlay.setAttribute('aria-hidden', 'true');
     }
   });
 };
 
-const showAllSchedules = (schedules) => {
-  let htmlRooms = '';
-  const roomsContainer = document.querySelector('.js-main');
+const showAllSchedules = (all_schedules) => {
+  let rooms_html = '';
+  const main_container = document.querySelector('.js-main');
 
-  let roomSchedules = {};
-  for (const schedule of schedules) {
-    const room_id = schedule.room_id;
-    if (!roomSchedules[room_id]) {
-      roomSchedules[room_id] = [];
+  let schedules_by_room = {};
+  for (const schedule_item of all_schedules) {
+    const room_id = schedule_item.room_id;
+    if (!schedules_by_room[room_id]) {
+      schedules_by_room[room_id] = [];
     }
-    roomSchedules[room_id].push(schedule);
+    schedules_by_room[room_id].push(schedule_item);
   }
 
-  const chartsToRender = [];
+  const charts_to_render = [];
   let room_display_number = 0;
 
-  for (const room_id in roomSchedules) {
-    const room_data = roomSchedules[room_id];
-    const room_name = room_data[0].room_name;
+  for (const room_id in schedules_by_room) {
+    const room_schedule_data = schedules_by_room[room_id];
+    const room_name = room_schedule_data[0].room_name;
 
-    let htmlSchedules = '';
-    htmlRooms += `
+    let schedules_html = '';
+    rooms_html += `
       <div class="c-room__container js-room__container" data-room_id="${room_id}" data-display_number="${room_display_number}">
         <section class="c-room">
           <h2 class="c-section__title">${room_name}</h2>
           <div class="c-schedules__container">
     `;
 
-    for (const schedule of room_data) {
-      const { schedule_id, schedule_name, start_time, end_time, value, enabled, type_id, component_id, room_id, type_name } = schedule;
+    for (const schedule_item of room_schedule_data) {
+      const { schedule_id, schedule_name, start_time, end_time, value, enabled, type_id, component_id, room_id, type_name } = schedule_item;
 
       if (type_id === 1) {
-        htmlSchedules += `
+        schedules_html += `
           <div class="c-temperature-control js-schedule__container js-temperature-control c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
             <div class="c-switch">
               <h4 class="c-schedule-card__title">${schedule_name}</h4>
@@ -185,8 +187,8 @@ const showAllSchedules = (schedules) => {
             </div>
           </div>`;
 
-        const chartId = `chart_${schedule_id}`;
-        const chartOptions = {
+        const chart_element_id = `chart_${schedule_id}`;
+        const chart_configuration = {
           series: [((value - 16) / (30 - 16)) * 100],
           chart: {
             type: 'radialBar',
@@ -221,9 +223,9 @@ const showAllSchedules = (schedules) => {
                 value: {
                   offsetY: 0,
                   fontSize: '40px',
-                  formatter: function (val) {
-                    const temp = (val / 100) * (30 - 16) + 16;
-                    return temp.toFixed(1) + '°C';
+                  formatter: function (percentage_value) {
+                    const temperature = (percentage_value / 100) * (30 - 16) + 16;
+                    return temperature.toFixed(1) + '°C';
                   },
                 },
               },
@@ -241,12 +243,12 @@ const showAllSchedules = (schedules) => {
           labels: [''],
         };
 
-        chartsToRender.push({
-          id: chartId,
-          options: chartOptions,
+        charts_to_render.push({
+          id: chart_element_id,
+          options: chart_configuration,
         });
       } else if (type_id === 2) {
-        htmlSchedules += `
+        schedules_html += `
           <div class="c-lighting-card js-schedule__container c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
             <div class="c-schedule-card__header">    
               <h4 class="c-schedule-card__title">${schedule_name}</h4>
@@ -284,12 +286,10 @@ const showAllSchedules = (schedules) => {
             </div>
           </div>`;
       }
-      if (enabled) {
-      }
     }
 
-    htmlRooms += htmlSchedules;
-    htmlRooms += `
+    rooms_html += schedules_html;
+    rooms_html += `
           </div>
         </section>
       </div>`;
@@ -297,19 +297,19 @@ const showAllSchedules = (schedules) => {
     room_display_number++;
   }
 
-  roomsContainer.innerHTML = htmlRooms;
+  main_container.innerHTML = rooms_html;
 
-  chartsToRender.forEach(({ id, options }) => {
-    const container = document.getElementById(id);
-    if (container) {
-      container.chart = new ApexCharts(container, options);
-      container.chart.render().then(() => {
+  charts_to_render.forEach(({ id, options }) => {
+    const chart_container = document.getElementById(id);
+    if (chart_container) {
+      chart_container.chart = new ApexCharts(chart_container, options);
+      chart_container.chart.render().then(() => {
         setTimeout(() => {
-          const currentSeries = container.chart.w.config.series[0];
-          container.chart.updateSeries([currentSeries - 0.001]);
+          const current_series_value = chart_container.chart.w.config.series[0];
+          chart_container.chart.updateSeries([current_series_value - 0.001]);
 
           setTimeout(() => {
-            container.chart.updateSeries([currentSeries]);
+            chart_container.chart.updateSeries([current_series_value]);
           }, 10);
         }, 100);
       });
@@ -318,12 +318,12 @@ const showAllSchedules = (schedules) => {
 
   listenToTemperatureControl();
 
-  const room_containers = document.querySelectorAll('.js-room__container');
-  room_containers.forEach((room_container) => {
+  const all_room_containers = document.querySelectorAll('.js-room__container');
+  all_room_containers.forEach((room_container) => {
     const display_number = parseInt(room_container.dataset.display_number);
     const schedule_containers = room_container.querySelectorAll('.js-schedule__container');
     const input_containers = room_container.querySelectorAll('.js-input_container');
-    const save_containers = room_container.querySelectorAll('.js-card__schedule-save');
+    const save_button_containers = room_container.querySelectorAll('.js-card__schedule-save');
 
     if (display_number % 2 === 0) {
       room_container.classList.add('c-grey-background');
@@ -333,7 +333,7 @@ const showAllSchedules = (schedules) => {
       input_containers.forEach((input_container) => {
         input_container.classList.add('c-white-background');
       });
-      save_containers.forEach((save_container) => {
+      save_button_containers.forEach((save_container) => {
         save_container.classList.add('c-white-background');
       });
     } else {
@@ -344,177 +344,186 @@ const showAllSchedules = (schedules) => {
       input_containers.forEach((input_container) => {
         input_container.classList.add('c-grey-background');
       });
-      save_containers.forEach((save_container) => {
+      save_button_containers.forEach((save_container) => {
         save_container.classList.add('c-grey-background');
       });
     }
 
-    const lightingCards = room_container.querySelectorAll('.c-lighting-card');
-    lightingCards.forEach((card) => {
-      const schedule_id = card.dataset.schedule_id;
+    const lighting_cards = room_container.querySelectorAll('.c-lighting-card');
+    lighting_cards.forEach((lighting_card) => {
+      const schedule_id = lighting_card.dataset.schedule_id;
       showSliders(`light_slider_${schedule_id}`, `value_display_${schedule_id}`, `bulb_icon_${schedule_id}`);
     });
   });
+
   listenToSubmitSchedule();
 };
 // #endregion
 
 // #region ***  Callback-No Visualisation - callback___  ***********
-
 // #endregion
 
 // #region ***  Data Access - get___                     ***********
-
 const getAllSchedules = async () => {
-  const url_params = new URLSearchParams(window.location.search);
-  const url_param = url_params.get('param');
-  const url = ENDPOINT + `/schedules/${url_param}/`;
-  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showAllSchedules(json);
+  const url_parameters = new URLSearchParams(window.location.search);
+  const frame_url_parameter = url_parameters.get('frame');
+  const request_url = api_endpoint + `/schedules/${frame_url_parameter}/`;
+  const server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
+  const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
+  showAllSchedules(json_data);
 };
 
 const getPutSchedule = async (schedule_id, start_time, end_time, value, enabled) => {
-  const url = ENDPOINT + `/schedule/${schedule_id}/`;
-  const data = {
+  const request_url = api_endpoint + `/schedule/${schedule_id}/`;
+  const schedule_data = {
     start_time: start_time,
     end_time: end_time,
     value: value,
     enabled: enabled,
   };
-  const response = await fetch(url, {
+
+  const server_response = await fetch(request_url, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(data),
-  }).catch((err) => console.error('Fetch-error:', err));
-  if (!response.ok) {
-    console.error('Error updating schedule:', response.statusText);
+    body: JSON.stringify(schedule_data),
+  }).catch((error) => console.error('Fetch-error:', error));
+
+  if (!server_response.ok) {
+    console.error('Error updating schedule:', server_response.statusText);
     return;
   }
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
 
-  sio.emit('BF2_schedule_updated', {
-    schedule_id: json.schedule_id,
-    schedule_name: json.schedule_name,
-    start_time: json.start_time,
-    end_time: json.end_time,
-    value: json.value,
-    enabled: json.enabled,
+  const response_json = await server_response.json().catch((error) => console.error('JSON-error:', error));
+
+  socket_connection.emit('BF2_schedule_updated', {
+    schedule_id: response_json.schedule_id,
+    schedule_name: response_json.schedule_name,
+    start_time: response_json.start_time,
+    end_time: response_json.end_time,
+    value: response_json.value,
+    enabled: response_json.enabled,
   });
 };
-
 // #endregion
 
 // #region ***  Event Listeners - listenTo___            ***********
-
 const listenToSubmitSchedule = () => {
-  const save_buttons = document.querySelectorAll('.js-card__schedule-save');
-  save_buttons.forEach((button) => {
-    button.removeEventListener('click', listenToSaveCLicked);
-    button.addEventListener('click', listenToSaveCLicked);
+  const all_save_buttons = document.querySelectorAll('.js-card__schedule-save');
+  all_save_buttons.forEach((save_button) => {
+    save_button.removeEventListener('click', listenToSaveClicked);
+    save_button.addEventListener('click', listenToSaveClicked);
   });
 };
 
-const listenToSaveCLicked = (e) => {
-  const button = e.target;
-  const schedule_container = button.closest('.js-schedule__container');
+const listenToSaveClicked = (click_event) => {
+  const clicked_button = click_event.target;
+  const schedule_container = clicked_button.closest('.js-schedule__container');
   const schedule_id = parseInt(schedule_container.dataset.schedule_id);
 
-  const time_inputs = schedule_container.querySelectorAll('.js-input_container');
-  const start_time = time_inputs[0].value;
-  const end_time = time_inputs[1].value;
-  const enabled_input = schedule_container.querySelector('.js-schedule__checkbox');
-  const enabled = enabled_input.checked ? 1 : 0;
+  const time_input_elements = schedule_container.querySelectorAll('.js-input_container');
+  const start_time = time_input_elements[0].value;
+  const end_time = time_input_elements[1].value;
 
-  let value;
+  const enabled_checkbox = schedule_container.querySelector('.js-schedule__checkbox');
+  const is_enabled = enabled_checkbox.checked ? 1 : 0;
+
+  let current_value;
   if (schedule_container.classList.contains('c-temperature-control')) {
-    const progressDiv = schedule_container.querySelector('.c-circular-progress');
-    value = parseFloat(progressDiv.getAttribute('data-value'));
+    const progress_element = schedule_container.querySelector('.c-circular-progress');
+    current_value = parseFloat(progress_element.getAttribute('data-value'));
   } else if (schedule_container.classList.contains('c-lighting-card')) {
-    const slider_input = schedule_container.querySelector('.c-slider');
-    value = parseFloat(slider_input.value);
+    const slider_element = schedule_container.querySelector('.c-slider');
+    current_value = parseFloat(slider_element.value);
   } else {
     console.error('Unknown schedule type');
     return;
   }
 
-  button.textContent = 'Saved';
-  button.disabled = true;
-  button.timeoutId = setTimeout(() => {
-    button.textContent = 'Save Changes';
-    button.disabled = false;
-    button.timeoutId = null;
+  clicked_button.textContent = 'Saved';
+  clicked_button.disabled = true;
+  clicked_button.timeoutId = setTimeout(() => {
+    clicked_button.textContent = 'Save Changes';
+    clicked_button.disabled = false;
+    clicked_button.timeoutId = null;
   }, 3000);
 
-  getPutSchedule(schedule_id, start_time, end_time, value, enabled);
+  getPutSchedule(schedule_id, start_time, end_time, current_value, is_enabled);
 
-  const roomContainer = schedule_container.closest('.js-room__container');
-  const allSchedules = roomContainer.querySelectorAll('.js-schedule__container');
-  allSchedules.forEach((other) => {
-    const otherId = parseInt(other.dataset.schedule_id, 10);
-    const compId = parseInt(other.dataset.component_id, 10);
-    if (otherId !== schedule_id && compId === parseInt(schedule_container.dataset.component_id, 10)) {
-      const inverseStart = end_time;
-      const inverseEnd = start_time;
+  const room_container = schedule_container.closest('.js-room__container');
+  const all_schedules_in_room = room_container.querySelectorAll('.js-schedule__container');
+  all_schedules_in_room.forEach((other_schedule) => {
+    const other_schedule_id = parseInt(other_schedule.dataset.schedule_id, 10);
+    const other_component_id = parseInt(other_schedule.dataset.component_id, 10);
+    const current_component_id = parseInt(schedule_container.dataset.component_id, 10);
 
-      let otherValue;
-      if (other.classList.contains('c-temperature-control')) {
-        otherValue = parseFloat(other.querySelector('.c-circular-progress').getAttribute('data-value'));
-      } else if (other.classList.contains('c-lighting-card')) {
-        otherValue = parseFloat(other.querySelector('.c-slider').value);
+    if (other_schedule_id !== schedule_id && other_component_id === current_component_id) {
+      const inverse_start_time = end_time;
+      const inverse_end_time = start_time;
+
+      let other_schedule_value;
+      if (other_schedule.classList.contains('c-temperature-control')) {
+        other_schedule_value = parseFloat(other_schedule.querySelector('.c-circular-progress').getAttribute('data-value'));
+      } else if (other_schedule.classList.contains('c-lighting-card')) {
+        other_schedule_value = parseFloat(other_schedule.querySelector('.c-slider').value);
       }
-      const otherEnabled = other.querySelector('.js-schedule__checkbox').checked ? 1 : 0;
 
-      getPutSchedule(otherId, inverseStart, inverseEnd, otherValue, otherEnabled);
+      const other_schedule_enabled = other_schedule.querySelector('.js-schedule__checkbox').checked ? 1 : 0;
 
-      const inputs = other.querySelectorAll('.js-input_container');
-      inputs[0].value = inverseStart;
-      inputs[1].value = inverseEnd;
+      getPutSchedule(other_schedule_id, inverse_start_time, inverse_end_time, other_schedule_value, other_schedule_enabled);
+
+      const other_time_inputs = other_schedule.querySelectorAll('.js-input_container');
+      other_time_inputs[0].value = inverse_start_time;
+      other_time_inputs[1].value = inverse_end_time;
     }
   });
 };
-const listenToTemperatureControl = () => {
-  const temp_controls = document.querySelectorAll('.js-temperature-control');
-  temp_controls.forEach((control) => {
-    const schedule_id = control.dataset.schedule_id;
-    const decrease_btn = control.querySelector(`#decrease_btn_${schedule_id}`);
-    const increase_btn = control.querySelector(`#increase_btn_${schedule_id}`);
-    const progressDiv = control.querySelector('.c-circular-progress');
-    const chartContainer = control.querySelector(`#chart_${schedule_id}`);
 
-    if (decrease_btn && increase_btn && progressDiv && chartContainer && chartContainer.chart) {
-      decrease_btn.addEventListener('click', () => {
-        let currentValue = parseFloat(progressDiv.getAttribute('data-value'));
-        currentValue -= 0.5;
-        if (currentValue < 16) currentValue = 16;
-        progressDiv.setAttribute('data-value', currentValue);
-        const newSeries = ((currentValue - 16) / (30 - 16)) * 100;
-        chartContainer.chart.updateSeries([newSeries]);
+const listenToTemperatureControl = () => {
+  const temperature_controls = document.querySelectorAll('.js-temperature-control');
+  temperature_controls.forEach((temperature_control) => {
+    const schedule_id = temperature_control.dataset.schedule_id;
+    const decrease_button = temperature_control.querySelector(`#decrease_btn_${schedule_id}`);
+    const increase_button = temperature_control.querySelector(`#increase_btn_${schedule_id}`);
+    const progress_element = temperature_control.querySelector('.c-circular-progress');
+    const chart_container = temperature_control.querySelector(`#chart_${schedule_id}`);
+
+    if (decrease_button && increase_button && progress_element && chart_container && chart_container.chart) {
+      decrease_button.addEventListener('click', () => {
+        let current_temperature = parseFloat(progress_element.getAttribute('data-value'));
+        current_temperature -= 0.5;
+        if (current_temperature < 16) current_temperature = 16;
+
+        progress_element.setAttribute('data-value', current_temperature);
+        const new_percentage = ((current_temperature - 16) / (30 - 16)) * 100;
+        chart_container.chart.updateSeries([new_percentage]);
       });
 
-      increase_btn.addEventListener('click', () => {
-        let currentValue = parseFloat(progressDiv.getAttribute('data-value'));
-        currentValue += 0.5;
-        if (currentValue > 30) currentValue = 30;
-        progressDiv.setAttribute('data-value', currentValue);
-        const newSeries = ((currentValue - 16) / (30 - 16)) * 100;
-        chartContainer.chart.updateSeries([newSeries]);
+      increase_button.addEventListener('click', () => {
+        let current_temperature = parseFloat(progress_element.getAttribute('data-value'));
+        current_temperature += 0.5;
+        if (current_temperature > 30) current_temperature = 30;
+
+        progress_element.setAttribute('data-value', current_temperature);
+        const new_percentage = ((current_temperature - 16) / (30 - 16)) * 100;
+        chart_container.chart.updateSeries([new_percentage]);
       });
     }
   });
 };
 
 const listenToSocketIo = () => {
-  sio.on('connect', () => {
+  socket_connection.on('connect', () => {
     console.log('Socket.IO connected');
   });
-  sio.on('disconnect', () => {
+
+  socket_connection.on('disconnect', () => {
     console.log('Socket.IO disconnected');
   });
-  sio.on('error', (error) => {
-    console.log('Socket.IO error:', error);
+
+  socket_connection.on('error', (socket_error) => {
+    console.log('Socket.IO error:', socket_error);
   });
 };
 // #endregion

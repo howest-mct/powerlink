@@ -1,5 +1,4 @@
 from .Database import Database
-from datetime import datetime, timedelta
 
 
 class DataRepository:
@@ -13,6 +12,52 @@ class DataRepository:
             FROM schedules s
         """
         return Database.get_rows(sql)
+
+    def read_all_components():
+        sql = """
+            SELECT *
+            FROM components c
+        """
+        return Database.get_rows(sql)
+
+    def read_all_rooms():
+        sql = """
+            SELECT *
+            FROM rooms
+        """
+        return Database.get_rows(sql)
+
+    def read_all_components_in_frame(frame_id):
+        sql = """
+            SELECT * FROM components_frames WHERE frame_id = %s;
+            """
+        params = [frame_id]
+        return Database.get_rows(sql, params)
+
+    def add_component_to_frame(component_id, frame_id):
+        sql = """
+            INSERT INTO components_frames (component_id, frame_id) 
+            VALUES (%s, %s);
+            """
+        params = [component_id, frame_id]
+        return Database.execute_sql(sql, params)
+
+    def remove_component_from_frame(component_id, frame_id):
+        sql = """
+            DELETE FROM components_frames 
+            WHERE component_id = %s AND frame_id = %s;
+            """
+        params = [component_id, frame_id]
+        return Database.execute_sql(sql, params)
+
+    def check_component_in_frame_exists(component_id, frame_id):
+        sql = """
+            SELECT COUNT(*) as count FROM components_frames 
+            WHERE component_id = %s AND frame_id = %s;
+            """
+        params = [component_id, frame_id]
+        result = Database.get_one_row(sql, params)
+        return result["count"] > 0 if result else False
 
     @staticmethod
     def read_last_log_by_id(log_id):
@@ -29,36 +74,34 @@ class DataRepository:
         return Database.get_one_row(sql, params)
 
     @staticmethod
-    def read_all_last_logs(frame_name):
+    def read_all_last_logs(frame_id):
         sql = """
             SELECT cl.*, c.component_name, c.value_unit, r.room_id, r.room_name
             FROM component_logs cl
             JOIN components c ON cl.component_id = c.component_id
             JOIN rooms r ON c.room_id = r.room_id
             JOIN components_frames sf ON cl.component_id = sf.component_id
-            JOIN frames f ON sf.frame_id = f.frame_id
             WHERE cl.datetime = (
                 SELECT MAX(datetime)
                 FROM component_logs cl2
                 WHERE cl2.component_id = cl.component_id
-            ) AND f.frame_name = %s
+            ) AND sf.frame_id = %s
             ORDER BY c.component_id;
         """
-        params = [frame_name]
+        params = [frame_id]
         return Database.get_rows(sql, params)
 
     @staticmethod
-    def read_all_schedules_by_frame_id(frame_name):
+    def read_all_schedules_by_frame_id(frame_id):
         sql = """
             SELECT s.*, r.room_name, t.type_name
             FROM schedules s
             JOIN schedules_frames sf ON s.schedule_id = sf.schedule_id
-            JOIN frames f ON sf.frame_id = f.frame_id
             JOIN rooms r ON s.room_id = r.room_id
             JOIN schedule_types t ON s.type_id = t.type_id
-            WHERE f.frame_name = %s;
+            WHERE sf.frame_id = %s;
         """
-        params = [frame_name]
+        params = [frame_id]
         return Database.get_rows(sql, params)
 
     @staticmethod

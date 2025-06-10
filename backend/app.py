@@ -20,6 +20,10 @@ from models.backend_models import (
     Card,
     UpdatedSchedule,
     EnergyLog,
+    Component,
+    Room,
+    ComponentFrame,
+    DTOComponentFrame,
 )
 
 from models.device_models import (
@@ -99,7 +103,6 @@ def log_and_emit_sync(value, component_id):
 # endregion Socket.IO Setup **************************************************
 
 # region Globals ---------------------------------
-# Database IDs
 wh_bat_in_id = 1
 wh_bat_out_id = 2
 pot_id = 3
@@ -121,7 +124,6 @@ light_sensor_id = 18
 led_outdoors_id = 19
 button_power_id = 20
 
-# Devices
 MOTION_SENSOR = None
 LED_BUTTON = None
 POWER_BUTTON = None
@@ -138,7 +140,6 @@ AIRCO = None
 MCP = None
 I2C_EXPANDER = None
 
-# Values and States
 battery_level = 0.0
 kw_led_bottom = 0.0
 kw_led_top = 0.0
@@ -167,7 +168,6 @@ sleep_medium = 1
 sleep_slow = 2
 sleep_long = 5
 
-# Schedules
 try:
     all_schedules = DataRepository.read_all_schedules()
     dict_schedules = {}
@@ -192,9 +192,7 @@ except RuntimeError as e:
     logger.error(f"Error setting GPIO mode: {e}")
     GPIO.cleanup()
     errors += 1
-
 # endregion Globals ******************************
-
 
 # region Functions ---------------------------------
 
@@ -967,28 +965,135 @@ async def root():
 
 
 @app.get(
-    ENDPOINT + "/components/last/{frame_name}/",
+    ENDPOINT + "/components/",
+    response_model=list[Component],
+    summary="Retrieve all components",
+    response_description="A list of all available components",
+    tags=["components"],
+)
+async def get_all_components():
+    data = DataRepository.read_all_components()
+    if data is None or len(data) == 0:
+        raise HTTPException(
+            status_code=404, detail=f"No components found in the database"
+        )
+    return data
+
+
+@app.get(
+    ENDPOINT + "/rooms/",
+    response_model=list[Room],
+    summary="Retrieve all rooms",
+    response_description="A list of all available rooms",
+    tags=["rooms"],
+)
+async def get_all_rooms():
+    data = DataRepository.read_all_rooms()
+    if data is None or len(data) == 0:
+        raise HTTPException(status_code=404, detail=f"No rooms found in the database")
+    return data
+
+
+@app.get(
+    ENDPOINT + "/components/last/{frame_id}/",
     response_model=list[Log],
     summary="Retrieve all logs",
     response_description="A list of all available logs",
     tags=["logs"],
 )
-async def read_all_last_logs(frame_name: str):
-    data = DataRepository.read_all_last_logs(frame_name)
+async def read_all_last_logs(frame_id: int):
+    data = DataRepository.read_all_last_logs(frame_id)
     if data is None or len(data) == 0:
         raise HTTPException(status_code=404, detail=f"No logs found in the database")
     return data
 
 
 @app.get(
-    ENDPOINT + "/schedules/{frame_name}/",
+    ENDPOINT + "/frames/{frame_id}/components/",
+    response_model=list[ComponentFrame],
+    summary="Retrieve all components in a frame",
+    response_description="A list of all available components in the specified frame",
+    tags=["frames"],
+)
+async def get_all_components_in_frame(frame_id: str):
+    data = DataRepository.read_all_components_in_frame(frame_id)
+    if data is None or len(data) == 0:
+        raise HTTPException(
+            status_code=404, detail=f"No components found in frame {frame_id}"
+        )
+    return data
+
+
+@app.post(
+    ENDPOINT + "/frames/{frame_id}/components/",
+    response_model=ComponentFrame,
+    summary="Add a component to a frame",
+    response_description="The component successfully added to the frame",
+    tags=["frames"],
+)
+async def add_component_to_frame(frame_id: str, component_data: DTOComponentFrame):
+    if int(frame_id) != component_data.frame_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Frame ID in URL does not match frame ID in request body",
+        )
+
+    if DataRepository.check_component_in_frame_exists(
+        component_data.component_id, component_data.frame_id
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Component {component_data.component_id} already exists in frame {frame_id}",
+        )
+
+    result = DataRepository.add_component_to_frame(
+        component_data.component_id, component_data.frame_id
+    )
+    if not result:
+        raise HTTPException(status_code=500, detail="Failed to add component to frame")
+
+    return ComponentFrame(
+        component_id=component_data.component_id, frame_id=component_data.frame_id
+    )
+
+
+@app.delete(
+    ENDPOINT + "/frames/{frame_id}/components/{component_id}/",
+    summary="Remove a component from a frame",
+    response_description="Component successfully removed from frame",
+    tags=["frames"],
+)
+async def remove_component_from_frame(frame_id: str, component_id: str):
+    if not DataRepository.check_component_in_frame_exists(
+        int(component_id), int(frame_id)
+    ):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Component {component_id} not found in frame {frame_id}",
+        )
+
+    result = DataRepository.remove_component_from_frame(
+        int(component_id), int(frame_id)
+    )
+    if not result:
+        raise HTTPException(
+            status_code=500, detail="Failed to remove component from frame"
+        )
+
+    return {
+        "message": f"Component {component_id} successfully removed from frame {frame_id}"
+    }
+
+
+@app.get(
+    ENDPOINT + "/schedules/{frame_id}/",
     response_model=list[Schedule],
     summary="Retrieve all schedules",
     response_description="A list of all available schedules",
     tags=["schedules"],
 )
-async def get_all_schedules(frame_name: str):
-    data = DataRepository.read_all_schedules_by_frame_id(frame_name)
+async def get_all_schedules(frame_id: str):
+    data = DataRepository.read_all_schedules_by_frame_id(frame_id)
     if data is None or len(data) == 0:
         raise HTTPException(
             status_code=404, detail=f"No schedules found in the database"
@@ -1001,7 +1106,7 @@ async def get_all_schedules(frame_name: str):
     response_model=UpdatedSchedule,
     tags=["schedule"],
 )
-async def update_schedule(id: int, schedule: DTOSchedule):
+async def update_schedule(id: str, schedule: DTOSchedule):
     existing = DataRepository.read_schedule_by_id(id)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Schedule with ID {id} not found")
@@ -1027,7 +1132,7 @@ async def update_schedule(id: int, schedule: DTOSchedule):
     response_description="The inhabitant with the specified ID",
     tags=["inhabitants"],
 )
-async def get_inhabitant_by_id(card_id: int):
+async def get_inhabitant_by_id(card_id: str):
     data = DataRepository.read_inhabitant_by_card_id(card_id)
     if data is None:
         raise HTTPException(
@@ -1043,7 +1148,7 @@ async def get_inhabitant_by_id(card_id: int):
     response_description="The energy_log with the specified ID",
     tags=["energy"],
 )
-async def get_energy_log_by_id(id: int):
+async def get_energy_log_by_id(id: str):
     data = DataRepository.read_energy_24h(id)
     if data is None:
         raise HTTPException(
@@ -1085,11 +1190,10 @@ async def schedule_handler(sid, data):
 
 @sio.on("BF2_component_selection")
 async def component_selection_handler(sid, data):
-    print(f"Received component selection: {data}")
+    pass
 
 
 # endregion Socket.IO Handlers *************************
-
 
 # region Run The App ---------------------------------
 if __name__ == "__main__":

@@ -249,7 +249,7 @@ body {
     width: 1rem;
     height: 3rem;
     background: white;
-    outline: solid var(--border-color) 1px;
+    outline: solid var(--border-color) .0625rem;
     cursor: pointer;
 }
 
@@ -259,7 +259,7 @@ body {
     background: white;
     border: none;
     cursor: pointer;
-    outline: solid var(--border-color) 1px;
+    outline: solid var(--border-color) .0625rem;
 }
 
 .c-bulb-icon {
@@ -624,8 +624,8 @@ input:focus+.slider {
 }
 
 input:checked+.slider:before {
-    -webkit-transform: translateX(26px);
-    -ms-transform: translateX(26px);
+    -webkit-transform: translateX(1.625rem);
+    -ms-transform: translateX(1.625rem);
     transform: translateX(1.25rem);
 }
 

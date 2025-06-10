@@ -9,6 +9,28 @@ class P1BaseModel(BaseModel):
 # region Models ---------------------------------
 
 
+class Component(P1BaseModel):
+    component_id: int
+    component_name: str
+    value_unit: str
+    room_id: int
+
+
+class Room(P1BaseModel):
+    room_id: int
+    room_name: str
+
+
+class ComponentFrame(P1BaseModel):
+    component_id: int
+    frame_id: int
+
+
+class DTOComponentFrame(P1BaseModel):
+    component_id: int
+    frame_id: int
+
+
 class Log(P1BaseModel):
     log_id: int
     datetime: datetime.datetime

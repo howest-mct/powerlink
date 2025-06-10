@@ -1,10 +1,10 @@
 'use strict';
-const lanIP = `http://192.168.168.169:8000`;
-const sio = io(lanIP);
-const ENDPOINT = 'http://192.168.168.169:8000/api/v1';
+const lan_ip = `http://192.168.168.169:8000`;
+const socket_connection = io(lan_ip);
+const api_endpoint = 'http://192.168.168.169:8000/api/v1';
 
 // #region ***  DOM references                           ***********
-const svg_icons = {
+const component_icons = {
   1: 'img/svg/lightning.svg',
   2: 'img/svg/lightning.svg',
   3: 'img/svg/sliders-horizontal.svg',
@@ -29,14 +29,17 @@ const svg_icons = {
 // #endregion
 
 // #region ***  Dropdown Functions                      ***********
-function createComponentDropdown(roomId, components) {
-  let optionsHtml = '<div class="dropdown-option check-all-option" data-room="' + roomId + '">Check All</div>';
+const createComponentDropdown = (room_id, all_components, components_in_current_frame) => {
+  let dropdown_options_html = '<div class="dropdown-option check-all-option" data-room="' + room_id + '">Check All</div>';
 
-  components.forEach((component) => {
-    optionsHtml += `
+  const frame_component_ids = new Set(components_in_current_frame.map((component) => component.component_id));
+
+  all_components.forEach((component) => {
+    const is_component_checked = frame_component_ids.has(component.component_id) ? 'checked' : '';
+    dropdown_options_html += `
       <div class="dropdown-option checkbox-option">
         <label>
-          <input type="checkbox" value="${component.component_id}" data-room="${roomId}" data-name="${component.component_name}">
+          <input type="checkbox" value="${component.component_id}" data-room="${room_id}" data-name="${component.component_name}" ${is_component_checked}>
           ${component.component_name}
         </label>
       </div>
@@ -44,38 +47,38 @@ function createComponentDropdown(roomId, components) {
   });
 
   return `
-    <div class="component-dropdown" data-room="${roomId}">
+    <div class="component-dropdown" data-room="${room_id}">
       <div class="dropdown-trigger">Select Components</div>
       <div class="dropdown-menu">
-        ${optionsHtml}
+        ${dropdown_options_html}
       </div>
     </div>
   `;
-}
+};
 
 const initDropdownEvents = () => {
-  document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('dropdown-trigger')) {
-      e.stopPropagation();
-      const dropdown = e.target.closest('.component-dropdown');
-      const menu = dropdown.querySelector('.dropdown-menu');
+  document.addEventListener('click', (event) => {
+    if (event.target.classList.contains('dropdown-trigger')) {
+      event.stopPropagation();
+      const clicked_dropdown = event.target.closest('.component-dropdown');
+      const dropdown_menu = clicked_dropdown.querySelector('.dropdown-menu');
 
-      document.querySelectorAll('.dropdown-menu').forEach((m) => {
-        if (m !== menu) m.style.display = 'none';
+      document.querySelectorAll('.dropdown-menu').forEach((menu) => {
+        if (menu !== dropdown_menu) menu.style.display = 'none';
       });
 
-      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+      dropdown_menu.style.display = dropdown_menu.style.display === 'block' ? 'none' : 'block';
     }
 
-    if (e.target.classList.contains('check-all-option')) {
-      e.stopPropagation();
-      const roomId = e.target.dataset.room;
-      const dropdown = e.target.closest('.component-dropdown');
-      const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
-      const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
+    if (event.target.classList.contains('check-all-option')) {
+      event.stopPropagation();
+      const room_id = event.target.dataset.room;
+      const clicked_dropdown = event.target.closest('.component-dropdown');
+      const all_checkboxes = clicked_dropdown.querySelectorAll('input[type="checkbox"]');
+      const all_boxes_checked = Array.from(all_checkboxes).every((checkbox) => checkbox.checked);
 
-      checkboxes.forEach((checkbox) => {
-        if (allChecked) {
+      all_checkboxes.forEach((checkbox) => {
+        if (all_boxes_checked) {
           checkbox.checked = false;
         } else {
           checkbox.checked = true;
@@ -83,18 +86,18 @@ const initDropdownEvents = () => {
         emitComponentSelection(checkbox);
       });
 
-      updateDropdownLabel(dropdown);
-      e.target.textContent = allChecked ? 'Check All' : 'Uncheck All';
+      updateDropdownLabel(clicked_dropdown);
+      event.target.textContent = all_boxes_checked ? 'Check All' : 'Uncheck All';
     }
 
-    if (e.target.type === 'checkbox' && e.target.dataset.room) {
-      emitComponentSelection(e.target);
-      const dropdown = e.target.closest('.component-dropdown');
-      updateDropdownLabel(dropdown);
-      updateCheckAllButton(dropdown);
+    if (event.target.type === 'checkbox' && event.target.dataset.room) {
+      emitComponentSelection(event.target);
+      const parent_dropdown = event.target.closest('.component-dropdown');
+      updateDropdownLabel(parent_dropdown);
+      updateCheckAllButton(parent_dropdown);
     }
 
-    if (!e.target.closest('.component-dropdown')) {
+    if (!event.target.closest('.component-dropdown')) {
       document.querySelectorAll('.dropdown-menu').forEach((menu) => {
         menu.style.display = 'none';
       });
@@ -102,136 +105,335 @@ const initDropdownEvents = () => {
   });
 };
 
-function updateDropdownLabel(dropdown) {
-  const trigger = dropdown.querySelector('.dropdown-trigger');
-  const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
-  const checked_boxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+const updateDropdownLabel = (dropdown_element) => {
+  const trigger_button = dropdown_element.querySelector('.dropdown-trigger');
+  const all_checkboxes = dropdown_element.querySelectorAll('input[type="checkbox"]');
+  const checked_checkboxes = dropdown_element.querySelectorAll('input[type="checkbox"]:checked');
 
-  if (checked_boxes.length === 0) {
-    trigger.textContent = 'Select Components';
-  } else if (checked_boxes.length === 1) {
-    trigger.textContent = checked_boxes[0].dataset.name;
-  } else if (checked_boxes.length === checkboxes.length) {
-    trigger.textContent = 'All Components Selected';
+  if (checked_checkboxes.length === 0) {
+    trigger_button.textContent = 'Select Components';
+  } else if (checked_checkboxes.length === 1) {
+    trigger_button.textContent = checked_checkboxes[0].dataset.name;
+  } else if (checked_checkboxes.length === all_checkboxes.length) {
+    trigger_button.textContent = 'All Components Selected';
   } else {
-    trigger.textContent = `${checked_boxes.length} Components Selected`;
+    trigger_button.textContent = `${checked_checkboxes.length} Components Selected`;
   }
-}
+};
 
-function updateCheckAllButton(dropdown) {
-  const check_all_btn = dropdown.querySelector('.check-all-option');
-  const check_boxes = dropdown.querySelectorAll('input[type="checkbox"]');
-  const checked_boxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+const updateCheckAllButton = (dropdown_element) => {
+  const check_all_button = dropdown_element.querySelector('.check-all-option');
+  const all_checkboxes = dropdown_element.querySelectorAll('input[type="checkbox"]');
+  const checked_checkboxes = dropdown_element.querySelectorAll('input[type="checkbox"]:checked');
 
-  if (checked_boxes.length === check_boxes.length && check_boxes.length > 0) {
-    check_all_btn.textContent = 'Uncheck All';
+  if (checked_checkboxes.length === all_checkboxes.length && all_checkboxes.length > 0) {
+    check_all_button.textContent = 'Uncheck All';
   } else {
-    check_all_btn.textContent = 'Check All';
+    check_all_button.textContent = 'Check All';
   }
-}
+};
 
-const emitComponentSelection = (checkbox) => {
-  const component_id = parseInt(checkbox.value);
-  const room_id = parseInt(checkbox.dataset.room);
-  const is_checked = checkbox.checked;
+const emitComponentSelection = async (checkbox_element) => {
+  const component_id = parseInt(checkbox_element.value);
+  const room_id = parseInt(checkbox_element.dataset.room);
+  const is_checkbox_checked = checkbox_element.checked;
 
-  console.log(`Component ${component_id} in room ${room_id} ${is_checked ? 'selected' : 'deselected'}`);
+  console.log(`Component ${component_id} in room ${room_id} ${is_checkbox_checked ? 'selected' : 'deselected'}`);
 
-  sio.emit('BF2_component_selection', {
-    component_id: component_id,
-    room_id: room_id,
-    selected: is_checked,
-  });
+  const update_was_successful = await updateComponentInFrame(component_id, is_checkbox_checked);
+
+  if (update_was_successful) {
+    socket_connection.emit('BF2_component_selection', {
+      component_id: component_id,
+      room_id: room_id,
+      selected: is_checkbox_checked,
+    });
+
+    let component_card = document.querySelector(`.js-component__container[data-component_id="${component_id}"]`);
+
+    if (is_checkbox_checked) {
+      if (component_card) {
+        component_card.style.display = 'block';
+      } else {
+        await createComponentCard(component_id, room_id);
+      }
+    } else {
+      if (component_card) {
+        component_card.style.display = 'none';
+      }
+    }
+  }
+};
+
+const createComponentCard = async (component_id, room_id) => {
+  try {
+    const url_parameters = new URLSearchParams(window.location.search);
+    const frame_parameter = parseInt(url_parameters.get('frame'));
+
+    const log_url = api_endpoint + `/components/last/${frame_parameter}/`;
+    const log_response = await fetch(log_url);
+    const all_component_logs = await log_response.json();
+
+    const component_log = all_component_logs.find((log) => log.component_id === component_id);
+
+    if (!component_log) {
+      console.log(`No log found for component ${component_id}`);
+      return;
+    }
+
+    const components_url = api_endpoint + `/components/`;
+    const components_response = await fetch(components_url);
+    const all_components = await components_response.json();
+
+    const component_details = all_components.find((comp) => comp.component_id === component_id);
+
+    if (!component_details) {
+      console.log(`Component ${component_id} not found`);
+      return;
+    }
+
+    const formatted_date = new Date(component_log.datetime);
+    const icon_path = component_icons[component_id] || 'img/svg/circuitry.svg';
+
+    const component_card_html = `
+      <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${component_log.log_id}">
+        <div class="c-article__header">
+          <a href="#" class="c-article__link">
+            <img src="${icon_path}" alt="Component icon" class="c-article__icon">
+          </a>
+          <h2 class="c-article__title">${component_details.component_name}</h2>
+        </div>
+        <div class="c-card">
+          <h3 class="c-card__level">${component_log.value} ${component_details.value_unit}</h3>
+          <div class="c-card__meta">
+            <p class="c-card__status">Last log</p>
+            <p class="c-card__capacity">${formatDateTime(formatted_date)}</p>
+          </div>
+        </div>
+      </article>
+    `;
+
+    const room_container = document.querySelector(`.js-room__container[data-room_id="${room_id}"]`);
+    if (room_container) {
+      const components_container = room_container.querySelector('.c-room__components');
+      if (components_container) {
+        components_container.insertAdjacentHTML('beforeend', component_card_html);
+
+        const new_component_card = components_container.querySelector(`.js-component__container[data-component_id="${component_id}"]`);
+        if (new_component_card) {
+          const room_number = parseInt(room_container.dataset.room_number);
+          if (room_number % 2 === 0) {
+            new_component_card.classList.add('c-white-background');
+          } else {
+            new_component_card.classList.add('c-grey-background');
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error creating component card:', error);
+  }
 };
 // #endregion
 
 // #region ***  Callback-Visualisation - show___         ***********
 const showDropdown = () => {
-  const hamburger = document.querySelector('.c-hamburger');
-  const navPopup = document.querySelector('.c-nav-popup');
-  const overlay = document.querySelector('.c-overlay');
-  const closeIcon = document.querySelector('.c-nav-popup__close');
+  const hamburger_button = document.querySelector('.c-hamburger');
+  const navigation_popup = document.querySelector('.c-nav-popup');
+  const page_overlay = document.querySelector('.c-overlay');
+  const close_button = document.querySelector('.c-nav-popup__close');
 
-  if (!hamburger || !navPopup || !overlay || !closeIcon) {
+  if (!hamburger_button || !navigation_popup || !page_overlay || !close_button) {
     console.error('Dropdown elements not found');
     return;
   }
 
-  function toggleMenu() {
-    const isActive = navPopup.classList.toggle('c-nav-popup--active');
-    overlay.classList.toggle('c-overlay--active');
-    hamburger.setAttribute('aria-expanded', isActive);
-    navPopup.setAttribute('aria-hidden', !isActive);
-    overlay.setAttribute('aria-hidden', !isActive);
-  }
+  const toggleMobileMenu = () => {
+    const menu_is_active = navigation_popup.classList.toggle('c-nav-popup--active');
+    page_overlay.classList.toggle('c-overlay--active');
+    hamburger_button.setAttribute('aria-expanded', menu_is_active);
+    navigation_popup.setAttribute('aria-hidden', !menu_is_active);
+    page_overlay.setAttribute('aria-hidden', !menu_is_active);
+  };
 
   if (window.matchMedia('(max-width: 767px)').matches) {
-    hamburger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleMenu();
+    hamburger_button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      toggleMobileMenu();
     });
 
-    closeIcon.addEventListener('click', (e) => {
-      e.stopPropagation();
-      navPopup.classList.remove('c-nav-popup--active');
-      overlay.classList.remove('c-overlay--active');
-      hamburger.setAttribute('aria-expanded', 'false');
-      navPopup.setAttribute('aria-hidden', 'true');
-      overlay.setAttribute('aria-hidden', 'true');
+    close_button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      navigation_popup.classList.remove('c-nav-popup--active');
+      page_overlay.classList.remove('c-overlay--active');
+      hamburger_button.setAttribute('aria-expanded', 'false');
+      navigation_popup.setAttribute('aria-hidden', 'true');
+      page_overlay.setAttribute('aria-hidden', 'true');
     });
 
-    overlay.addEventListener('click', () => {
-      navPopup.classList.remove('c-nav-popup--active');
-      overlay.classList.remove('c-overlay--active');
-      hamburger.setAttribute('aria-expanded', 'false');
-      navPopup.setAttribute('aria-hidden', 'true');
-      overlay.setAttribute('aria-hidden', 'true');
+    page_overlay.addEventListener('click', () => {
+      navigation_popup.classList.remove('c-nav-popup--active');
+      page_overlay.classList.remove('c-overlay--active');
+      hamburger_button.setAttribute('aria-expanded', 'false');
+      navigation_popup.setAttribute('aria-hidden', 'true');
+      page_overlay.setAttribute('aria-hidden', 'true');
     });
 
-    const navLinks = document.querySelectorAll('.c-nav-popup__link');
-    navLinks.forEach((link) => {
+    const navigation_links = document.querySelectorAll('.c-nav-popup__link');
+    navigation_links.forEach((link) => {
       link.addEventListener('click', () => {
-        navPopup.classList.remove('c-nav-popup--active');
-        overlay.classList.remove('c-overlay--active');
-        hamburger.setAttribute('aria-expanded', 'false');
-        navPopup.setAttribute('aria-hidden', 'true');
-        overlay.setAttribute('aria-hidden', 'true');
+        navigation_popup.classList.remove('c-nav-popup--active');
+        page_overlay.classList.remove('c-overlay--active');
+        hamburger_button.setAttribute('aria-expanded', 'false');
+        navigation_popup.setAttribute('aria-hidden', 'true');
+        page_overlay.setAttribute('aria-hidden', 'true');
       });
     });
 
-    document.addEventListener('click', (e) => {
-      if (!navPopup.contains(e.target) && !hamburger.contains(e.target)) {
-        navPopup.classList.remove('c-nav-popup--active');
-        overlay.classList.remove('c-overlay--active');
-        hamburger.setAttribute('aria-expanded', 'false');
-        navPopup.setAttribute('aria-hidden', 'true');
-        overlay.setAttribute('aria-hidden', 'true');
+    document.addEventListener('click', (event) => {
+      if (!navigation_popup.contains(event.target) && !hamburger_button.contains(event.target)) {
+        navigation_popup.classList.remove('c-nav-popup--active');
+        page_overlay.classList.remove('c-overlay--active');
+        hamburger_button.setAttribute('aria-expanded', 'false');
+        navigation_popup.setAttribute('aria-hidden', 'true');
+        page_overlay.setAttribute('aria-hidden', 'true');
       }
     });
   }
 
   window.addEventListener('resize', () => {
     if (window.matchMedia('(min-width: 768px)').matches) {
-      navPopup.classList.remove('c-nav-popup--active');
-      overlay.classList.remove('c-overlay--active');
-      hamburger.setAttribute('aria-expanded', 'false');
-      navPopup.setAttribute('aria-hidden', 'true');
-      overlay.setAttribute('aria-hidden', 'true');
+      navigation_popup.classList.remove('c-nav-popup--active');
+      page_overlay.classList.remove('c-overlay--active');
+      hamburger_button.setAttribute('aria-expanded', 'false');
+      navigation_popup.setAttribute('aria-hidden', 'true');
+      page_overlay.setAttribute('aria-hidden', 'true');
     }
   });
 };
 
-const showAllLastLogs = (json) => {
-  let htmlRooms = '';
-  const room_containers = document.querySelector('.js-main');
+const showAllRoomsAndComponents = async () => {
+  try {
+    const [all_rooms, all_components, all_component_logs, components_in_frame] = await Promise.all([getAllRooms(), getAllComponents(), getLastComponentLogs(), getComponentsInFrame()]);
+
+    console.log('Rooms:', all_rooms);
+    console.log('Components:', all_components);
+    console.log('Component logs:', all_component_logs);
+    console.log('Components in frame:', components_in_frame);
+
+    const components_grouped_by_room = {};
+    const logs_by_component_id = {};
+    const frame_component_ids = new Set(components_in_frame.map((component) => component.component_id));
+
+    all_components.forEach((component) => {
+      if (!components_grouped_by_room[component.room_id]) {
+        components_grouped_by_room[component.room_id] = [];
+      }
+      components_grouped_by_room[component.room_id].push(component);
+    });
+
+    all_component_logs.forEach((log) => {
+      logs_by_component_id[log.component_id] = log;
+    });
+
+    let rooms_html = '';
+    const main_container = document.querySelector('.js-main');
+
+    all_rooms.forEach((room, room_index) => {
+      const room_components = components_grouped_by_room[room.room_id] || [];
+
+      let components_html = '';
+
+      room_components.forEach((component) => {
+        const component_is_in_frame = frame_component_ids.has(component.component_id);
+        const component_log = logs_by_component_id[component.component_id];
+
+        if (component_is_in_frame && component_log) {
+          const formatted_date = new Date(component_log.datetime);
+          const icon_path = component_icons[component.component_id] || 'img/svg/circuitry.svg';
+
+          components_html += `
+            <article class="c-article c-hover--shadow js-component__container" data-component_id="${component.component_id}" data-room_id="${room.room_id}" data-log_id="${component_log.log_id}">
+              <div class="c-article__header">
+                <a href="#" class="c-article__link">
+                  <img src="${icon_path}" alt="Component icon" class="c-article__icon">
+                </a>
+                <h2 class="c-article__title">${component.component_name}</h2>
+              </div>
+              <div class="c-card">
+                <h3 class="c-card__level">${component_log.value} ${component.value_unit}</h3>
+                <div class="c-card__meta">
+                  <p class="c-card__status">Last log</p>
+                  <p class="c-card__capacity">${formatDateTime(formatted_date)}</p>
+                </div>
+              </div>
+            </article>
+          `;
+        }
+      });
+
+      const dropdown_html = createComponentDropdown(room.room_id, room_components, components_in_frame);
+
+      rooms_html += `
+        <div class="c-room__container js-room__container" data-room_id="${room.room_id}" data-room_name="${room.room_name}" data-room_number="${room_index}">
+          <section class="c-room">
+            <div class="c-room__header">
+              <h2 class="c-section__title">${room.room_name}</h2>
+              ${dropdown_html}
+            </div>
+            <div class="c-room__components">
+              ${components_html}
+            </div>
+          </section>
+        </div>
+      `;
+    });
+
+    main_container.innerHTML = rooms_html;
+
+    const all_room_containers = document.querySelectorAll('.js-room__container');
+    all_room_containers.forEach((room_container) => {
+      const room_number = parseInt(room_container.dataset.room_number);
+      const component_containers = room_container.querySelectorAll('.js-component__container');
+
+      if (room_number % 2 === 0) {
+        room_container.classList.add('c-grey-background');
+        component_containers.forEach((component_container) => {
+          component_container.classList.add('c-white-background');
+        });
+      } else {
+        room_container.classList.add('c-white-background');
+        component_containers.forEach((component_container) => {
+          component_container.classList.add('c-grey-background');
+        });
+      }
+    });
+
+    initDropdownEvents();
+    updateAllDropdownLabels();
+  } catch (error) {
+    console.error('Error loading rooms and components:', error);
+  }
+};
+
+const updateAllDropdownLabels = () => {
+  document.querySelectorAll('.component-dropdown').forEach((dropdown) => {
+    updateDropdownLabel(dropdown);
+    updateCheckAllButton(dropdown);
+  });
+};
+
+const showAllLastLogs = (json_data) => {
+  let rooms_html = '';
+  const main_container = document.querySelector('.js-main');
 
   let room_components = {};
-  for (const schedule of json) {
-    const room_id = schedule.room_id;
+  for (const schedule_item of json_data) {
+    const room_id = schedule_item.room_id;
     if (!room_components[room_id]) {
       room_components[room_id] = [];
     }
-    room_components[room_id].push(schedule);
+    room_components[room_id].push(schedule_item);
   }
 
   let room_display_number = 0;
@@ -240,18 +442,18 @@ const showAllLastLogs = (json) => {
     const room_data = room_components[room_id];
     const room_name = room_data[0].room_name;
 
-    let htmlComponents = '';
+    let components_html = '';
 
     for (const item of room_data) {
       const { log_id, datetime, value, component_id, component_name, value_unit, room_id } = item;
       const formatted_date = new Date(datetime);
-      const svg_path = svg_icons[component_id] || 'img/svg/circuitry.svg';
+      const icon_path = component_icons[component_id] || 'img/svg/circuitry.svg';
 
-      htmlComponents += `
+      components_html += `
         <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}">
           <div class="c-article__header">
             <a href="#" class="c-article__link">
-              <img src="${svg_path}" alt="Component icon" class="c-article__icon">
+              <img src="${icon_path}" alt="Component icon" class="c-article__icon">
             </a>
             <h2 class="c-article__title">${component_name}</h2>
           </div>
@@ -266,17 +468,17 @@ const showAllLastLogs = (json) => {
       `;
     }
 
-    const dropdownHtml = createComponentDropdown(room_id, room_data);
+    const dropdown_html = createComponentDropdown(room_id, room_data);
 
-    htmlRooms += `
+    rooms_html += `
       <div class="c-room__container js-room__container" data-room_id="${room_id}" data-room_name="${room_name}" data-room_number="${room_display_number}">
         <section class="c-room">
           <div class="c-room__header">
             <h2 class="c-section__title">${room_name}</h2>
-            ${dropdownHtml}
+            ${dropdown_html}
           </div>
           <div class="c-room__components">
-            ${htmlComponents}
+            ${components_html}
           </div>
         </section>
       </div>
@@ -285,10 +487,10 @@ const showAllLastLogs = (json) => {
     room_display_number++;
   }
 
-  room_containers.innerHTML = htmlRooms;
+  main_container.innerHTML = rooms_html;
 
-  const room_container = document.querySelectorAll('.js-room__container');
-  room_container.forEach((room_container) => {
+  const all_room_containers = document.querySelectorAll('.js-room__container');
+  all_room_containers.forEach((room_container) => {
     const room_number = parseInt(room_container.dataset.room_number);
     const component_containers = room_container.querySelectorAll('.js-component__container');
 
@@ -308,41 +510,41 @@ const showAllLastLogs = (json) => {
   initDropdownEvents();
 };
 
-const showLastLog = (log) => {
-  let log_container = document.querySelector(`.js-component__container[data-component_id="${log.component_id}"]`);
-  const formatted_date = new Date(log.datetime);
+const showLastLog = (log_data) => {
+  let existing_log_container = document.querySelector(`.js-component__container[data-component_id="${log_data.component_id}"]`);
+  const formatted_date = new Date(log_data.datetime);
 
-  if (log_container) {
-    const level_element = log_container.querySelector('.c-card__level');
-    const capacity_element = log_container.querySelector('.c-card__capacity');
+  if (existing_log_container) {
+    const level_element = existing_log_container.querySelector('.c-card__level');
+    const capacity_element = existing_log_container.querySelector('.c-card__capacity');
 
     if (level_element) {
-      level_element.textContent = `${log.value} ${log.value_unit}`;
+      level_element.textContent = `${log_data.value} ${log_data.value_unit}`;
     }
 
     if (capacity_element) {
       capacity_element.textContent = formatDateTime(formatted_date);
     }
 
-    log_container.setAttribute('data-log_id', log.log_id);
+    existing_log_container.setAttribute('data-log_id', log_data.log_id);
   } else {
-    const room_container = document.querySelector(`.js-room__container[data-room_id="${log.room_id}"]`);
+    const room_container = document.querySelector(`.js-room__container[data-room_id="${log_data.room_id}"]`);
     if (room_container) {
-      const components_div = room_container.querySelector('.c-room__components');
-      const dropdown = room_container.querySelector('.component-dropdown');
+      const components_container = room_container.querySelector('.c-room__components');
+      const dropdown_element = room_container.querySelector('.component-dropdown');
 
-      if (components_div) {
-        const svg_path = svg_icons[log.component_id] || 'img/svg/circuitry.svg';
-        components_div.innerHTML += `
-          <article class="c-article c-hover--shadow js-component__container" data-component_id="${log.component_id}" data-room_id="${log.room_id}" data-log_id="${log.log_id}">
+      if (components_container) {
+        const icon_path = component_icons[log_data.component_id] || 'img/svg/circuitry.svg';
+        components_container.innerHTML += `
+          <article class="c-article c-hover--shadow js-component__container" data-component_id="${log_data.component_id}" data-room_id="${log_data.room_id}" data-log_id="${log_data.log_id}">
             <div class="c-article__header">
               <a href="#" class="c-article__link">
-                <img src="${svg_path}" alt="Component icon" class="c-article__icon">
+                <img src="${icon_path}" alt="Component icon" class="c-article__icon">
               </a>
-              <h2 class="c-article__title">${log.component_name}</h2>
+              <h2 class="c-article__title">${log_data.component_name}</h2>
             </div>
             <div class="c-card">
-              <h3 class="c-card__level">${log.value} ${log.value_unit}</h3>
+              <h3 class="c-card__level">${log_data.value} ${log_data.value_unit}</h3>
               <div class="c-card__meta">
                 <p class="c-card__status">Last log</p>
                 <p class="c-card__capacity">${formatDateTime(formatted_date)}</p>
@@ -351,25 +553,25 @@ const showLastLog = (log) => {
           </article>
         `;
 
-        if (dropdown) {
-          const existingInput = dropdown.querySelector(`input[value="${log.component_id}"]`);
-          if (!existingInput) {
-            const dropdownMenu = dropdown.querySelector('.dropdown-menu');
-            const newOption = document.createElement('div');
-            newOption.className = 'dropdown-option checkbox-option';
-            newOption.innerHTML = `
+        if (dropdown_element) {
+          const existing_checkbox = dropdown_element.querySelector(`input[value="${log_data.component_id}"]`);
+          if (!existing_checkbox) {
+            const dropdown_menu = dropdown_element.querySelector('.dropdown-menu');
+            const new_option = document.createElement('div');
+            new_option.className = 'dropdown-option checkbox-option';
+            new_option.innerHTML = `
               <label>
-                <input type="checkbox" value="${log.component_id}" data-room="${log.room_id}" data-name="${log.component_name}">
-                ${log.component_name}
+                <input type="checkbox" value="${log_data.component_id}" data-room="${log_data.room_id}" data-name="${log_data.component_name}">
+                ${log_data.component_name}
               </label>
             `;
-            dropdownMenu.appendChild(newOption);
+            dropdown_menu.appendChild(new_option);
           }
         }
 
-        const new_log_container = components_div.querySelector(`.js-component__container[data-component_id="${log.component_id}"]`);
+        const new_log_container = components_container.querySelector(`.js-component__container[data-component_id="${log_data.component_id}"]`);
         if (new_log_container) {
-          if (parseInt(log.room_id) % 2 === 0) {
+          if (parseInt(log_data.room_id) % 2 === 0) {
             new_log_container.classList.add('c-white-background');
           } else {
             new_log_container.classList.add('c-grey-background');
@@ -379,13 +581,12 @@ const showLastLog = (log) => {
     }
   }
 };
-
 // #endregion
 
 // #region ***  Callback-No Visualisation - callback___  ***********
-const formatDateTime = (isoString) => {
-  const date = new Date(isoString);
-  return date.toLocaleDateString('en-GB', {
+const formatDateTime = (iso_string) => {
+  const date_object = new Date(iso_string);
+  return date_object.toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
@@ -396,30 +597,117 @@ const formatDateTime = (isoString) => {
 
 // #region ***  Data Access - get___                     ***********
 const getLastComponentLogs = async () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const urlParam = urlParams.get('param');
-  let url = ENDPOINT + `/components/last/${urlParam}/`;
-  let response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showAllLastLogs(json);
+  const url_parameters = new URLSearchParams(window.location.search);
+  const frame_url_param = parseInt(url_parameters.get('frame'));
+  let request_url = api_endpoint + `/components/last/${frame_url_param}/`;
+  let server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
+  const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
+  return json_data;
+};
+
+const getAllComponents = async () => {
+  const request_url = api_endpoint + `/components/`;
+  const server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
+  const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
+  return json_data;
+};
+
+const getAllRooms = async () => {
+  const request_url = api_endpoint + `/rooms/`;
+  const server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
+  const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
+  return json_data;
+};
+
+const getComponentsInFrame = async () => {
+  const url_parameters = new URLSearchParams(window.location.search);
+  const frame_id = parseInt(url_parameters.get('frame'));
+  const request_url = api_endpoint + `/frames/${frame_id}/components/`;
+  const server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
+  const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
+  return json_data;
+};
+
+const updateComponentInFrame = async (component_id, is_component_selected) => {
+  const url_parameters = new URLSearchParams(window.location.search);
+  const frame_id = parseInt(url_parameters.get('frame'));
+
+  try {
+    if (is_component_selected) {
+      const request_url = api_endpoint + `/frames/${frame_id}/components/`;
+      const server_response = await fetch(request_url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          component_id: component_id,
+          frame_id: frame_id,
+        }),
+      });
+
+      if (!server_response.ok) {
+        if (server_response.status === 409) {
+          console.log(`Component ${component_id} already in frame ${frame_id} - no action needed`);
+          return true;
+        }
+        throw new Error(`Failed to add component to frame: ${server_response.statusText}`);
+      }
+
+      console.log(`Component ${component_id} added to frame ${frame_id}`);
+    } else {
+      const request_url = api_endpoint + `/frames/${frame_id}/components/${component_id}/`;
+      const server_response = await fetch(request_url, {
+        method: 'DELETE',
+      });
+
+      if (!server_response.ok) {
+        if (server_response.status === 404) {
+          console.log(`Component ${component_id} not in frame ${frame_id} - no action needed`);
+          return true;
+        }
+        throw new Error(`Failed to remove component from frame: ${server_response.statusText}`);
+      }
+
+      console.log(`Component ${component_id} removed from frame ${frame_id}`);
+    }
+    return true;
+  } catch (error) {
+    console.error('Error updating component in frame:', error);
+
+    const checkbox_element = document.querySelector(`input[value="${component_id}"]`);
+    if (checkbox_element) {
+      checkbox_element.checked = !is_component_selected;
+      const parent_dropdown = checkbox_element.closest('.component-dropdown');
+      if (parent_dropdown) {
+        updateDropdownLabel(parent_dropdown);
+        updateCheckAllButton(parent_dropdown);
+      }
+    }
+    return false;
+  }
 };
 // #endregion
 
 // #region ***  Event Listeners - listenTo___            ***********
 const listenToSocket = () => {
-  sio.on('connect', () => {
+  socket_connection.on('connect', () => {
     console.log('Socket connected');
   });
-  sio.on('disconnect', () => {
+
+  socket_connection.on('disconnect', () => {
     console.log('Socket disconnected');
   });
-  sio.on('error', (error) => {
+
+  socket_connection.on('error', (error) => {
     console.log('Socket error:', error);
   });
-  sio.on('B2F_new_log', (data) => {
+
+  socket_connection.on('B2F_new_log', (data) => {
     showLastLog(data);
   });
-  sio.on('B2F_component_selection', (data) => {});
+
+  socket_connection.on('B2F_component_selection', (data) => {});
 };
 // #endregion
 
@@ -427,7 +715,7 @@ const listenToSocket = () => {
 const init = () => {
   console.log('DOM loaded');
   showDropdown();
-  getLastComponentLogs();
+  showAllRoomsAndComponents();
   listenToSocket();
 };
 
