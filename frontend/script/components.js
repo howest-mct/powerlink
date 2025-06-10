@@ -38,7 +38,7 @@ const createComponentDropdown = (room_id, all_components, components_in_current_
     const is_component_checked = frame_component_ids.has(component.component_id) ? 'checked' : '';
     dropdown_options_html += `
       <div class="dropdown-option checkbox-option">
-        <label>
+        <label class="c-checkbox">
           <input type="checkbox" value="${component.component_id}" data-room="${room_id}" data-name="${component.component_name}" ${is_component_checked}>
           ${component.component_name}
         </label>
@@ -138,8 +138,6 @@ const emitComponentSelection = async (checkbox_element) => {
   const room_id = parseInt(checkbox_element.dataset.room);
   const is_checkbox_checked = checkbox_element.checked;
 
-  console.log(`Component ${component_id} in room ${room_id} ${is_checkbox_checked ? 'selected' : 'deselected'}`);
-
   const update_was_successful = await updateComponentInFrame(component_id, is_checkbox_checked);
 
   if (update_was_successful) {
@@ -176,21 +174,11 @@ const createComponentCard = async (component_id, room_id) => {
 
     const component_log = all_component_logs.find((log) => log.component_id === component_id);
 
-    if (!component_log) {
-      console.log(`No log found for component ${component_id}`);
-      return;
-    }
-
     const components_url = api_endpoint + `/components/`;
     const components_response = await fetch(components_url);
     const all_components = await components_response.json();
 
     const component_details = all_components.find((comp) => comp.component_id === component_id);
-
-    if (!component_details) {
-      console.log(`Component ${component_id} not found`);
-      return;
-    }
 
     const formatted_date = new Date(component_log.datetime);
     const icon_path = component_icons[component_id] || 'img/svg/circuitry.svg';
@@ -242,11 +230,6 @@ const showDropdown = () => {
   const navigation_popup = document.querySelector('.c-nav-popup');
   const page_overlay = document.querySelector('.c-overlay');
   const close_button = document.querySelector('.c-nav-popup__close');
-
-  if (!hamburger_button || !navigation_popup || !page_overlay || !close_button) {
-    console.error('Dropdown elements not found');
-    return;
-  }
 
   const toggleMobileMenu = () => {
     const menu_is_active = navigation_popup.classList.toggle('c-nav-popup--active');
@@ -315,11 +298,6 @@ const showDropdown = () => {
 const showAllRoomsAndComponents = async () => {
   try {
     const [all_rooms, all_components, all_component_logs, components_in_frame] = await Promise.all([getAllRooms(), getAllComponents(), getLastComponentLogs(), getComponentsInFrame()]);
-
-    console.log('Rooms:', all_rooms);
-    console.log('Components:', all_components);
-    console.log('Component logs:', all_component_logs);
-    console.log('Components in frame:', components_in_frame);
 
     const components_grouped_by_room = {};
     const logs_by_component_id = {};
@@ -645,31 +623,11 @@ const updateComponentInFrame = async (component_id, is_component_selected) => {
           frame_id: frame_id,
         }),
       });
-
-      if (!server_response.ok) {
-        if (server_response.status === 409) {
-          console.log(`Component ${component_id} already in frame ${frame_id} - no action needed`);
-          return true;
-        }
-        throw new Error(`Failed to add component to frame: ${server_response.statusText}`);
-      }
-
-      console.log(`Component ${component_id} added to frame ${frame_id}`);
     } else {
       const request_url = api_endpoint + `/frames/${frame_id}/components/${component_id}/`;
       const server_response = await fetch(request_url, {
         method: 'DELETE',
       });
-
-      if (!server_response.ok) {
-        if (server_response.status === 404) {
-          console.log(`Component ${component_id} not in frame ${frame_id} - no action needed`);
-          return true;
-        }
-        throw new Error(`Failed to remove component from frame: ${server_response.statusText}`);
-      }
-
-      console.log(`Component ${component_id} removed from frame ${frame_id}`);
     }
     return true;
   } catch (error) {

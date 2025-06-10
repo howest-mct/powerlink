@@ -390,11 +390,6 @@ const getPutSchedule = async (schedule_id, start_time, end_time, value, enabled)
     body: JSON.stringify(schedule_data),
   }).catch((error) => console.error('Fetch-error:', error));
 
-  if (!server_response.ok) {
-    console.error('Error updating schedule:', server_response.statusText);
-    return;
-  }
-
   const response_json = await server_response.json().catch((error) => console.error('JSON-error:', error));
 
   socket_connection.emit('BF2_schedule_updated', {

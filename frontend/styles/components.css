@@ -276,7 +276,8 @@ a {
 }
 
 .dropdown-option.check-all-option {
-    color: #007cba;
+    color: var(--main-color);
+    font-size: 0.875rem;
     border-bottom: 0.125rem solid #ddd;
 }
 
@@ -298,6 +299,10 @@ a {
 .dropdown-option.checkbox-option input[type="checkbox"] {
     margin-right: 0.5rem;
     margin-left: 0;
+}
+
+.c-checkbox{
+    font-size: 0.875rem;
 }
 
 @media (max-width: 48rem) {
