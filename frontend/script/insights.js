@@ -169,11 +169,11 @@ const showAllSchedules = (schedules) => {
 // #region ***  Data Access - get___                     ***********
 const getAllItems = async () => {};
 
-const getAllSchedules = async () => {
-  const url = ENDPOINT + `/energy/${id}/24h/`;
+const getSInsights = async () => {
+  const url = ENDPOINT + `/energy/2/24h/`;
   const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
   const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  showAllSchedules(json);
+  console.log('JSON:', json);
 };
 
 // #endregion
@@ -185,6 +185,7 @@ const getAllSchedules = async () => {
 const init = () => {
   showDropdown();
   getAllItems();
+  getInsights();
 };
 
 document.addEventListener('DOMContentLoaded', init);

@@ -152,8 +152,7 @@ const showAllItems = (items) => {
           </article>
         `;
       } else if (item.component_id === 2) {
-        getEnergy24H();
-        getEnergy7D();
+        getEnergy24H(item.component_id);
       } else if (item.component_id === 3) {
         htmlSchedules += `
           <div class="c-temperature-control c-hover--shadow">
@@ -322,8 +321,12 @@ const getAllItems = async () => {
   showAllItems(json);
 };
 
-const getEnergy24H = async () => {};
-const getEnergy7D = async () => {};
+const getEnergy24H = async (component_id) => {
+  const url = ENDPOINT + `/energy/${component_id}/24h/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  console.log('JSON:', json);
+};
 
 // #endregion
 
@@ -346,7 +349,8 @@ const listenToSocketIo = () => {
 const init = () => {
   console.log('DOM loaded');
   showDropdown();
-  getAllItems();
+  // getAllItems();
+  getEnergy24H(2);
   listenToSocketIo();
 };
 
