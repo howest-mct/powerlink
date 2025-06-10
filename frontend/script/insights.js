@@ -78,12 +78,100 @@ const showDropdown = () => {
   });
 };
 
+const showAllSchedules = (schedules) => {
+  let htmlRooms = '';
+  const roomsContainer = document.querySelector('.js-main');
+
+  let roomSchedules = {};
+  for (const schedule of schedules) {
+    const room_id = schedule.room_id;
+    if (!roomSchedules[room_id]) {
+      roomSchedules[room_id] = [];
+    }
+    roomSchedules[room_id].push(schedule);
+  }
+
+  const chartsToRender = [];
+  let room_display_number = 0;
+
+  for (const room_id in roomSchedules) {
+    const room_data = roomSchedules[room_id];
+    const room_name = room_data[0].room_name;
+
+    let htmlSchedules = '';
+    htmlRooms += `
+      <div class="c-room__container js-room__container" data-room_id="${room_id}" data-display_number="${room_display_number}">
+        <section class="c-room">
+          <h2 class="c-section__title">${room_name}</h2>
+          <div class="c-schedules__container">
+    `;
+
+    for (const schedule of room_data) {
+    }
+
+    htmlRooms += htmlSchedules;
+    htmlRooms += `
+          </div>
+        </section>
+      </div>`;
+
+    room_display_number++;
+  }
+
+  roomsContainer.innerHTML = htmlRooms;
+
+  chartsToRender.forEach(({ id, options }) => {
+    const container = document.getElementById(id);
+    if (container) {
+      container.chart = new ApexCharts(container, options);
+      container.chart.render();
+    }
+  });
+
+  const room_containers = document.querySelectorAll('.js-room__container');
+  room_containers.forEach((room_container) => {
+    const display_number = parseInt(room_container.dataset.display_number);
+    const schedule_containers = room_container.querySelectorAll('.js-schedule__container');
+    const input_containers = room_container.querySelectorAll('.js-input_container');
+    const save_containers = room_container.querySelectorAll('.js-card__schedule-save');
+
+    if (display_number % 2 === 0) {
+      room_container.classList.add('c-grey-background');
+      schedule_containers.forEach((schedule_container) => {
+        schedule_container.classList.add('c-white-background');
+      });
+      input_containers.forEach((input_container) => {
+        input_container.classList.add('c-white-background');
+      });
+      save_containers.forEach((save_container) => {
+        save_container.classList.add('c-white-background');
+      });
+    } else {
+      room_container.classList.add('c-white-background');
+      schedule_containers.forEach((schedule_container) => {
+        schedule_container.classList.add('c-grey-background');
+      });
+      input_containers.forEach((input_container) => {
+        input_container.classList.add('c-grey-background');
+      });
+      save_containers.forEach((save_container) => {
+        save_container.classList.add('c-grey-background');
+      });
+    }
+  });
+};
+
 // #endregion
 
 // #region ***  Callback-No Visualisation - callback___  ***********
 // #endregion
 
 // #region ***  Data Access - get___                     ***********
+const getInsights24h = async (`/energy/${id}/24h/`) => {
+  const repsonse = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await repsonse.json().catch((err) => console.error('JSON-error:', err));
+  showInsights24h(json);
+};
 
 // #endregion
 
@@ -93,6 +181,8 @@ const showDropdown = () => {
 // #region ***  Init / DOMContentLoaded                  ***********
 const init = () => {
   showDropdown();
+  getInsights24h();
+  getInsights7d();
 };
 
 document.addEventListener('DOMContentLoaded', init);

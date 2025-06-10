@@ -125,6 +125,7 @@ const showAllItems = (items) => {
   const chartsToRender = [];
   let room_display_number = 0;
 
+  console.log('Rooms items:', rooms_items);
   for (const room_id in rooms_items) {
     const room_data = rooms_items[room_id];
     const room_name = room_data[0].room_name;
@@ -181,7 +182,7 @@ const showAllItems = (items) => {
                 </div>
                 <a href="schedules.html" class="c-temperature-card__edit c-edit">Edit Schedule</a>
             </div>
-        </div>`;
+          </div>`;
       } else if (item.component_id === 10 || item.component_id === 13) {
         htmlSchedules += `
           <div class="c-lighting-card c-hover--shadow c-grey-background">
@@ -203,7 +204,7 @@ const showAllItems = (items) => {
                 </div>
                 <a href="schedules.html" class="c-lighting-card__edit c-edit">Edit Schedule</a>
             </div>
-        </div>`;
+          </div>`;
       } else if (item.component_id === 15) {
         htmlSchedules += `
           <article class="c-article__door-log c-hover--shadow c-grey-background"
@@ -215,7 +216,7 @@ const showAllItems = (items) => {
                     <p class="c-door__date js-last_inhabitant_date">Today at 11:00 AM</p>
                 </div>
             </div>
-        </article>`;
+         </article>`;
       } else if (item.component_id === 17) {
         htmlSchedules += `
           <article class="c-article__door c-hover--shadow c-grey-background">
@@ -233,7 +234,7 @@ const showAllItems = (items) => {
                     <p class="c-door__state js-door_state">Locked</p>
                 </div>
             </div>
-        </article>`;
+         </article>`;
       } else if (item.component_id === 19) {
         htmlSchedules += `
           <article class="c-lighting-outside c-hover--shadow">
@@ -249,7 +250,7 @@ const showAllItems = (items) => {
                 <p class="c-lighting-outside__title">Lights</p>
                 <p class="c-lighting-outside__value-today js-lighting_outside_state">Off</p>
             </div>
-        </article>`;
+         </article>`;
       } else if (item.component_id === 20) {
       }
 

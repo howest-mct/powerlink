@@ -138,13 +138,13 @@ const showAllSchedules = (schedules) => {
     `;
 
     for (const schedule of room_data) {
-      const { schedule_id, start_time, end_time, value, enabled, type_id, component_id, room_id, type_name } = schedule;
+      const { schedule_id, schedule_name, start_time, end_time, value, enabled, type_id, component_id, room_id, type_name } = schedule;
 
       if (type_id === 1) {
         htmlSchedules += `
           <div class="c-temperature-control js-schedule__container js-temperature-control c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
             <div class="c-switch">
-              <h4 class="c-schedule-card__title">${type_name}</h4>
+              <h4 class="c-schedule-card__title">${schedule_name}</h4>
               <label class="switch">
                 <input type="checkbox" class="c-card__checkbox  js-schedule__checkbox" id="checkbox_${schedule_id}" ${enabled ? 'checked' : ''}>
                 <span class="slider round"></span>
@@ -163,7 +163,7 @@ const showAllSchedules = (schedules) => {
             </div>
             <div class="c-temperature-card__meta">
               <div class="c-temperature-card__info">
-                <p class="c-temperature-card__status">Turn on climate control</p>
+                <p class="c-temperature-card__status">Temperature</p>
                 <div class="c-card__schedule">
                 <div class="c-card__schedule-time">
                   <div class="c-card__schedule-from">
@@ -247,7 +247,7 @@ const showAllSchedules = (schedules) => {
         htmlSchedules += `
           <div class="c-lighting-card js-schedule__container c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
             <div class="c-schedule-card__header">    
-              <h4 class="c-schedule-card__title">${type_name}</h4>
+              <h4 class="c-schedule-card__title">${schedule_name}</h4>
               <label class="switch">
                 <input type="checkbox" class="c-card__checkbox  js-schedule__checkbox" id="checkbox_${schedule_id}" ${enabled ? 'checked' : ''}>
                 <span class="slider round"></span>
@@ -263,7 +263,7 @@ const showAllSchedules = (schedules) => {
               <div class="c-value-display" id="value_display_${schedule_id}">${value}%</div>
             </div>
             <div class="c-card__info">
-              <p class="c-card__status">Dim lights automatically</p>
+              <p class="c-card__status">Light intensity</p>
               <div class="c-card__schedule">
                 <div class="c-card__schedule-time">
                   <div class="c-card__schedule-from">

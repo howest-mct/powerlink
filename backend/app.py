@@ -644,15 +644,13 @@ async def front_door():
                 scanned_card = str(scanned_card)
                 snipped_card = cut_card(scanned_card)
                 logger.info(f"Card scanned: {snipped_card}")
+                await log_and_emit_async(snipped_card, card_reader_id)
 
                 try:
                     checked_card = DataRepository.read_card_by_id(snipped_card)
 
                     if checked_card is None:
-                        await log_and_emit_async(snipped_card, card_reader_id)
                         continue
-
-                    await log_and_emit_async(snipped_card, card_reader_id)
 
                     DOOR_LOCK.unlock()
                     await log_and_emit_async(1, servo_lock_id)
@@ -978,7 +976,7 @@ async def get_inhabitant_by_id(card_id: int):
 
 
 @app.get(
-    ENDPOINT + "/energy/{id}/24h",
+    ENDPOINT + "/energy/{id}/24h/",
     response_model=EnergyLog,
     summary="Retrieve a energy_log by ID",
     response_description="The energy_log with the specified ID",
@@ -994,7 +992,7 @@ async def get_energy_log_by_id(id: int):
 
 
 @app.get(
-    ENDPOINT + "/energy/{id}/7d",
+    ENDPOINT + "/energy/{id}/7d/",
     response_model=EnergyLog,
     summary="Retrieve a energy_log by ID",
     response_description="The energy_log with the specified ID",
