@@ -229,6 +229,17 @@ def get_cpu_temperature():
         return "Temp Error"
 
 
+def is_time_in_range(start_time, end_time, current_time):
+    start = start_time.replace(":", "")
+    end = end_time.replace(":", "")
+    now = current_time.replace(":", "")
+
+    if start <= end:
+        return start <= now <= end
+    else:
+        return now >= start or now <= end
+
+
 async def display_lcd():
     global LCD, current_usage, battery_level, eth0_ip, wlan0_ip
     global errors
@@ -380,16 +391,6 @@ async def climate_control(temp_id):
         "fan_state": None,
     }
 
-    def is_time_in_range(start_time, end_time, current_time):
-        start = start_time.replace(":", "")
-        end = end_time.replace(":", "")
-        now = current_time.replace(":", "")
-
-        if start <= end:
-            return start <= now <= end
-        else:
-            return now >= start or now <= end
-
     while True:
         try:
             current_time = time.strftime("%H:%M", time.localtime())
@@ -536,7 +537,7 @@ async def do_lights_button():
 
 async def lights_bottom():
     global LED_BOTTOM, switch_state, last_log_time_switch, previous_state_switch, dict_schedules
-    global prev_led_brightness, errors
+    global prev_led_brightness, errors, led_bottom_id, sleep_fast, sleep_slow
 
     prev_led_brightness = 0
     previous_state_switch = False
@@ -544,17 +545,32 @@ async def lights_bottom():
 
     while True:
         try:
+            current_time = time.strftime("%H:%M", time.localtime())
+
             day_schedule = dict_schedules.get(3, {})
             night_schedule = dict_schedules.get(4, {})
-            use_schedule = day_schedule.get("enabled", False)
+
+            day_enabled = day_schedule.get("enabled", False)
+            day_start = day_schedule.get("start_time", "07:00")
+            day_end = day_schedule.get("end_time", "23:00")
+            day_value = day_schedule.get("value", 100)
+
+            night_enabled = night_schedule.get("enabled", False)
+            night_start = night_schedule.get("start_time", "23:00")
+            night_end = night_schedule.get("end_time", "07:00")
+            night_value = night_schedule.get("value", 50)
+
+            target_brightness = 0
 
             if switch_state:
-                if use_schedule:
-                    target_brightness = day_schedule.get("value", 0)
-
+                if day_enabled and is_time_in_range(day_start, day_end, current_time):
+                    target_brightness = day_value
+                elif night_enabled and is_time_in_range(
+                    night_start, night_end, current_time
+                ):
+                    target_brightness = night_value
                 else:
                     target_brightness = 100
-
             else:
                 target_brightness = 0
 
@@ -587,7 +603,7 @@ async def lights_bottom():
 
 async def lights_top():
     global LED_TOP, led_top_id, motion_sensor_id, MOTION_SENSOR, light_duration, dict_schedules
-    global last_motion, errors
+    global last_motion, errors, sleep_fast, sleep_slow
 
     last_motion = 0
 
@@ -602,15 +618,30 @@ async def lights_top():
 
             if motion_now == 1 and last_motion == 0:
                 current_time = time.strftime("%H:%M", time.localtime())
-                schedule = dict_schedules.get("Lights Upstairs Schedule", {})
-                use_schedule = schedule.get("enabled") == 1
-                schedule_start = schedule.get("start_time", "00:00")
-                schedule_end = schedule.get("end_time", "23:59")
-                schedule_value = schedule.get("value", 100)
 
-                if use_schedule and schedule_start <= current_time <= schedule_end:
-                    brightness = schedule_value
+                day_schedule = dict_schedules.get("Lights Upstairs Schedule", {})
+                night_schedule = dict_schedules.get(
+                    "Lights Upstairs Night Schedule", {}
+                )
 
+                day_enabled = day_schedule.get("enabled", False)
+                day_start = day_schedule.get("start_time", "07:00")
+                day_end = day_schedule.get("end_time", "23:00")
+                day_value = day_schedule.get("value", 100)
+
+                night_enabled = night_schedule.get("enabled", False)
+                night_start = night_schedule.get("start_time", "23:00")
+                night_end = night_schedule.get("end_time", "07:00")
+                night_value = night_schedule.get("value", 50)
+
+                brightness = 100
+
+                if day_enabled and is_time_in_range(day_start, day_end, current_time):
+                    brightness = day_value
+                elif night_enabled and is_time_in_range(
+                    night_start, night_end, current_time
+                ):
+                    brightness = night_value
                 else:
                     brightness = 100
 

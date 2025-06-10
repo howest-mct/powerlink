@@ -21,6 +21,8 @@ const showSliders = async (light_slider_id, value_display_id, bulb_icon_id) => {
     const percentage = value;
     slider.style.background = `linear-gradient(to right, var(--main-color) 0%, var(--main-color) ${percentage}%, #e0e0e0 ${percentage}%, #e0e0e0 100%)`;
 
+    value_display.textContent = `${value}%`;
+
     if (value > 0) {
       bulb_svg.style.fill = '#4A90E2';
       bulb_svg.style.opacity = '1';
@@ -301,9 +303,19 @@ const showAllSchedules = (schedules) => {
     const container = document.getElementById(id);
     if (container) {
       container.chart = new ApexCharts(container, options);
-      container.chart.render();
+      container.chart.render().then(() => {
+        setTimeout(() => {
+          const currentSeries = container.chart.w.config.series[0];
+          container.chart.updateSeries([currentSeries - 0.001]);
+
+          setTimeout(() => {
+            container.chart.updateSeries([currentSeries]);
+          }, 10);
+        }, 100);
+      });
     }
   });
+
   listenToTemperatureControl();
 
   const room_containers = document.querySelectorAll('.js-room__container');
@@ -382,7 +394,6 @@ const getPutSchedule = async (schedule_id, start_time, end_time, value, enabled)
     return;
   }
   const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  console.log(json);
 
   sio.emit('BF2_schedule_updated', {
     schedule_id: json.schedule_id,
