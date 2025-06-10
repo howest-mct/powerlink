@@ -431,7 +431,6 @@ const listenToSaveCLicked = (e) => {
 
   button.textContent = 'Saved';
   button.disabled = true;
-
   button.timeoutId = setTimeout(() => {
     button.textContent = 'Save Changes';
     button.disabled = false;
@@ -439,8 +438,32 @@ const listenToSaveCLicked = (e) => {
   }, 3000);
 
   getPutSchedule(schedule_id, start_time, end_time, value, enabled);
-};
 
+  const roomContainer = schedule_container.closest('.js-room__container');
+  const allSchedules = roomContainer.querySelectorAll('.js-schedule__container');
+  allSchedules.forEach((other) => {
+    const otherId = parseInt(other.dataset.schedule_id, 10);
+    const compId = parseInt(other.dataset.component_id, 10);
+    if (otherId !== schedule_id && compId === parseInt(schedule_container.dataset.component_id, 10)) {
+      const inverseStart = end_time;
+      const inverseEnd = start_time;
+
+      let otherValue;
+      if (other.classList.contains('c-temperature-control')) {
+        otherValue = parseFloat(other.querySelector('.c-circular-progress').getAttribute('data-value'));
+      } else if (other.classList.contains('c-lighting-card')) {
+        otherValue = parseFloat(other.querySelector('.c-slider').value);
+      }
+      const otherEnabled = other.querySelector('.js-schedule__checkbox').checked ? 1 : 0;
+
+      getPutSchedule(otherId, inverseStart, inverseEnd, otherValue, otherEnabled);
+
+      const inputs = other.querySelectorAll('.js-input_container');
+      inputs[0].value = inverseStart;
+      inputs[1].value = inverseEnd;
+    }
+  });
+};
 const listenToTemperatureControl = () => {
   const temp_controls = document.querySelectorAll('.js-temperature-control');
   temp_controls.forEach((control) => {

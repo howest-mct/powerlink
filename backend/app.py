@@ -173,7 +173,7 @@ try:
     dict_schedules = {}
 
     for schedule in all_schedules:
-        schedule_name = schedule.get("schedule_name")
+        schedule_name = schedule.get("schedule_id")
         if schedule_name and schedule_name not in dict_schedules:
             dict_schedules[schedule_name] = {}
 
@@ -366,7 +366,7 @@ async def get_wattage():
 
 async def climate_control(temp_id):
     global HEATING, AIRCO, temp, temp_sensor_id, pot_id, MCP, TEMP_SENSOR, dict_schedules
-    global errors, heater_id
+    global errors, heater_id, fan_id, sleep_medium
 
     hysteresis = 0.5
     max_range = 1.0
@@ -380,6 +380,16 @@ async def climate_control(temp_id):
         "fan_state": None,
     }
 
+    def is_time_in_range(start_time, end_time, current_time):
+        start = start_time.replace(":", "")
+        end = end_time.replace(":", "")
+        now = current_time.replace(":", "")
+
+        if start <= end:
+            return start <= now <= end
+        else:
+            return now >= start or now <= end
+
     while True:
         try:
             current_time = time.strftime("%H:%M", time.localtime())
@@ -387,18 +397,30 @@ async def climate_control(temp_id):
             current_pot = MCP.read_channel(0)
             pot_temp = round((16 + (current_pot / 1023) * 14) * 2) / 2
 
-            schedule = dict_schedules.get("Heater Schedule", {})
-            use_schedule = schedule.get("enabled") == 1
-            schedule_start = schedule.get("start_time", "00:00")
-            schedule_end = schedule.get("end_time", "23:59")
-            schedule_value = schedule.get("value", pot_temp)
+            day_schedule = dict_schedules.get(1, {})
+            night_schedule = dict_schedules.get(2, {})
 
-            if use_schedule and schedule_start <= current_time <= schedule_end:
-                target_temp = schedule_value
+            day_enabled = day_schedule.get("enabled") == 1
+            day_start = day_schedule.get("start_time", "07:00")
+            day_end = day_schedule.get("end_time", "23:00")
+            day_value = day_schedule.get("value", pot_temp)
+
+            night_enabled = night_schedule.get("enabled") == 1
+            night_start = night_schedule.get("start_time", "23:00")
+            night_end = night_schedule.get("end_time", "07:00")
+            night_value = night_schedule.get("value", pot_temp)
+
+            target_temp = pot_temp
+            fan_active = True
+
+            if day_enabled and is_time_in_range(day_start, day_end, current_time):
+                target_temp = day_value
                 fan_active = True
 
-            elif use_schedule:
-                target_temp = 16
+            elif night_enabled and is_time_in_range(
+                night_start, night_end, current_time
+            ):
+                target_temp = night_value
                 fan_active = False
 
             else:
@@ -419,7 +441,6 @@ async def climate_control(temp_id):
             if current_temp < lower_bound:
                 if current_temp <= max_lower:
                     heater_power = 100
-
                 else:
                     calculated_power = round(
                         100 * (lower_bound - current_temp) / (lower_bound - max_lower),
@@ -485,6 +506,7 @@ async def climate_control(temp_id):
         except Exception as e:
             logger.error(f"Error in climate_control: {e}")
             errors += 1
+            await asyncio.sleep(1)
 
 
 def lights_button(pin):
@@ -522,12 +544,13 @@ async def lights_bottom():
 
     while True:
         try:
-            schedule = dict_schedules.get("Lights Downstairs Schedule", {})
-            use_schedule = schedule.get("enabled", False)
+            day_schedule = dict_schedules.get(3, {})
+            night_schedule = dict_schedules.get(4, {})
+            use_schedule = day_schedule.get("enabled", False)
 
             if switch_state:
                 if use_schedule:
-                    target_brightness = schedule.get("value", 0)
+                    target_brightness = day_schedule.get("value", 0)
 
                 else:
                     target_brightness = 100
@@ -947,10 +970,17 @@ async def get_all_schedules(frame_name: str):
     response_model=UpdatedSchedule,
     tags=["schedule"],
 )
-async def update_lighting_schedule(id: int, schedule: DTOSchedule):
+async def update_schedule(id: int, schedule: DTOSchedule):
     existing = DataRepository.read_schedule_by_id(id)
     if not existing:
         raise HTTPException(status_code=404, detail=f"Schedule with ID {id} not found")
+    elif (
+        schedule.start_time == existing["start_time"]
+        and schedule.end_time == existing["end_time"]
+        and schedule.value == existing["value"]
+        and schedule.enabled == existing["enabled"]
+    ):
+        return existing
     updated = DataRepository.update_schedule(
         id, schedule.start_time, schedule.end_time, schedule.value, schedule.enabled
     )
@@ -1017,10 +1047,14 @@ async def connect(sid, environ):
 
 
 @sio.on("BF2_schedule_updated")
-async def handler(sid, data):
+async def schedule_handler(sid, data):
     global dict_schedules
-    dict_schedules[data["schedule_name"]] = data
-    print(f"Received schedule update: {data}")
+    dict_schedules[data["schedule_id"]] = data
+
+
+@sio.on("BF2_component_selection")
+async def component_selection_handler(sid, data):
+    print(f"Received component selection: {data}")
 
 
 # endregion Socket.IO Handlers *************************

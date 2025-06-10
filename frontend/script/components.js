@@ -53,24 +53,20 @@ function createComponentDropdown(roomId, components) {
   `;
 }
 
-function initDropdownEvents() {
-  // Handle dropdown triggers
-  document.addEventListener('click', function (e) {
+const initDropdownEvents = () => {
+  document.addEventListener('click', (e) => {
     if (e.target.classList.contains('dropdown-trigger')) {
       e.stopPropagation();
       const dropdown = e.target.closest('.component-dropdown');
       const menu = dropdown.querySelector('.dropdown-menu');
 
-      // Close all other dropdowns
       document.querySelectorAll('.dropdown-menu').forEach((m) => {
         if (m !== menu) m.style.display = 'none';
       });
 
-      // Toggle current dropdown
       menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
     }
 
-    // Handle check all
     if (e.target.classList.contains('check-all-option')) {
       e.stopPropagation();
       const roomId = e.target.dataset.room;
@@ -84,7 +80,6 @@ function initDropdownEvents() {
         } else {
           checkbox.checked = true;
         }
-        // Emit for each component
         emitComponentSelection(checkbox);
       });
 
@@ -92,7 +87,6 @@ function initDropdownEvents() {
       e.target.textContent = allChecked ? 'Check All' : 'Uncheck All';
     }
 
-    // Handle individual checkboxes
     if (e.target.type === 'checkbox' && e.target.dataset.room) {
       emitComponentSelection(e.target);
       const dropdown = e.target.closest('.component-dropdown');
@@ -100,57 +94,55 @@ function initDropdownEvents() {
       updateCheckAllButton(dropdown);
     }
 
-    // Close dropdowns when clicking outside
     if (!e.target.closest('.component-dropdown')) {
       document.querySelectorAll('.dropdown-menu').forEach((menu) => {
         menu.style.display = 'none';
       });
     }
   });
-}
+};
 
 function updateDropdownLabel(dropdown) {
   const trigger = dropdown.querySelector('.dropdown-trigger');
   const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
-  const checkedBoxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+  const checked_boxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
 
-  if (checkedBoxes.length === 0) {
+  if (checked_boxes.length === 0) {
     trigger.textContent = 'Select Components';
-  } else if (checkedBoxes.length === 1) {
-    trigger.textContent = checkedBoxes[0].dataset.name;
-  } else if (checkedBoxes.length === checkboxes.length) {
+  } else if (checked_boxes.length === 1) {
+    trigger.textContent = checked_boxes[0].dataset.name;
+  } else if (checked_boxes.length === checkboxes.length) {
     trigger.textContent = 'All Components Selected';
   } else {
-    trigger.textContent = `${checkedBoxes.length} Components Selected`;
+    trigger.textContent = `${checked_boxes.length} Components Selected`;
   }
 }
 
 function updateCheckAllButton(dropdown) {
-  const checkAllBtn = dropdown.querySelector('.check-all-option');
-  const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
-  const checkedBoxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+  const check_all_btn = dropdown.querySelector('.check-all-option');
+  const check_boxes = dropdown.querySelectorAll('input[type="checkbox"]');
+  const checked_boxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
 
-  if (checkedBoxes.length === checkboxes.length && checkboxes.length > 0) {
-    checkAllBtn.textContent = 'Uncheck All';
+  if (checked_boxes.length === check_boxes.length && check_boxes.length > 0) {
+    check_all_btn.textContent = 'Uncheck All';
   } else {
-    checkAllBtn.textContent = 'Check All';
+    check_all_btn.textContent = 'Check All';
   }
 }
 
-function emitComponentSelection(checkbox) {
-  const componentId = parseInt(checkbox.value);
-  const roomId = parseInt(checkbox.dataset.room);
-  const isChecked = checkbox.checked;
+const emitComponentSelection = (checkbox) => {
+  const component_id = parseInt(checkbox.value);
+  const room_id = parseInt(checkbox.dataset.room);
+  const is_checked = checkbox.checked;
 
-  console.log(`Component ${componentId} in room ${roomId} ${isChecked ? 'selected' : 'deselected'}`);
+  console.log(`Component ${component_id} in room ${room_id} ${is_checked ? 'selected' : 'deselected'}`);
 
-  // Emit to socket
-  sio.emit('component_selection', {
-    component_id: componentId,
-    room_id: roomId,
-    selected: isChecked,
+  sio.emit('BF2_component_selection', {
+    component_id: component_id,
+    room_id: room_id,
+    selected: is_checked,
   });
-}
+};
 // #endregion
 
 // #region ***  Callback-Visualisation - show___         ***********
@@ -274,7 +266,6 @@ const showAllLastLogs = (json) => {
       `;
     }
 
-    // Create dropdown for this room
     const dropdownHtml = createComponentDropdown(room_id, room_data);
 
     htmlRooms += `
@@ -296,7 +287,6 @@ const showAllLastLogs = (json) => {
 
   room_containers.innerHTML = htmlRooms;
 
-  // Apply alternating backgrounds
   const room_container = document.querySelectorAll('.js-room__container');
   room_container.forEach((room_container) => {
     const room_number = parseInt(room_container.dataset.room_number);
@@ -315,7 +305,6 @@ const showAllLastLogs = (json) => {
     }
   });
 
-  // Initialize dropdown events
   initDropdownEvents();
 };
 
@@ -362,7 +351,6 @@ const showLastLog = (log) => {
           </article>
         `;
 
-        // Add new component to dropdown if it doesn't exist
         if (dropdown) {
           const existingInput = dropdown.querySelector(`input[value="${log.component_id}"]`);
           if (!existingInput) {
@@ -431,6 +419,7 @@ const listenToSocket = () => {
   sio.on('B2F_new_log', (data) => {
     showLastLog(data);
   });
+  sio.on('B2F_component_selection', (data) => {});
 };
 // #endregion
 

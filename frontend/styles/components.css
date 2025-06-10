@@ -208,45 +208,38 @@ a {
 .c-room__header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
     flex-wrap: wrap;
+    align-items: center;
     gap: 1rem;
 }
 
 .component-dropdown {
     position: relative;
     display: inline-block;
-    min-width: 200px;
+    min-width: 12.5rem;
 }
 
 .dropdown-trigger {
-    display: block;
-    padding: 10px 15px;
+    padding: .625rem .9375rem;
     background: #fff;
-    border: 2px solid #ddd;
-    border-radius: 4px;
+    border: .0625rem solid var(--border-color);
+    border-radius: .25rem;
     cursor: pointer;
     user-select: none;
     position: relative;
     transition: all 0.2s ease;
-    font-size: 14px;
-    color: #333;
-}
-
-.dropdown-trigger:hover {
-    border-color: #bbb;
-    background: #f9f9f9;
+    font-size: 0.875rem;
+    color: var(--text_main-color);
 }
 
 .dropdown-trigger:after {
     content: '▼';
     position: absolute;
-    right: 15px;
+    right: 16px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 12px;
-    color: #666;
+    font-size: 0.75rem;
+    color: var(--text_sub-color);
 }
 
 .dropdown-menu {
@@ -255,27 +248,27 @@ a {
     left: 0;
     right: 0;
     background: #fff;
-    border: 2px solid #ddd;
+    border: 1px solid var(--border-color);
     border-top: none;
-    border-radius: 0 0 4px 4px;
-    max-height: 200px;
+    border-radius: 0 0 0.25rem 0.25rem;
+    max-height: 12.5rem;
     overflow-y: auto;
     z-index: 1000;
     display: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 .125rem 0.5rem rgba(0, 0, 0, 0.1);
 }
 
 .dropdown-option {
     display: block;
-    padding: 8px 15px;
-    border-bottom: 1px solid #eee;
+    padding: .5rem .9375rem;
+    border-bottom: .0625rem solid var(--border-color);
     cursor: pointer;
     transition: background-color 0.2s ease;
-    color: #333;
+    color: var(--text_main-color);
 }
 
 .dropdown-option:hover {
-    background-color: #f5f5f5;
+    background-color: var(--background-color);
 }
 
 .dropdown-option:last-child {
@@ -283,9 +276,8 @@ a {
 }
 
 .dropdown-option.check-all-option {
-    font-weight: bold;
     color: #007cba;
-    border-bottom: 2px solid #ddd;
+    border-bottom: 0.125rem solid #ddd;
 }
 
 .dropdown-option.check-all-option:hover {
@@ -360,7 +352,6 @@ a {
 
 .c-room__header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
 }
 
