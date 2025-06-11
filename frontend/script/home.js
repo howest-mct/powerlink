@@ -31,13 +31,13 @@ const component_icons = {
 // #endregion
 
 // #region ***  Dropdown Functions                      ***********
-const createComponentDropdown = (room_id, all_components, components_in_current_frame) => {
+const createComponentDropdown = (room_id, all_components, components_in_current_page) => {
   let dropdown_options_html = '<div class="dropdown-option check-all-option" data-room="' + room_id + '">Check All</div>';
 
-  const frame_component_ids = new Set(components_in_current_frame.map((component) => component.component_id));
+  const page_component_ids = new Set(components_in_current_page.map((component) => component.component_id));
 
   all_components.forEach((component) => {
-    const is_component_checked = frame_component_ids.has(component.component_id) ? 'checked' : '';
+    const is_component_checked = page_component_ids.has(component.component_id) ? 'checked' : '';
     dropdown_options_html += `
       <div class="dropdown-option checkbox-option">
         <label class="c-checkbox">
@@ -140,7 +140,7 @@ const emitComponentSelection = async (checkbox_element) => {
   const room_id = parseInt(checkbox_element.dataset.room);
   const is_checkbox_checked = checkbox_element.checked;
 
-  const update_was_successful = await updateComponentInFrame(component_id, is_checkbox_checked);
+  const update_was_successful = await updateComponentInPage(component_id, is_checkbox_checked);
 
   if (update_was_successful) {
     socket_connection.emit('BF2_component_selection', {
@@ -168,9 +168,9 @@ const emitComponentSelection = async (checkbox_element) => {
 const createComponentCard = async (component_id, room_id) => {
   try {
     const url_parameters = new URLSearchParams(window.location.search);
-    const frame_parameter = parseInt(url_parameters.get('frame'));
+    const page_parameter = parseInt(url_parameters.get('page'));
 
-    const log_url = api_endpoint + `/components/last/${frame_parameter}/`;
+    const log_url = api_endpoint + `/components/last/${page_parameter}/`;
     const log_response = await fetch(log_url);
     const all_component_logs = await log_response.json();
 
@@ -299,11 +299,11 @@ const showDropdown = () => {
 
 const showAllRoomsAndComponents = async () => {
   try {
-    const [all_rooms, all_components, all_component_logs, components_in_frame] = await Promise.all([getAllRooms(), getAllComponents(), getLastComponentLogs(), getComponentsInFrame()]);
+    const [all_rooms, all_components, all_component_logs, components_in_page] = await Promise.all([getAllRooms(), getAllComponents(), getLastComponentLogs(), getComponentsInPage()]);
 
     const components_grouped_by_room = {};
     const logs_by_component_id = {};
-    const frame_component_ids = new Set(components_in_frame.map((component) => component.component_id));
+    const page_component_ids = new Set(components_in_page.map((component) => component.component_id));
 
     all_components.forEach((component) => {
       if (!components_grouped_by_room[component.room_id]) {
@@ -325,10 +325,10 @@ const showAllRoomsAndComponents = async () => {
       let components_html = '';
 
       room_components.forEach((component) => {
-        const component_is_in_frame = frame_component_ids.has(component.component_id);
+        const component_is_in_page = page_component_ids.has(component.component_id);
         const component_log = logs_by_component_id[component.component_id];
 
-        if (component_is_in_frame && component_log) {
+        if (component_is_in_page && component_log) {
           const formatted_date = new Date(component_log.datetime);
           const icon_path = component_icons[component.component_id];
 
@@ -352,7 +352,7 @@ const showAllRoomsAndComponents = async () => {
         }
       });
 
-      const dropdown_html = createComponentDropdown(room.room_id, room_components, components_in_frame);
+      const dropdown_html = createComponentDropdown(room.room_id, room_components, components_in_page);
 
       rooms_html += `
         <div class="c-room__container js-room__container" data-room_id="${room.room_id}" data-room_name="${room.room_name}" data-room_number="${room_index}">
@@ -578,8 +578,8 @@ const formatDateTime = (iso_string) => {
 // #region ***  Data Access - get___                     ***********
 const getLastComponentLogs = async () => {
   const url_parameters = new URLSearchParams(window.location.search);
-  const frame_url_param = parseInt(url_parameters.get('frame'));
-  let request_url = api_endpoint + `/components/last/${frame_url_param}/`;
+  const page_url_param = parseInt(url_parameters.get('page'));
+  let request_url = api_endpoint + `/components/last/${page_url_param}/`;
   let server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
   const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
   return json_data;
@@ -599,22 +599,22 @@ const getAllRooms = async () => {
   return json_data;
 };
 
-const getComponentsInFrame = async () => {
+const getComponentsInPage = async () => {
   const url_parameters = new URLSearchParams(window.location.search);
-  const frame_id = parseInt(url_parameters.get('frame'));
-  const request_url = api_endpoint + `/frames/${frame_id}/components/`;
+  const page_id = parseInt(url_parameters.get('page'));
+  const request_url = api_endpoint + `/pages/${page_id}/components/`;
   const server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
   const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
   return json_data;
 };
 
-const updateComponentInFrame = async (component_id, is_component_selected) => {
+const updateComponentInPage = async (component_id, is_component_selected) => {
   const url_parameters = new URLSearchParams(window.location.search);
-  const frame_id = parseInt(url_parameters.get('frame'));
+  const page_id = parseInt(url_parameters.get('page'));
 
   try {
     if (is_component_selected) {
-      const request_url = api_endpoint + `/frames/${frame_id}/components/`;
+      const request_url = api_endpoint + `/pages/${page_id}/components/`;
       const server_response = await fetch(request_url, {
         method: 'POST',
         headers: {
@@ -622,18 +622,18 @@ const updateComponentInFrame = async (component_id, is_component_selected) => {
         },
         body: JSON.stringify({
           component_id: component_id,
-          frame_id: frame_id,
+          page_id: page_id,
         }),
       });
     } else {
-      const request_url = api_endpoint + `/frames/${frame_id}/components/${component_id}/`;
+      const request_url = api_endpoint + `/pages/${page_id}/components/${component_id}/`;
       const server_response = await fetch(request_url, {
         method: 'DELETE',
       });
     }
     return true;
   } catch (error) {
-    console.error('Error updating component in frame:', error);
+    console.error('Error updating component in page:', error);
 
     const checkbox_element = document.querySelector(`input[value="${component_id}"]`);
     if (checkbox_element) {

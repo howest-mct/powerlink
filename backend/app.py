@@ -22,8 +22,8 @@ from models.backend_models import (
     EnergyLog,
     Component,
     Room,
-    ComponentFrame,
-    DTOComponentFrame,
+    ComponentPage,
+    DTOComponentPage,
 )
 
 from models.device_models import (
@@ -777,9 +777,9 @@ async def lights_outdoors():
                 last_state_led = False
 
             if not last_state_led:
-                current_state = ldr_value < 25
+                current_state = ldr_value < 45
             else:
-                current_state = ldr_value < 30
+                current_state = ldr_value < 50
 
             if current_state != last_state_led:
                 if current_state:
@@ -1001,99 +1001,97 @@ async def get_all_rooms():
 
 
 @app.get(
-    ENDPOINT + "/components/last/{frame_id}/",
+    ENDPOINT + "/components/last/{page_id}/",
     response_model=list[Log],
     summary="Retrieve all logs",
     response_description="A list of all available logs",
     tags=["logs"],
 )
-async def read_all_last_logs(frame_id: int):
-    data = DataRepository.read_all_last_logs(frame_id)
+async def read_all_last_logs(page_id: int):
+    data = DataRepository.read_all_last_logs(page_id)
     return data if data else []
 
 
 @app.get(
-    ENDPOINT + "/frames/{frame_id}/components/",
-    response_model=list[ComponentFrame],
-    summary="Retrieve all components in a frame",
-    response_description="A list of all available components in the specified frame",
-    tags=["frames"],
+    ENDPOINT + "/pages/{page_id}/components/",
+    response_model=list[ComponentPage],
+    summary="Retrieve all components in a page",
+    response_description="A list of all available components in the specified page",
+    tags=["pages"],
 )
-async def get_all_components_in_frame(frame_id: str):
-    data = DataRepository.read_all_components_in_frame(frame_id)
+async def get_all_components_in_page(page_id: str):
+    data = DataRepository.read_all_components_in_page(page_id)
     return data if data else []
 
 
 @app.post(
-    ENDPOINT + "/frames/{frame_id}/components/",
-    response_model=ComponentFrame,
-    summary="Add a component to a frame",
-    response_description="The component successfully added to the frame",
-    tags=["frames"],
+    ENDPOINT + "/pages/{page_id}/components/",
+    response_model=ComponentPage,
+    summary="Add a component to a page",
+    response_description="The component successfully added to the page",
+    tags=["pages"],
 )
-async def add_component_to_frame(frame_id: str, component_data: DTOComponentFrame):
-    if int(frame_id) != component_data.frame_id:
+async def add_component_to_page(page_id: str, component_data: DTOComponentPage):
+    if int(page_id) != component_data.page_id:
         raise HTTPException(
             status_code=400,
-            detail="Frame ID in URL does not match frame ID in request body",
+            detail="Page ID in URL does not match page ID in request body",
         )
 
-    if DataRepository.check_component_in_frame_exists(
-        component_data.component_id, component_data.frame_id
+    if DataRepository.check_component_in_page_exists(
+        component_data.component_id, component_data.page_id
     ):
         raise HTTPException(
             status_code=409,
-            detail=f"Component {component_data.component_id} already exists in frame {frame_id}",
+            detail=f"Component {component_data.component_id} already exists in page {page_id}",
         )
 
-    result = DataRepository.add_component_to_frame(
-        component_data.component_id, component_data.frame_id
+    result = DataRepository.add_component_to_page(
+        component_data.component_id, component_data.page_id
     )
     if not result:
-        raise HTTPException(status_code=500, detail="Failed to add component to frame")
+        raise HTTPException(status_code=500, detail="Failed to add component to page")
 
-    return ComponentFrame(
-        component_id=component_data.component_id, frame_id=component_data.frame_id
+    return ComponentPage(
+        component_id=component_data.component_id, page_id=component_data.page_id
     )
 
 
 @app.delete(
-    ENDPOINT + "/frames/{frame_id}/components/{component_id}/",
-    summary="Remove a component from a frame",
-    response_description="Component successfully removed from frame",
-    tags=["frames"],
+    ENDPOINT + "/pages/{page_id}/components/{component_id}/",
+    summary="Remove a component from a page",
+    response_description="Component successfully removed from page",
+    tags=["pages"],
 )
-async def remove_component_from_frame(frame_id: str, component_id: str):
-    if not DataRepository.check_component_in_frame_exists(
-        int(component_id), int(frame_id)
+async def remove_component_from_page(page_id: str, component_id: str):
+    if not DataRepository.check_component_in_page_exists(
+        int(component_id), int(page_id)
     ):
         raise HTTPException(
             status_code=404,
-            detail=f"Component {component_id} not found in frame {frame_id}",
+            detail=f"Component {component_id} not found in page {page_id}",
         )
 
-    result = DataRepository.remove_component_from_frame(
-        int(component_id), int(frame_id)
-    )
+    result = DataRepository.remove_component_from_page(int(component_id), int(page_id))
     if not result:
         raise HTTPException(
-            status_code=500, detail="Failed to remove component from frame"
+            status_code=500, detail="Failed to remove component from page"
         )
 
     return {
-        "message": f"Component {component_id} successfully removed from frame {frame_id}"
+        "message": f"Component {component_id} successfully removed from page {page_id}"
     }
 
 
 @app.get(
-    ENDPOINT + "/schedules/{frame_id}/",
+    ENDPOINT + "/schedules/{page_id}/",
     response_model=list[Schedule],
     summary="Retrieve all schedules",
     response_description="A list of all available schedules",
     tags=["schedules"],
 )
-async def get_all_schedules(frame_id: str):
-    data = DataRepository.read_all_schedules_by_frame_id(frame_id)
+async def get_all_schedules(page_id: str):
+    data = DataRepository.read_all_schedules_by_page_id(page_id)
     if data is None or len(data) == 0:
         raise HTTPException(
             status_code=404, detail=f"No schedules found in the database"

@@ -27,39 +27,39 @@ class DataRepository:
         """
         return Database.get_rows(sql)
 
-    def read_all_components_in_frame(frame_id):
+    def read_all_components_in_page(page_id):
         sql = """
-            SELECT * FROM components_frames WHERE frame_id = %s;
+            SELECT * FROM components_pages WHERE page_id = %s;
             """
-        params = [frame_id]
+        params = [page_id]
         result = Database.get_rows(sql, params)
 
         if not result:
             return []
         return result
 
-    def add_component_to_frame(component_id, frame_id):
+    def add_component_to_page(component_id, page_id):
         sql = """
-            INSERT INTO components_frames (component_id, frame_id) 
+            INSERT INTO components_pages (component_id, page_id) 
             VALUES (%s, %s);
             """
-        params = [component_id, frame_id]
+        params = [component_id, page_id]
         return Database.execute_sql(sql, params)
 
-    def remove_component_from_frame(component_id, frame_id):
+    def remove_component_from_page(component_id, page_id):
         sql = """
-            DELETE FROM components_frames 
-            WHERE component_id = %s AND frame_id = %s;
+            DELETE FROM components_pages 
+            WHERE component_id = %s AND page_id = %s;
             """
-        params = [component_id, frame_id]
+        params = [component_id, page_id]
         return Database.execute_sql(sql, params)
 
-    def check_component_in_frame_exists(component_id, frame_id):
+    def check_component_in_page_exists(component_id, page_id):
         sql = """
-            SELECT COUNT(*) as count FROM components_frames 
-            WHERE component_id = %s AND frame_id = %s;
+            SELECT COUNT(*) as count FROM components_pages
+            WHERE component_id = %s AND page_id = %s;
             """
-        params = [component_id, frame_id]
+        params = [component_id, page_id]
         result = Database.get_one_row(sql, params)
         return result["count"] > 0 if result else False
 
@@ -78,34 +78,34 @@ class DataRepository:
         return Database.get_one_row(sql, params)
 
     @staticmethod
-    def read_all_last_logs(frame_id):
+    def read_all_last_logs(page_id):
         sql = """
             SELECT cl.*, c.component_name, c.value_unit, r.room_id, r.room_name
             FROM component_logs cl
             JOIN components c ON cl.component_id = c.component_id
             JOIN rooms r ON c.room_id = r.room_id
-            JOIN components_frames sf ON cl.component_id = sf.component_id
+            JOIN components_pages sf ON cl.component_id = sf.component_id
             WHERE cl.datetime = (
                 SELECT MAX(datetime)
                 FROM component_logs cl2
                 WHERE cl2.component_id = cl.component_id
-            ) AND sf.frame_id = %s
+            ) AND sf.page_id = %s
             ORDER BY c.component_id;
         """
-        params = [frame_id]
+        params = [page_id]
         return Database.get_rows(sql, params)
 
     @staticmethod
-    def read_all_schedules_by_frame_id(frame_id):
+    def read_all_schedules_by_page_id(page_id):
         sql = """
             SELECT s.*, r.room_name, t.type_name
             FROM schedules s
-            JOIN schedules_frames sf ON s.schedule_id = sf.schedule_id
+            JOIN schedules_pages sf ON s.schedule_id = sf.schedule_id
             JOIN rooms r ON s.room_id = r.room_id
             JOIN schedule_types t ON s.type_id = t.type_id
-            WHERE sf.frame_id = %s;
+            WHERE sf.page_id = %s;
         """
-        params = [frame_id]
+        params = [page_id]
         return Database.get_rows(sql, params)
 
     @staticmethod

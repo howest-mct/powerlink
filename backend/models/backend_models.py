@@ -21,14 +21,14 @@ class Room(P1BaseModel):
     room_name: str
 
 
-class ComponentFrame(P1BaseModel):
+class ComponentPage(P1BaseModel):
     component_id: int
-    frame_id: int
+    page_id: int
 
 
-class DTOComponentFrame(P1BaseModel):
+class DTOComponentPage(P1BaseModel):
     component_id: int
-    frame_id: int
+    page_id: int
 
 
 class Log(P1BaseModel):

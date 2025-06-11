@@ -31,15 +31,15 @@ const component_icons = {
 // #endregion
 
 // #region ***  Dropdown Functions                      ***********
-const createComponentDropdown = (room_id, all_components, components_in_current_frame) => {
-  let dropdown_options_html = '<div class="dropdown-option check-all-option" data-room="' + room_id + '">Check All</div>';
+const createComponentDropdown = (room_id, all_components, components_in_current_page) => {
+  let dropdown_options_html = '<div class="c-dropdown-option c-check-all-option" data-room="' + room_id + '">Check All</div>';
 
-  const frame_component_ids = new Set(components_in_current_frame.map((component) => component.component_id));
+  const page_component_ids = new Set(components_in_current_page.map((component) => component.component_id));
 
   all_components.forEach((component) => {
-    const is_component_checked = frame_component_ids.has(component.component_id) ? 'checked' : '';
+    const is_component_checked = page_component_ids.has(component.component_id) ? 'checked' : '';
     dropdown_options_html += `
-      <div class="dropdown-option checkbox-option">
+      <div class="c-dropdown-option c-checkbox-option">
         <label class="c-checkbox">
           <input type="checkbox" value="${component.component_id}" data-room="${room_id}" data-name="${component.component_name}" ${is_component_checked}>
           ${component.component_name}
@@ -49,9 +49,9 @@ const createComponentDropdown = (room_id, all_components, components_in_current_
   });
 
   return `
-    <div class="component-dropdown" data-room="${room_id}">
-      <div class="dropdown-trigger">Select Components</div>
-      <div class="dropdown-menu">
+    <div class="c-component-dropdown" data-room="${room_id}">
+      <div class="c-dropdown-trigger">Select Components</div>
+      <div class="c-dropdown-menu">
         ${dropdown_options_html}
       </div>
     </div>
@@ -60,22 +60,22 @@ const createComponentDropdown = (room_id, all_components, components_in_current_
 
 const initDropdownEvents = () => {
   document.addEventListener('click', (event) => {
-    if (event.target.classList.contains('dropdown-trigger')) {
+    if (event.target.classList.contains('c-dropdown-trigger')) {
       event.stopPropagation();
-      const clicked_dropdown = event.target.closest('.component-dropdown');
-      const dropdown_menu = clicked_dropdown.querySelector('.dropdown-menu');
+      const clicked_dropdown = event.target.closest('.c-component-dropdown');
+      const dropdown_menu = clicked_dropdown.querySelector('.c-dropdown-menu');
 
-      document.querySelectorAll('.dropdown-menu').forEach((menu) => {
+      document.querySelectorAll('.c-dropdown-menu').forEach((menu) => {
         if (menu !== dropdown_menu) menu.style.display = 'none';
       });
 
       dropdown_menu.style.display = dropdown_menu.style.display === 'block' ? 'none' : 'block';
     }
 
-    if (event.target.classList.contains('check-all-option')) {
+    if (event.target.classList.contains('c-check-all-option')) {
       event.stopPropagation();
       const room_id = event.target.dataset.room;
-      const clicked_dropdown = event.target.closest('.component-dropdown');
+      const clicked_dropdown = event.target.closest('.c-component-dropdown');
       const all_checkboxes = clicked_dropdown.querySelectorAll('input[type="checkbox"]');
       const all_boxes_checked = Array.from(all_checkboxes).every((checkbox) => checkbox.checked);
 
@@ -94,13 +94,13 @@ const initDropdownEvents = () => {
 
     if (event.target.type === 'checkbox' && event.target.dataset.room) {
       emitComponentSelection(event.target);
-      const parent_dropdown = event.target.closest('.component-dropdown');
+      const parent_dropdown = event.target.closest('.c-component-dropdown');
       updateDropdownLabel(parent_dropdown);
       updateCheckAllButton(parent_dropdown);
     }
 
-    if (!event.target.closest('.component-dropdown')) {
-      document.querySelectorAll('.dropdown-menu').forEach((menu) => {
+    if (!event.target.closest('.c-component-dropdown')) {
+      document.querySelectorAll('.c-dropdown-menu').forEach((menu) => {
         menu.style.display = 'none';
       });
     }
@@ -108,7 +108,7 @@ const initDropdownEvents = () => {
 };
 
 const updateDropdownLabel = (dropdown_element) => {
-  const trigger_button = dropdown_element.querySelector('.dropdown-trigger');
+  const trigger_button = dropdown_element.querySelector('.c-dropdown-trigger');
   const all_checkboxes = dropdown_element.querySelectorAll('input[type="checkbox"]');
   const checked_checkboxes = dropdown_element.querySelectorAll('input[type="checkbox"]:checked');
 
@@ -124,7 +124,7 @@ const updateDropdownLabel = (dropdown_element) => {
 };
 
 const updateCheckAllButton = (dropdown_element) => {
-  const check_all_button = dropdown_element.querySelector('.check-all-option');
+  const check_all_button = dropdown_element.querySelector('.c-check-all-option');
   const all_checkboxes = dropdown_element.querySelectorAll('input[type="checkbox"]');
   const checked_checkboxes = dropdown_element.querySelectorAll('input[type="checkbox"]:checked');
 
@@ -140,7 +140,7 @@ const emitComponentSelection = async (checkbox_element) => {
   const room_id = parseInt(checkbox_element.dataset.room);
   const is_checkbox_checked = checkbox_element.checked;
 
-  const update_was_successful = await updateComponentInFrame(component_id, is_checkbox_checked);
+  const update_was_successful = await updateComponentInPage(component_id, is_checkbox_checked);
 
   if (update_was_successful) {
     socket_connection.emit('BF2_component_selection', {
@@ -168,9 +168,9 @@ const emitComponentSelection = async (checkbox_element) => {
 const createComponentCard = async (component_id, room_id) => {
   try {
     const url_parameters = new URLSearchParams(window.location.search);
-    const frame_parameter = parseInt(url_parameters.get('frame'));
+    const page_parameter = parseInt(url_parameters.get('page'));
 
-    const log_url = api_endpoint + `/components/last/${frame_parameter}/`;
+    const log_url = api_endpoint + `/components/last/${page_parameter}/`;
     const log_response = await fetch(log_url);
     const all_component_logs = await log_response.json();
 
@@ -299,11 +299,11 @@ const showDropdown = () => {
 
 const showAllRoomsAndComponents = async () => {
   try {
-    const [all_rooms, all_components, all_component_logs, components_in_frame] = await Promise.all([getAllRooms(), getAllComponents(), getLastComponentLogs(), getComponentsInFrame()]);
+    const [all_rooms, all_components, all_component_logs, components_in_page] = await Promise.all([getAllRooms(), getAllComponents(), getLastComponentLogs(), getComponentsInPage()]);
 
     const components_grouped_by_room = {};
     const logs_by_component_id = {};
-    const frame_component_ids = new Set(components_in_frame.map((component) => component.component_id));
+    const page_component_ids = new Set(components_in_page.map((component) => component.component_id));
 
     all_components.forEach((component) => {
       if (!components_grouped_by_room[component.room_id]) {
@@ -325,10 +325,10 @@ const showAllRoomsAndComponents = async () => {
       let components_html = '';
 
       room_components.forEach((component) => {
-        const component_is_in_frame = frame_component_ids.has(component.component_id);
+        const component_is_in_page = page_component_ids.has(component.component_id);
         const component_log = logs_by_component_id[component.component_id];
 
-        if (component_is_in_frame && component_log) {
+        if (component_is_in_page && component_log) {
           const formatted_date = new Date(component_log.datetime);
           const icon_path = component_icons[component.component_id];
 
@@ -352,7 +352,7 @@ const showAllRoomsAndComponents = async () => {
         }
       });
 
-      const dropdown_html = createComponentDropdown(room.room_id, room_components, components_in_frame);
+      const dropdown_html = createComponentDropdown(room.room_id, room_components, components_in_page);
 
       rooms_html += `
         <div class="c-room__container js-room__container" data-room_id="${room.room_id}" data-room_name="${room.room_name}" data-room_number="${room_index}">
@@ -397,7 +397,7 @@ const showAllRoomsAndComponents = async () => {
 };
 
 const updateAllDropdownLabels = () => {
-  document.querySelectorAll('.component-dropdown').forEach((dropdown) => {
+  document.querySelectorAll('.c-component-dropdown').forEach((dropdown) => {
     updateDropdownLabel(dropdown);
     updateCheckAllButton(dropdown);
   });
@@ -511,7 +511,7 @@ const showLastLog = (log_data) => {
     const room_container = document.querySelector(`.js-room__container[data-room_id="${log_data.room_id}"]`);
     if (room_container) {
       const components_container = room_container.querySelector('.c-room__components');
-      const dropdown_element = room_container.querySelector('.component-dropdown');
+      const dropdown_element = room_container.querySelector('.c-component-dropdown');
 
       if (components_container) {
         const icon_path = component_icons[log_data.component_id];
@@ -536,11 +536,11 @@ const showLastLog = (log_data) => {
         if (dropdown_element) {
           const existing_checkbox = dropdown_element.querySelector(`input[value="${log_data.component_id}"]`);
           if (!existing_checkbox) {
-            const dropdown_menu = dropdown_element.querySelector('.dropdown-menu');
+            const dropdown_menu = dropdown_element.querySelector('.c-dropdown-menu');
             const new_option = document.createElement('div');
-            new_option.className = 'dropdown-option checkbox-option';
+            new_option.className = 'c-dropdown-option c-checkbox-option';
             new_option.innerHTML = `
-              <label>
+              <label class="c-label">
                 <input type="checkbox" value="${log_data.component_id}" data-room="${log_data.room_id}" data-name="${log_data.component_name}">
                 ${log_data.component_name}
               </label>
@@ -578,8 +578,8 @@ const formatDateTime = (iso_string) => {
 // #region ***  Data Access - get___                     ***********
 const getLastComponentLogs = async () => {
   const url_parameters = new URLSearchParams(window.location.search);
-  const frame_url_param = parseInt(url_parameters.get('frame'));
-  let request_url = api_endpoint + `/components/last/${frame_url_param}/`;
+  const page_url_param = parseInt(url_parameters.get('page'));
+  let request_url = api_endpoint + `/components/last/${page_url_param}/`;
   let server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
   const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
   return json_data;
@@ -599,22 +599,22 @@ const getAllRooms = async () => {
   return json_data;
 };
 
-const getComponentsInFrame = async () => {
+const getComponentsInPage = async () => {
   const url_parameters = new URLSearchParams(window.location.search);
-  const frame_id = parseInt(url_parameters.get('frame'));
-  const request_url = api_endpoint + `/frames/${frame_id}/components/`;
+  const page_id = parseInt(url_parameters.get('page'));
+  const request_url = api_endpoint + `/pages/${page_id}/components/`;
   const server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
   const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
   return json_data;
 };
 
-const updateComponentInFrame = async (component_id, is_component_selected) => {
+const updateComponentInPage = async (component_id, is_component_selected) => {
   const url_parameters = new URLSearchParams(window.location.search);
-  const frame_id = parseInt(url_parameters.get('frame'));
+  const page_id = parseInt(url_parameters.get('page'));
 
   try {
     if (is_component_selected) {
-      const request_url = api_endpoint + `/frames/${frame_id}/components/`;
+      const request_url = api_endpoint + `/pages/${page_id}/components/`;
       const server_response = await fetch(request_url, {
         method: 'POST',
         headers: {
@@ -622,23 +622,23 @@ const updateComponentInFrame = async (component_id, is_component_selected) => {
         },
         body: JSON.stringify({
           component_id: component_id,
-          frame_id: frame_id,
+          page_id: page_id,
         }),
       });
     } else {
-      const request_url = api_endpoint + `/frames/${frame_id}/components/${component_id}/`;
+      const request_url = api_endpoint + `/pages/${page_id}/components/${component_id}/`;
       const server_response = await fetch(request_url, {
         method: 'DELETE',
       });
     }
     return true;
   } catch (error) {
-    console.error('Error updating component in frame:', error);
+    console.error('Error updating component in page:', error);
 
     const checkbox_element = document.querySelector(`input[value="${component_id}"]`);
     if (checkbox_element) {
       checkbox_element.checked = !is_component_selected;
-      const parent_dropdown = checkbox_element.closest('.component-dropdown');
+      const parent_dropdown = checkbox_element.closest('.c-component-dropdown');
       if (parent_dropdown) {
         updateDropdownLabel(parent_dropdown);
         updateCheckAllButton(parent_dropdown);

@@ -203,6 +203,7 @@ body {
     margin: 0 auto;
     width: 100%;
 }
+
 .c-room__card {
     display: flex;
     flex-direction: column;
@@ -224,7 +225,7 @@ body {
     position: relative;
 }
 
-.c-input-time{
+.c-input-time {
     color: none;
 }
 
@@ -282,7 +283,7 @@ body {
     transition: fill 0.3s ease, opacity 0.3s ease;
 }
 
-.c-schedules__container{
+.c-schedules__container {
     display: flex;
     flex-direction: column;
     gap: 2rem;
@@ -309,7 +310,7 @@ body {
     text-align: left;
 }
 
-.c-card__schedule{
+.c-card__schedule {
     display: flex;
     flex-direction: row;
     font-size: 0.875rem;
@@ -318,7 +319,7 @@ body {
     justify-content: space-between;
 }
 
-.c-card__schedule-time{
+.c-card__schedule-time {
     display: flex;
     flex-direction: row;
     gap: 0.5rem;
@@ -337,7 +338,8 @@ body {
     transition: background-color 0.2s ease;
     height: 100%;
 }
-.c-card__schedule-save{
+
+.c-card__schedule-save {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -349,6 +351,7 @@ body {
     height: 100%;
     width: 100%;
 }
+
 .c-card__schedule-save:hover {
     background-color: var(--main-color);
     color: var(--white-color);
@@ -436,18 +439,18 @@ body {
     pointer-events: none;
 }
 
-.c-schedule-card__header{
+.c-schedule-card__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 0.5rem;
 }
 
-.c-schedule-card__title{
+.c-schedule-card__title {
     display: flex;
 }
 
-.c-schedule-icon{
+.c-schedule-icon {
     max-width: 1.5rem;
     max-height: 1.5rem;
 }
@@ -460,13 +463,13 @@ body {
     box-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.1);
 }
 
-.c-switch{
+.c-switch {
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
 
-.c-circular-progress{
+.c-circular-progress {
     font-size: 1.5rem;
     width: 100%;
     display: flex;
@@ -474,7 +477,7 @@ body {
     align-items: center;
 }
 
-.c-circular-progress__chart{
+.c-circular-progress__chart {
     height: fit-content;
     width: fit-content;
 }
@@ -485,11 +488,11 @@ body {
     align-items: center;
     gap: 10rem;
     position: relative;
-    bottom: 0.5rem;  
+    bottom: 0.5rem;
 }
 
 
-@keyframes pulse {
+@keyframes c-pulse {
     0% {
         transform: scale(1);
     }
@@ -503,8 +506,8 @@ body {
     }
 }
 
-.c-temperature-display.changed {
-    animation: pulse 0.3s ease;
+.c-temperature-display.c-changed {
+    animation: c-pulse 0.3s ease;
 }
 
 .c-temperature-card__meta {
@@ -517,7 +520,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    width: 100%;    
+    width: 100%;
 }
 
 .c-temperature-card__status {
@@ -576,7 +579,7 @@ body {
     transition: box-shadow 0.3s ease;
 }
 
-.c-white-background{
+.c-white-background {
     background-color: var(--white-color);
 }
 
@@ -584,20 +587,20 @@ body {
     background-color: var(--background-color);
 }
 
-.switch {
+.c-switch {
     position: relative;
     display: inline-block;
     width: 2.75rem;
     height: 1.5rem;
 }
 
-.switch input {
+.c-switch input {
     opacity: 0;
     width: 0;
     height: 0;
 }
 
-.slider {
+.c-slider {
     position: absolute;
     cursor: pointer;
     top: 0;
@@ -609,7 +612,7 @@ body {
     transition: .4s;
 }
 
-.slider:before {
+.c-slider:before {
     position: absolute;
     content: "";
     height: 1rem;
@@ -621,15 +624,15 @@ body {
     transition: .4s;
 }
 
-input:checked+.slider {
+input:checked+.c-slider {
     background-color: #2196F3;
 }
 
-input:focus+.slider {
+input:focus+.c-slider {
     box-shadow: 0 0 1px #2196F3;
 }
 
-input:checked+.slider:before {
+input:checked+.c-slider:before {
     -webkit-transform: translateX(1.625rem);
     -ms-transform: translateX(1.625rem);
     transform: translateX(1.25rem);
@@ -642,7 +645,7 @@ input:checked+.slider:before {
         padding: 1.5rem;
     }
 
-    .c-room{
+    .c-room {
         padding: 0rem;
     }
 
@@ -703,7 +706,7 @@ input:checked+.slider:before {
         gap: 2rem;
         padding-left: 2rem;
         padding-right: 2rem;
-        
+
     }
 
     .c-room__container>.c-lighting-card {
@@ -711,7 +714,7 @@ input:checked+.slider:before {
         width: 100%;
     }
 
-    .c-schedules__container{
+    .c-schedules__container {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 2rem;

@@ -162,9 +162,9 @@ const showAllSchedules = (all_schedules) => {
                 <img src="${icon_path}" alt="${type_name}" class="c-schedule-icon">
                 <h4 class="c-schedule-card__title">${schedule_name}</h4>
               </div>
-              <label class="switch">
+              <label class="c-switch">
                 <input type="checkbox" class="c-card__checkbox  js-schedule__checkbox" id="checkbox_${schedule_id}" ${enabled ? 'checked' : ''}>
-                <span class="slider round"></span>
+                <span class="c-slider c-round"></span>
               </label>
             </div>
             <div class="c-circular-progress" data-value="${value}" data-schedule_id="${schedule_id}">
@@ -268,9 +268,9 @@ const showAllSchedules = (all_schedules) => {
                 <img src="${icon_path}" alt="${type_name}" class="c-schedule-icon">
                 <h4 class="c-schedule-card__title">${schedule_name}</h4>
               </div>
-              <label class="switch">
+              <label class="c-switch">
                 <input type="checkbox" class="c-card__checkbox  js-schedule__checkbox" id="checkbox_${schedule_id}" ${enabled ? 'checked' : ''}>
-                <span class="slider round"></span>
+                <span class="c-slider c-round"></span>
               </label>
             </div>
             <div class="c-card__content">
@@ -382,8 +382,8 @@ const showAllSchedules = (all_schedules) => {
 // #region ***  Data Access - get___                     ***********
 const getAllSchedules = async () => {
   const url_parameters = new URLSearchParams(window.location.search);
-  const frame_url_parameter = url_parameters.get('frame');
-  const request_url = api_endpoint + `/schedules/${frame_url_parameter}/`;
+  const page_url_parameter = url_parameters.get('page');
+  const request_url = api_endpoint + `/schedules/${page_url_parameter}/`;
   const server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
   const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
   showAllSchedules(json_data);
