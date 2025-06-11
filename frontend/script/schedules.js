@@ -164,7 +164,7 @@ const showAllSchedules = (all_schedules) => {
               </div>
               <label class="c-switch">
                 <input type="checkbox" class="c-card__checkbox  js-schedule__checkbox" id="checkbox_${schedule_id}" ${enabled ? 'checked' : ''}>
-                <span class="c-slider c-round"></span>
+                <span class="c-switch-slider c-round"></span>
               </label>
             </div>
             <div class="c-circular-progress" data-value="${value}" data-schedule_id="${schedule_id}">
@@ -270,7 +270,7 @@ const showAllSchedules = (all_schedules) => {
               </div>
               <label class="c-switch">
                 <input type="checkbox" class="c-card__checkbox  js-schedule__checkbox" id="checkbox_${schedule_id}" ${enabled ? 'checked' : ''}>
-                <span class="c-slider c-round"></span>
+                <span class="c-switch-slider c-round"></span>
               </label>
             </div>
             <div class="c-card__content">

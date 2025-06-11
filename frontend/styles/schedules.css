@@ -600,7 +600,7 @@ body {
     height: 0;
 }
 
-.c-slider {
+.c-switch-slider {
     position: absolute;
     cursor: pointer;
     top: 0;
@@ -612,7 +612,7 @@ body {
     transition: .4s;
 }
 
-.c-slider:before {
+.c-switch-slider:before {
     position: absolute;
     content: "";
     height: 1rem;
@@ -624,17 +624,17 @@ body {
     transition: .4s;
 }
 
-input:checked+.c-slider {
+input:checked+.c-switch-slider {
     background-color: #2196F3;
 }
 
-input:focus+.c-slider {
+input:focus+.c-switch-slider {
     box-shadow: 0 0 1px #2196F3;
 }
 
-input:checked+.c-slider:before {
-    -webkit-transform: translateX(1.625rem);
-    -ms-transform: translateX(1.625rem);
+input:checked+.c-switch-slider:before {
+    -webkit-transform: translateX(1.25rem);
+    -ms-transform: translateX(1.25rem);
     transform: translateX(1.25rem);
 }
 

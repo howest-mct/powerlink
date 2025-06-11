@@ -223,13 +223,16 @@ a {
     padding: .625rem .9375rem;
     background: #fff;
     border: .0625rem solid var(--border-color);
-    border-radius: .25rem;
     cursor: pointer;
     user-select: none;
     position: relative;
     transition: all 0.2s ease;
     font-size: 0.875rem;
     color: var(--text_main-color);
+}
+
+.c-dropdown-trigger:hover {
+    box-shadow: 0 .125rem 0.25rem rgba(0, 0, 0, 0.1);
 }
 
 .c-dropdown-trigger:after {
