@@ -86,3 +86,9 @@ Dit is de feedback op mijn vragen.
   Als je veel tijd hebt mag je het doen, zorg voor 3 - 4 verschillende pagina’s (real life, historiek)
   Dynamische website idee is pas 2de jaar
   Mag het doen als je wilt, maar maak het niet te complex
+
+  ## Toermoment 2 (Datum: 10/06/2025)
+
+- Temperatuur waardes samen zetten waar nodig, huidige waarde & ingestelde waarde
+- Tijdschema voor snachts & dat je er meerdere op 1 dag kunt hebben
+- Mogelijkheid om persoon aan huishouden toe te voegen

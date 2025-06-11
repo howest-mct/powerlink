@@ -106,24 +106,26 @@ def log_and_emit_sync(value, component_id):
 wh_bat_in_id = 1
 wh_bat_out_id = 2
 pot_id = 3
-temp_sensor_id = 4
-heater_id = 5
-wh_heater_id = 6
-fan_id = 7
-wh_fan_id = 8
-button_lights_id = 9
-led_bottom_id = 10
-wh_led_bottom_id = 11
-motion_sensor_id = 12
-led_top_id = 13
-wh_led_top_id = 14
-card_reader_id = 15
-reed_switch_id = 16
-servo_lock_id = 17
-light_sensor_id = 18
-led_outdoors_id = 19
-button_power_id = 20
-cpu_temp_sensor_id = 21
+temp_control_id = 4
+temp_sensor_id = 5
+heater_id = 6
+wh_heater_id = 7
+fan_id = 8
+wh_fan_id = 9
+button_lights_id = 10
+led_bottom_id = 11
+wh_led_bottom_id = 12
+motion_sensor_id = 13
+led_top_id = 14
+wh_led_top_id = 15
+card_reader_id = 16
+reed_switch_id = 17
+servo_lock_id = 18
+light_sensor_id = 19
+led_outdoors_id = 20
+button_power_id = 21
+cpu_temp_sensor_id = 22
+
 
 MOTION_SENSOR = None
 LED_BUTTON = None
@@ -379,7 +381,7 @@ async def get_wattage():
 
 async def climate_control(temp_id):
     global HEATING, AIRCO, temp, temp_sensor_id, pot_id, MCP, TEMP_SENSOR, dict_schedules
-    global errors, heater_id, fan_id, sleep_medium
+    global errors, heater_id, fan_id, sleep_medium, temp_control_id
 
     hysteresis = 0.5
     max_range = 1.0
@@ -387,6 +389,7 @@ async def climate_control(temp_id):
     min_heater_power = 50
 
     prev_values = {
+        "pot_temp": None,
         "target_temp": None,
         "current_temp": None,
         "heater_power": None,
@@ -399,6 +402,10 @@ async def climate_control(temp_id):
 
             current_pot = MCP.read_channel(0)
             pot_temp = round((16 + (current_pot / 1023) * 14) * 2) / 2
+
+            if pot_temp != prev_values.get("pot_temp"):
+                await log_and_emit_async(pot_temp, pot_id)
+                prev_values["pot_temp"] = pot_temp
 
             day_schedule = dict_schedules.get(1, {})
             night_schedule = dict_schedules.get(2, {})
@@ -419,19 +426,18 @@ async def climate_control(temp_id):
             if day_enabled and is_time_in_range(day_start, day_end, current_time):
                 target_temp = day_value
                 fan_active = True
-
             elif night_enabled and is_time_in_range(
                 night_start, night_end, current_time
             ):
                 target_temp = night_value
                 fan_active = False
-
             else:
                 target_temp = pot_temp
                 fan_active = True
 
             if target_temp != prev_values.get("target_temp"):
-                await log_and_emit_async(target_temp, pot_id)
+                await log_and_emit_async(target_temp, temp_control_id)
+                prev_values["target_temp"] = target_temp
 
             lower_bound = target_temp - hysteresis / 2
             upper_bound = target_temp + hysteresis / 2
@@ -440,6 +446,7 @@ async def climate_control(temp_id):
             current_temp = round(TEMP_SENSOR.get_temp(temp_id) * 2) / 2
             if current_temp != prev_values.get("current_temp"):
                 await log_and_emit_async(current_temp, temp_sensor_id)
+                prev_values["current_temp"] = current_temp
 
             if current_temp < lower_bound:
                 if current_temp <= max_lower:
@@ -456,12 +463,11 @@ async def climate_control(temp_id):
 
                 if heater_power != prev_values.get("heater_power"):
                     await log_and_emit_async(heater_power, heater_id)
+                    prev_values["heater_power"] = heater_power
 
                 if prev_values.get("fan_state") != 0:
                     await log_and_emit_async(0, fan_id)
-
-                prev_values["heater_power"] = heater_power
-                prev_values["fan_state"] = 0
+                    prev_values["fan_state"] = 0
 
             elif current_temp > upper_bound:
                 HEATING.off()
@@ -470,40 +476,34 @@ async def climate_control(temp_id):
 
                     if prev_values.get("heater_power") != 0:
                         await log_and_emit_async(0, heater_id)
+                        prev_values["heater_power"] = 0
 
                     if prev_values.get("fan_state") != 1:
                         await log_and_emit_async(1, fan_id)
-
-                    prev_values["heater_power"] = 0
-                    prev_values["fan_state"] = 1
+                        prev_values["fan_state"] = 1
                 else:
                     AIRCO.off()
 
                     if prev_values.get("heater_power") != 0:
                         await log_and_emit_async(0, heater_id)
+                        prev_values["heater_power"] = 0
 
                     if prev_values.get("fan_state") != 0:
                         await log_and_emit_async(0, fan_id)
-
-                    prev_values["heater_power"] = 0
-                    prev_values["fan_state"] = 0
+                        prev_values["fan_state"] = 0
             else:
                 HEATING.off()
                 AIRCO.off()
 
                 if prev_values.get("heater_power") != 0:
                     await log_and_emit_async(0, heater_id)
+                    prev_values["heater_power"] = 0
 
                 if prev_values.get("fan_state") != 0:
                     await log_and_emit_async(0, fan_id)
+                    prev_values["fan_state"] = 0
 
-                prev_values["heater_power"] = 0
-                prev_values["fan_state"] = 0
-
-            prev_values["target_temp"] = target_temp
-            prev_values["current_temp"] = current_temp
             temp = current_temp
-
             await asyncio.sleep(sleep_medium)
 
         except Exception as e:
@@ -893,6 +893,7 @@ async def lifespan_manager(app: FastAPI):
             log_and_emit_sync(0, heater_id)
             log_and_emit_sync(0, fan_id)
             log_and_emit_sync(0, led_bottom_id)
+            log_and_emit_sync(0, button_lights_id)
             log_and_emit_sync(0, led_top_id)
             log_and_emit_sync(0, led_outdoors_id)
             log_and_emit_sync(0, servo_lock_id)
@@ -902,6 +903,7 @@ async def lifespan_manager(app: FastAPI):
             log_and_emit_sync(0, wh_led_top_id)
             log_and_emit_sync(0, wh_bat_in_id)
             log_and_emit_sync(0, wh_bat_out_id)
+            log_and_emit_sync(0, button_power_id)
 
             logger.info("All component shutdown states logged")
 
