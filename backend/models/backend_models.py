@@ -81,6 +81,11 @@ class EnergyLog(P1BaseModel):
     total_kwh_today: float
 
 
+class HistoryLog(P1BaseModel):
+    chart_hour: list[datetime.datetime]
+    average_value: list[float]
+
+
 # endregion Models ********************************
 
 

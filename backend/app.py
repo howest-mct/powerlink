@@ -24,6 +24,7 @@ from models.backend_models import (
     Room,
     ComponentPage,
     DTOComponentPage,
+    HistoryLog,
 )
 
 from models.device_models import (
@@ -1168,6 +1169,48 @@ async def get_energy_log_by_id(id: int):
         raise HTTPException(
             status_code=404, detail=f"energy_log with ID {id} not found"
         )
+    return data
+
+
+@app.get(
+    ENDPOINT + "/history/{component_id}/24h/",
+    response_model=list[HistoryLog],
+    summary="Retrieve all history",
+    response_description="A list of all available history",
+    tags=["history"],
+)
+async def get_all_history_24h(component_id: int):
+    data = DataRepository.read_log_history_24h(component_id)
+    if data is None or len(data) == 0:
+        raise HTTPException(status_code=404, detail=f"No history found in the database")
+    return data
+
+
+@app.get(
+    ENDPOINT + "/history/{component_id}/7d/",
+    response_model=list[HistoryLog],
+    summary="Retrieve all history",
+    response_description="A list of all available history",
+    tags=["history"],
+)
+async def get_all_history_7d(component_id: int):
+    data = DataRepository.read_log_history_7d(component_id)
+    if data is None or len(data) == 0:
+        raise HTTPException(status_code=404, detail=f"No history found in the database")
+    return data
+
+
+@app.get(
+    ENDPOINT + "/history/{component_id}/14d/",
+    response_model=list[HistoryLog],
+    summary="Retrieve all history",
+    response_description="A list of all available history",
+    tags=["history"],
+)
+async def get_all_history_14d(component_id: int):
+    data = DataRepository.read_log_history_14d(component_id)
+    if data is None or len(data) == 0:
+        raise HTTPException(status_code=404, detail=f"No history found in the database")
     return data
 
 

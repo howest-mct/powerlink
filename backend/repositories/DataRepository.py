@@ -167,6 +167,126 @@ class DataRepository:
         params = [component_id]
         return Database.get_one_row(sql, params)
 
+    @staticmethod
+    def read_log_history_24h(component_id):
+        sql = """
+            WITH RECURSIVE hourly_intervals AS (
+                -- Generate 24 hourly intervals
+                SELECT 
+                    CAST(DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 23 HOUR), '%%Y-%%m-%%d %%H:00:00') AS DATETIME) AS hour_start,
+                    0 as hour_offset
+                UNION ALL
+                SELECT 
+                    DATE_ADD(hour_start, INTERVAL 1 HOUR),
+                    hour_offset + 1
+                FROM hourly_intervals 
+                WHERE hour_offset < 23
+            ),
+            hourly_averages AS (
+                SELECT 
+                    hi.hour_start,
+                    hi.hour_start AS hour_end_exclusive,
+                    DATE_ADD(hi.hour_start, INTERVAL 1 HOUR) AS hour_end,
+                    AVG(cl.value) as avg_value,
+                    COUNT(cl.value) as log_count,
+                    MIN(cl.datetime) as first_log_time,
+                    MAX(cl.datetime) as last_log_time
+                FROM hourly_intervals hi
+                LEFT JOIN component_logs cl ON (
+                    cl.datetime >= hi.hour_start 
+                    AND cl.datetime < DATE_ADD(hi.hour_start, INTERVAL 1 HOUR)
+                    AND cl.component_id = %s
+                )
+                GROUP BY hi.hour_start
+            )
+            SELECT 
+                hour_start as chart_hour,
+                COALESCE(ROUND(avg_value, 2), 0) as average_value
+            FROM hourly_averages
+            ORDER BY hour_start;
+        """
+        params = [component_id]
+        return Database.get_rows(sql, params)
+
+    @staticmethod
+    def read_log_history_7d(component_id):
+        sql = """
+            WITH RECURSIVE hourly_intervals AS (
+                -- Generate 24 hourly intervals
+                SELECT 
+                    CAST(DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 23 HOUR), '%%Y-%%m-%%d %%H:00:00') AS DATETIME) AS hour_start,
+                    0 as hour_offset
+                UNION ALL
+                SELECT 
+                    DATE_ADD(hour_start, INTERVAL 1 HOUR),
+                    hour_offset + 1
+                FROM hourly_intervals 
+                WHERE hour_offset < 23
+            ),
+            hourly_averages AS (
+                SELECT 
+                    hi.hour_start,
+                    hi.hour_start AS hour_end_exclusive,
+                    DATE_ADD(hi.hour_start, INTERVAL 1 HOUR) AS hour_end,
+                    AVG(cl.value) as avg_value,
+                    COUNT(cl.value) as log_count,
+                    MIN(cl.datetime) as first_log_time,
+                    MAX(cl.datetime) as last_log_time
+                FROM hourly_intervals hi
+                LEFT JOIN component_logs cl ON (
+                    cl.datetime >= hi.hour_start 
+                    AND cl.datetime < DATE_ADD(hi.hour_start, INTERVAL 1 HOUR)
+                    AND cl.component_id = %s
+                )
+                GROUP BY hi.hour_start
+            )
+            SELECT 
+                hour_start as chart_hour,
+                COALESCE(ROUND(avg_value, 2), 0) as average_value
+            FROM hourly_averages
+            ORDER BY hour_start;
+        """
+        params = [component_id]
+        return Database.get_rows(sql, params)
+
+    @staticmethod
+    def read_log_history_14d(component_id):
+        sql = """
+            WITH RECURSIVE previous_week_intervals AS (
+                -- Generate 7 daily intervals for previous week (days 7-13 ago)
+                SELECT 
+                    CAST(DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 13 DAY), '%%Y-%%m-%%d 00:00:00') AS DATETIME) AS day_start,
+                    0 as day_offset
+                UNION ALL
+                SELECT 
+                    DATE_ADD(day_start, INTERVAL 1 DAY),
+                    day_offset + 1
+                FROM previous_week_intervals 
+                WHERE day_offset < 6
+            ),
+            previous_week_averages AS (
+                -- Calculate average for each day window in previous week
+                SELECT 
+                    pi.day_start,
+                    AVG(cl.value) as avg_value,
+                    COUNT(cl.value) as log_count
+                FROM previous_week_intervals pi
+                LEFT JOIN component_logs cl ON (
+                    cl.datetime >= pi.day_start 
+                    AND cl.datetime < DATE_ADD(pi.day_start, INTERVAL 1 DAY)
+                    AND cl.component_id = %s
+                )
+                GROUP BY pi.day_start
+            )
+            SELECT 
+                day_start as chart_day,
+                COALESCE(ROUND(avg_value, 2), 0) as average_value
+            FROM previous_week_averages
+            ORDER BY day_start;
+        """
+        params = [component_id]
+        return Database.get_rows(sql, params)
+
     # endregion Read ********************************
 
     # region Create ---------------------------------

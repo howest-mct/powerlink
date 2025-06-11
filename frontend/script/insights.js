@@ -28,6 +28,7 @@ const component_icons = {
   21: 'img/svg/toggle-left.svg',
   22: 'img/svg/thermometer.svg',
 };
+
 // #endregion
 
 // #region ***  Dropdown Functions                      ***********
@@ -576,6 +577,27 @@ const formatDateTime = (iso_string) => {
 // #endregion
 
 // #region ***  Data Access - get___                     ***********
+const getHistoryLogs24h = async (component_id) => {
+  const url = api_endpoint + `/history/${component_id}/24h/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  console.log('getHistoryLogs24h:', json);
+};
+
+const getHistoryLogs7d = async (component_id) => {
+  const url = api_endpoint + `/history/${component_id}/7d/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  console.log('getHistoryLogs7d:', json);
+};
+
+const getHistoryLogs14d = async (component_id) => {
+  const url = api_endpoint + `/history/${component_id}/14d/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  console.log('getHistoryLogs14d:', json);
+};
+
 const getLastComponentLogs = async () => {
   const url_parameters = new URLSearchParams(window.location.search);
   const page_url_param = parseInt(url_parameters.get('page'));
@@ -677,6 +699,9 @@ const init = () => {
   showDropdown();
   showAllRoomsAndComponents();
   listenToSocket();
+  getHistoryLogs7d(2);
+  getHistoryLogs14d(2);
+  getHistoryLogs24h(2);
 };
 
 document.addEventListener('DOMContentLoaded', init);
