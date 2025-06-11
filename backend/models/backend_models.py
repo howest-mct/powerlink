@@ -82,8 +82,8 @@ class EnergyLog(P1BaseModel):
 
 
 class HistoryLog(P1BaseModel):
-    chart_hour: list[datetime.datetime]
-    average_value: list[float]
+    chart_date: datetime.datetime
+    average_value: float
 
 
 # endregion Models ********************************

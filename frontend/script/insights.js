@@ -32,6 +32,93 @@ const component_icons = {
 // #endregion
 
 // #region ***  Dropdown Functions                      ***********
+const createChart24h = (data) => {
+  console.log('createChart24h', data);
+  let array_avg_value = [];
+  let array_datetime = [];
+  data.forEach((item) => {
+    array_avg_value.push(item.average_value);
+    array_datetime.push(item.chart_date);
+  });
+  console.log('array_avg_value', array_avg_value);
+  console.log('array_datetime', array_datetime);
+
+  var options = {
+    series: [
+      {
+        name: 'Energy Consumption',
+        data: array_avg_value,
+      },
+    ],
+    chart: {
+      height: 350,
+      type: 'line',
+      dropShadow: {
+        enabled: true,
+        color: '#000',
+        top: 18,
+        left: 7,
+        blur: 10,
+        opacity: 0.5,
+      },
+      zoom: {
+        enabled: false,
+      },
+      toolbar: {
+        show: false,
+      },
+    },
+    colors: ['#77B6EA', '#545454'],
+    dataLabels: {
+      enabled: true,
+    },
+    stroke: {
+      curve: 'smooth',
+    },
+    title: {
+      text: 'Average High & Low Temperature',
+      align: 'left',
+    },
+    grid: {
+      borderColor: '#e7e7e7',
+      row: {
+        colors: ['#f3f3f3', 'transparent'],
+        opacity: 0.5,
+      },
+    },
+    markers: {
+      size: 1,
+    },
+    xaxis: {
+      categories: [array_datetime],
+      title: {
+        text: 'Hour',
+      },
+    },
+    yaxis: {
+      title: {
+        text: 'Temperature',
+      },
+      min: 5,
+      max: 40,
+    },
+    legend: {
+      position: 'top',
+      horizontalAlign: 'right',
+      floating: true,
+      offsetY: -25,
+      offsetX: -5,
+    },
+  };
+  return options;
+};
+const createChart7d = (component_id) => {
+  data = getHistoryLogs7d(component_id);
+};
+const createChart14d = (component_id) => {
+  data = getHistoryLogs14d(component_id);
+};
+
 const createComponentDropdown = (room_id, all_components, components_in_current_page) => {
   let dropdown_options_html = '<div class="c-dropdown-option c-check-all-option" data-room="' + room_id + '">Check All</div>';
 
@@ -194,13 +281,9 @@ const createComponentCard = async (component_id, room_id) => {
           </a>
           <h2 class="c-article__title">${component_details.component_name}</h2>
         </div>
-        <div class="c-card">
-          <h3 class="c-card__level">${component_log.value} ${component_details.value_unit}</h3>
-          <div class="c-card__meta">
-            <p class="c-card__status">Last log</p>
-            <p class="c-card__capacity">${formatDateTime(formatted_date)}</p>
+          <div class="c-card">
+            <p>Chart</p>
           </div>
-        </div>
       </article>
     `;
 
@@ -333,6 +416,12 @@ const showAllRoomsAndComponents = async () => {
           const formatted_date = new Date(component_log.datetime);
           const icon_path = component_icons[component.component_id];
 
+          if (component.component_id === 2) {
+            const chart_24h = getHistoryLogs24h(component.component_id);
+            const chart_7d = getHistoryLogs7d(component.component_id);
+            const chart_14d = getHistoryLogs14d(component.component_id);
+          }
+
           components_html += `
             <article class="c-article c-hover--shadow js-component__container" data-component_id="${component.component_id}" data-room_id="${room.room_id}" data-log_id="${component_log.log_id}">
               <div class="c-article__header">
@@ -341,15 +430,14 @@ const showAllRoomsAndComponents = async () => {
                 </a>
                 <h2 class="c-article__title">${component.component_name}</h2>
               </div>
-              <div class="c-card">
-                <h3 class="c-card__level">${component_log.value} ${component.value_unit}</h3>
-                <div class="c-card__meta">
-                  <p class="c-card__status">Last log</p>
-                  <p class="c-card__capacity">${formatDateTime(formatted_date)}</p>
-                </div>
-              </div>
+            <div class="c-card">
+              <div class="c-chart"> 
+              </div>     
+            </div>
             </article>
           `;
+          var chart = new ApexCharts(document.querySelector('.c-chart'), chart_24h);
+          chart.render();
         }
       });
 
@@ -438,13 +526,9 @@ const showAllLastLogs = (json_data) => {
             </a>
             <h2 class="c-article__title">${component_name}</h2>
           </div>
-          <div class="c-card">
-            <h3 class="c-card__level">${value} ${value_unit}</h3>
-            <div class="c-card__meta">
-              <p class="c-card__status">Last log</p>
-              <p class="c-card__capacity">${formatDateTime(formatted_date)}</p>
+            <div class="c-card">
+              <p>Chart</p>
             </div>
-          </div>
         </article>
       `;
     }
@@ -525,11 +609,7 @@ const showLastLog = (log_data) => {
               <h2 class="c-article__title">${log_data.component_name}</h2>
             </div>
             <div class="c-card">
-              <h3 class="c-card__level">${log_data.value} ${log_data.value_unit}</h3>
-              <div class="c-card__meta">
-                <p class="c-card__status">Last log</p>
-                <p class="c-card__capacity">${formatDateTime(formatted_date)}</p>
-              </div>
+              <p>Chart</p>
             </div>
           </article>
         `;
@@ -581,21 +661,21 @@ const getHistoryLogs24h = async (component_id) => {
   const url = api_endpoint + `/history/${component_id}/24h/`;
   const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
   const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  console.log('getHistoryLogs24h:', json);
+  createChart24h(json);
 };
 
 const getHistoryLogs7d = async (component_id) => {
   const url = api_endpoint + `/history/${component_id}/7d/`;
   const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
   const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  console.log('getHistoryLogs7d:', json);
+  return json;
 };
 
 const getHistoryLogs14d = async (component_id) => {
   const url = api_endpoint + `/history/${component_id}/14d/`;
   const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
   const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  console.log('getHistoryLogs14d:', json);
+  return json;
 };
 
 const getLastComponentLogs = async () => {
@@ -699,9 +779,6 @@ const init = () => {
   showDropdown();
   showAllRoomsAndComponents();
   listenToSocket();
-  getHistoryLogs7d(2);
-  getHistoryLogs14d(2);
-  getHistoryLogs24h(2);
 };
 
 document.addEventListener('DOMContentLoaded', init);
