@@ -341,13 +341,13 @@ body {
     display: flex;
     flex-direction: row;
     align-items: center;
-    width: fit-content;
     gap: 0.25rem;
     border: solid 0.0625rem var(--border-color);
     padding: 0.5rem;
     font-size: 0.875rem;
     transition: background-color 0.2s ease;
     height: 100%;
+    width: 100%;
 }
 .c-card__schedule-save:hover {
     background-color: var(--main-color);
@@ -635,7 +635,8 @@ input:checked+.slider:before {
     transform: translateX(1.25rem);
 }
 
-@media (min-width: 48rem) {
+
+@media (min-width: 61.25rem) {
 
     .c-header {
         padding: 1.5rem;
