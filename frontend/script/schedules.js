@@ -5,6 +5,15 @@ const socket_connection = io(lan_ip);
 const api_endpoint = 'http://192.168.168.169:8000/api/v1';
 
 // #region ***  DOM references                           ***********
+
+const schedule_icons = {
+  1: 'img/svg/sun-dim.svg',
+  2: 'img/svg/moon-stars.svg',
+  3: 'img/svg/sun-dim.svg',
+  4: 'img/svg/moon-stars.svg',
+  5: 'img/svg/sun-dim.svg',
+  6: 'img/svg/moon-stars.svg',
+};
 // #endregion
 
 // #region ***  Callback-Visualisation - show___         ***********
@@ -142,13 +151,17 @@ const showAllSchedules = (all_schedules) => {
     `;
 
     for (const schedule_item of room_schedule_data) {
-      const { schedule_id, schedule_name, start_time, end_time, value, enabled, type_id, component_id, room_id, type_name } = schedule_item;
+      const { schedule_id, schedule_name, start_time, end_time, value, value_unit, enabled, type_id, component_id, room_id, type_name } = schedule_item;
+      const icon_path = schedule_icons[schedule_id];
 
       if (type_id === 1) {
         schedules_html += `
           <div class="c-temperature-control js-schedule__container js-temperature-control c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
-            <div class="c-switch">
-              <h4 class="c-schedule-card__title">${schedule_name}</h4>
+            <div class="c-schedule-card__header">
+              <div class="c-schedule-card__header">
+                <img src="${icon_path}" alt="${type_name}" class="c-schedule-icon">
+                <h4 class="c-schedule-card__title">${schedule_name}</h4>
+              </div>
               <label class="switch">
                 <input type="checkbox" class="c-card__checkbox  js-schedule__checkbox" id="checkbox_${schedule_id}" ${enabled ? 'checked' : ''}>
                 <span class="slider round"></span>
@@ -167,7 +180,7 @@ const showAllSchedules = (all_schedules) => {
             </div>
             <div class="c-temperature-card__meta">
               <div class="c-temperature-card__info">
-                <p class="c-temperature-card__status">Temperature</p>
+                <p class="c-temperature-card__status">${value_unit}</p>
                 <div class="c-card__schedule">
                 <div class="c-card__schedule-time">
                   <div class="c-card__schedule-from">
@@ -250,8 +263,11 @@ const showAllSchedules = (all_schedules) => {
       } else if (type_id === 2) {
         schedules_html += `
           <div class="c-lighting-card js-schedule__container c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
-            <div class="c-schedule-card__header">    
-              <h4 class="c-schedule-card__title">${schedule_name}</h4>
+            <div class="c-schedule-card__header">
+              <div class="c-schedule-card__header">
+                <img src="${icon_path}" alt="${type_name}" class="c-schedule-icon">
+                <h4 class="c-schedule-card__title">${schedule_name}</h4>
+              </div>
               <label class="switch">
                 <input type="checkbox" class="c-card__checkbox  js-schedule__checkbox" id="checkbox_${schedule_id}" ${enabled ? 'checked' : ''}>
                 <span class="slider round"></span>
@@ -267,7 +283,7 @@ const showAllSchedules = (all_schedules) => {
               <div class="c-value-display" id="value_display_${schedule_id}">${value}%</div>
             </div>
             <div class="c-card__info">
-              <p class="c-card__status">Light intensity</p>
+              <p class="c-card__status">${value_unit}</p>
               <div class="c-card__schedule">
                 <div class="c-card__schedule-time">
                   <div class="c-card__schedule-from">

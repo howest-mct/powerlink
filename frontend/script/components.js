@@ -8,23 +8,25 @@ const component_icons = {
   1: 'img/svg/lightning.svg',
   2: 'img/svg/lightning.svg',
   3: 'img/svg/sliders-horizontal.svg',
-  4: 'img/svg/thermometer.svg',
-  5: 'img/svg/fire-simple.svg',
-  6: 'img/svg/lightning.svg',
-  7: 'img/svg/fan.svg',
-  8: 'img/svg/lightning.svg',
-  9: 'img/svg/toggle-left.svg',
-  10: 'img/svg/lightbulb.svg',
-  11: 'img/svg/lightning.svg',
-  12: 'img/svg/hand-waving.svg',
-  13: 'img/svg/lightbulb.svg',
-  14: 'img/svg/lightning.svg',
-  15: 'img/svg/scan.svg',
-  16: 'img/svg/door.svg',
-  17: 'img/svg/lock-simple.svg',
-  18: 'img/svg/sun.svg',
-  19: 'img/svg/lightbulb.svg',
+  4: 'img/svg/sliders-horizontal.svg',
+  5: 'img/svg/thermometer.svg',
+  6: 'img/svg/fire-simple.svg',
+  7: 'img/svg/lightning.svg',
+  8: 'img/svg/fan.svg',
+  9: 'img/svg/lightning.svg',
+  10: 'img/svg/toggle-left.svg',
+  11: 'img/svg/lightbulb.svg',
+  12: 'img/svg/lightning.svg',
+  13: 'img/svg/hand-waving.svg',
+  14: 'img/svg/lightbulb.svg',
+  15: 'img/svg/lightning.svg',
+  16: 'img/svg/scan.svg',
+  17: 'img/svg/door.svg',
+  18: 'img/svg/lock-simple.svg',
+  19: 'img/svg/sun.svg',
   20: 'img/svg/power.svg',
+  21: 'img/svg/toggle-left.svg',
+  22: 'img/svg/thermometer.svg',
 };
 // #endregion
 
@@ -181,7 +183,7 @@ const createComponentCard = async (component_id, room_id) => {
     const component_details = all_components.find((comp) => comp.component_id === component_id);
 
     const formatted_date = new Date(component_log.datetime);
-    const icon_path = component_icons[component_id] || 'img/svg/circuitry.svg';
+    const icon_path = component_icons[component_id];
 
     const component_card_html = `
       <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${component_log.log_id}">
@@ -328,7 +330,7 @@ const showAllRoomsAndComponents = async () => {
 
         if (component_is_in_frame && component_log) {
           const formatted_date = new Date(component_log.datetime);
-          const icon_path = component_icons[component.component_id] || 'img/svg/circuitry.svg';
+          const icon_path = component_icons[component.component_id];
 
           components_html += `
             <article class="c-article c-hover--shadow js-component__container" data-component_id="${component.component_id}" data-room_id="${room.room_id}" data-log_id="${component_log.log_id}">
@@ -425,7 +427,7 @@ const showAllLastLogs = (json_data) => {
     for (const item of room_data) {
       const { log_id, datetime, value, component_id, component_name, value_unit, room_id } = item;
       const formatted_date = new Date(datetime);
-      const icon_path = component_icons[component_id] || 'img/svg/circuitry.svg';
+      const icon_path = component_icons[component_id];
 
       components_html += `
         <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}">
@@ -512,7 +514,7 @@ const showLastLog = (log_data) => {
       const dropdown_element = room_container.querySelector('.component-dropdown');
 
       if (components_container) {
-        const icon_path = component_icons[log_data.component_id] || 'img/svg/circuitry.svg';
+        const icon_path = component_icons[log_data.component_id];
         components_container.innerHTML += `
           <article class="c-article c-hover--shadow js-component__container" data-component_id="${log_data.component_id}" data-room_id="${log_data.room_id}" data-log_id="${log_data.log_id}">
             <div class="c-article__header">

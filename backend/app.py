@@ -1009,9 +1009,7 @@ async def get_all_rooms():
 )
 async def read_all_last_logs(frame_id: int):
     data = DataRepository.read_all_last_logs(frame_id)
-    if data is None or len(data) == 0:
-        raise HTTPException(status_code=404, detail=f"No logs found in the database")
-    return data
+    return data if data else []
 
 
 @app.get(
@@ -1023,11 +1021,7 @@ async def read_all_last_logs(frame_id: int):
 )
 async def get_all_components_in_frame(frame_id: str):
     data = DataRepository.read_all_components_in_frame(frame_id)
-    if data is None or len(data) == 0:
-        raise HTTPException(
-            status_code=404, detail=f"No components found in frame {frame_id}"
-        )
-    return data
+    return data if data else []
 
 
 @app.post(

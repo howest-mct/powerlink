@@ -32,7 +32,11 @@ class DataRepository:
             SELECT * FROM components_frames WHERE frame_id = %s;
             """
         params = [frame_id]
-        return Database.get_rows(sql, params)
+        result = Database.get_rows(sql, params)
+
+        if not result:
+            return []
+        return result
 
     def add_component_to_frame(component_id, frame_id):
         sql = """

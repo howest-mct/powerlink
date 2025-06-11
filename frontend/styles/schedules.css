@@ -214,7 +214,7 @@ body {
     padding: 2rem;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 2.5rem;
     height: fit-content;
 }
 
@@ -440,10 +440,16 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.5rem;
 }
 
 .c-schedule-card__title{
     display: flex;
+}
+
+.c-schedule-icon{
+    max-width: 1.5rem;
+    max-height: 1.5rem;
 }
 
 .c-temperature-control {
@@ -519,7 +525,7 @@ body {
     line-height: 1.5rem;
     font-weight: 400;
     color: var(--text_main-color);
-    margin: 0rem;
+    padding-top: 1.5rem;
     text-align: left;
 }
 
