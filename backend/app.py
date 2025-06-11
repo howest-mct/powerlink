@@ -123,6 +123,7 @@ servo_lock_id = 17
 light_sensor_id = 18
 led_outdoors_id = 19
 button_power_id = 20
+cpu_temp_sensor_id = 21
 
 MOTION_SENSOR = None
 LED_BUTTON = None
@@ -216,11 +217,14 @@ def get_ip(interface):
 
 
 def get_cpu_temperature():
-    global errors
+    global errors, cpu_temp, cpu_temp_sensor_id
     try:
         with open("/sys/class/thermal/thermal_zone0/temp", "r") as f:
             temp_raw = f.read().strip()
-            return round(int(temp_raw) / 1000.0, 1)
+            cpu_temp = round(int(temp_raw) / 1000.0, 1)
+            log_and_emit_sync(cpu_temp, cpu_temp_sensor_id)
+            return cpu_temp
+
     except Exception as e:
         errors += 1
         logger.error(f"Error reading CPU temperature: {e}")
@@ -240,7 +244,7 @@ def is_time_in_range(start_time, end_time, current_time):
 
 async def display_lcd():
     global LCD, current_usage, battery_level, eth0_ip, wlan0_ip
-    global errors
+    global errors, cpu_temp_sensor_id
 
     LCD.string(f"Project loaded", 1)
     LCD.string(f"{errors} error(s)", 2)

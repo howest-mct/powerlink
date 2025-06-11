@@ -310,8 +310,8 @@ const showAllSchedules = (all_schedules) => {
 
           setTimeout(() => {
             chart_container.chart.updateSeries([current_series_value]);
-          }, 10);
-        }, 100);
+          }, 1);
+        }, 1);
       });
     }
   });
