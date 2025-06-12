@@ -53,6 +53,7 @@ const generateChartParams = async (component_id, component_name) => {
         x: date_time,
         y: value,
       });
+      console.log(`Entry: ${entry.chart_date}, Value: ${value}`);
     });
 
     chart_data.sort((a, b) => a.x - b.x);
@@ -83,7 +84,7 @@ const generateChartParams = async (component_id, component_name) => {
         width: 3,
       },
       title: {
-        text: component_name + ' - ' + '24H' + ' History',
+        text: component_name + ' - 24H History',
         align: 'left',
       },
       grid: {
@@ -114,7 +115,8 @@ const generateChartParams = async (component_id, component_name) => {
     const component_history = await getComponentHistory7d(component_id, '7d');
     const chart_data = [];
     component_history.forEach((entry) => {
-      const date_time = new Date(entry.chart_date).getDate();
+      // FIXED: Use getTime() instead of getDate() for proper datetime handling
+      const date_time = new Date(entry.chart_date).getTime();
       const value = parseFloat(entry.average_value) || 0;
       chart_data.push({
         x: date_time,
@@ -150,7 +152,8 @@ const generateChartParams = async (component_id, component_name) => {
         width: 3,
       },
       title: {
-        text: component_name + ' - ' + '7D' + ' History',
+        // FIXED: Show correct timeframe in title
+        text: component_name + ' - 7D History',
         align: 'left',
       },
       grid: {
@@ -217,7 +220,7 @@ const generateChartParams = async (component_id, component_name) => {
         width: 3,
       },
       title: {
-        text: component_name + ' - ' + '14D' + ' History',
+        text: component_name + ' - 14D History',
         align: 'left',
       },
       grid: {
@@ -245,7 +248,8 @@ const generateChartParams = async (component_id, component_name) => {
 
     return options;
   } else if (component_timeframes['col'].includes(component_id)) {
-    const component_history = await getComponentHistory7d(component_id, '7D');
+    // FIXED: Use correct API call for col timeframe
+    const component_history = await getComponentHistory7d(component_id, '7d');
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).getTime();
@@ -284,7 +288,8 @@ const generateChartParams = async (component_id, component_name) => {
         width: 3,
       },
       title: {
-        text: component_name + ' - ' + '14D' + ' History',
+        // FIXED: Corrected title to match actual data timeframe
+        text: component_name + ' - 7D History',
         align: 'left',
       },
       grid: {
@@ -312,7 +317,8 @@ const generateChartParams = async (component_id, component_name) => {
 
     return options;
   } else if (component_timeframes['idk'].includes(component_id)) {
-    const component_history = await getComponentHistory7d(component_id, '7D');
+    // FIXED: Use correct API call for idk timeframe
+    const component_history = await getComponentHistory7d(component_id, '7d');
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).getTime();
@@ -351,7 +357,8 @@ const generateChartParams = async (component_id, component_name) => {
         width: 3,
       },
       title: {
-        text: component_name + ' - ' + '14D' + ' History',
+        // FIXED: Corrected title to match actual data timeframe
+        text: component_name + ' - 7D History',
         align: 'left',
       },
       grid: {
@@ -378,8 +385,9 @@ const generateChartParams = async (component_id, component_name) => {
     };
 
     return options;
-  } else if (component_timeframes['dumbell'].includes(component_id)) {
-    const component_history = await getComponentHistory7d(component_id, '7D');
+  } else if (component_timeframes['dumbbell'].includes(component_id)) {
+    // FIXED: Corrected typo from 'dumbell' to 'dumbbell'
+    const component_history = await getComponentHistory7d(component_id, '7d');
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).getTime();
@@ -418,7 +426,8 @@ const generateChartParams = async (component_id, component_name) => {
         width: 3,
       },
       title: {
-        text: component_name + ' - ' + '14D' + ' History',
+        // FIXED: Corrected title to match actual data timeframe
+        text: component_name + ' - 7D History',
         align: 'left',
       },
       grid: {
@@ -523,12 +532,21 @@ const renderChart = async (component_id, component_name) => {
   const chart_element_id = `chart_${component_id}`;
   const chart_container = document.getElementById(chart_element_id);
 
+  if (!chart_container) {
+    console.error(`Chart container not found: ${chart_element_id}`);
+    return;
+  }
+
   const chart_options = await generateChartParams(component_id, component_name);
+
+  if (!chart_options) {
+    console.error(`Chart options not generated for component ${component_id}`);
+    return;
+  }
 
   if (chart_container.chart) {
     chart_container.chart.destroy();
   }
-
   chart_container.chart = new ApexCharts(chart_container, chart_options);
   chart_container.chart.render();
 };

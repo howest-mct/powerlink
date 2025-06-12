@@ -393,6 +393,10 @@ a {
     object-fit: contain;
 }
 
+.c-component__container{
+    box-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.1);
+}
+
 .c-card {
     display: flex;
     flex-direction: column;
