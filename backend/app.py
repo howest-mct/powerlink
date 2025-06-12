@@ -583,12 +583,9 @@ async def lights_bottom():
                 if current_time_stamp - last_log_time_switch >= 1:
                     if target_brightness > 0:
                         LED_BOTTOM.set_brightness(target_brightness)
-                        logger.info(
-                            f"LED Bottom brightness set to: {target_brightness}"
-                        )
+
                     else:
                         LED_BOTTOM.off()
-                        logger.info("LED Bottom turned off")
 
                     await log_and_emit_async(target_brightness, led_bottom_id)
 
@@ -700,7 +697,6 @@ async def front_door():
             if scanned_card is not None:
                 scanned_card = str(scanned_card)
                 snipped_card = cut_card(scanned_card)
-                logger.info(f"Card scanned: {snipped_card}")
                 await log_and_emit_async(snipped_card, card_reader_id)
 
                 try:
@@ -1147,7 +1143,7 @@ async def get_inhabitant_by_id(card_id: str):
     response_description="The energy_log with the specified ID",
     tags=["energy"],
 )
-async def get_energy_log_by_id(id: str):
+async def get_energy_log_24h_by_id(id: str):
     data = DataRepository.read_energy_24h(id)
     if data is None:
         raise HTTPException(
@@ -1163,7 +1159,7 @@ async def get_energy_log_by_id(id: str):
     response_description="The energy_log with the specified ID",
     tags=["energy"],
 )
-async def get_energy_log_by_id(id: int):
+async def get_energy_log_7d_by_id(id: int):
     data = DataRepository.read_energy_7d(id)
     if data is None:
         raise HTTPException(
@@ -1173,7 +1169,7 @@ async def get_energy_log_by_id(id: int):
 
 
 @app.get(
-    ENDPOINT + "/history/{component_id}/24h/",
+    ENDPOINT + "/history/{component_id}/{timeframe}/",
     response_model=list[HistoryLog],
     summary="Retrieve all history",
     response_description="A list of all available history",
