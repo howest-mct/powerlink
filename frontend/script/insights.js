@@ -44,7 +44,7 @@ const component_timeframes = {
 // #region ***  HTML Generation Functions               ***********
 const generateChartParams = async (component_id, component_name) => {
   if (component_timeframes['24h'].includes(component_id)) {
-    const component_history = await getComponentHistory(component_id, '24h');
+    const component_history = await getComponentHistory24h(component_id, '24h');
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).getTime();
@@ -111,7 +111,7 @@ const generateChartParams = async (component_id, component_name) => {
 
     return options;
   } else if (component_timeframes['7d'].includes(component_id)) {
-    const component_history = await getComponentHistory(component_id, '7d');
+    const component_history = await getComponentHistory7d(component_id, '7d');
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).getDate();
@@ -178,7 +178,7 @@ const generateChartParams = async (component_id, component_name) => {
 
     return options;
   } else if (component_timeframes['14d'].includes(component_id)) {
-    const component_history = await getComponentHistory(component_id, '14d');
+    const component_history = await getComponentHistory14d(component_id, '14d');
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).getTime();
@@ -245,7 +245,7 @@ const generateChartParams = async (component_id, component_name) => {
 
     return options;
   } else if (component_timeframes['col'].includes(component_id)) {
-    const component_history = await getComponentHistory(component_id, '7D');
+    const component_history = await getComponentHistory7d(component_id, '7D');
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).getTime();
@@ -312,7 +312,7 @@ const generateChartParams = async (component_id, component_name) => {
 
     return options;
   } else if (component_timeframes['idk'].includes(component_id)) {
-    const component_history = await getComponentHistory(component_id, '7D');
+    const component_history = await getComponentHistory7d(component_id, '7D');
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).getTime();
@@ -379,7 +379,7 @@ const generateChartParams = async (component_id, component_name) => {
 
     return options;
   } else if (component_timeframes['dumbell'].includes(component_id)) {
-    const component_history = await getComponentHistory(component_id, '7D');
+    const component_history = await getComponentHistory7d(component_id, '7D');
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).getTime();
@@ -1136,8 +1136,21 @@ const updateComponentInPage = async (component_id, is_component_selected) => {
   }
 };
 
-const getComponentHistory = async (component_id, timeframe) => {
-  const url = api_endpoint + `/history/${component_id}/${timeframe}/`;
+const getComponentHistory24h = async (component_id) => {
+  const url = api_endpoint + `/history/${component_id}/24h/`;
+  const response = await fetch(url);
+  const json = await response.json();
+  return json;
+};
+
+const getComponentHistory7d = async (component_id) => {
+  const url = api_endpoint + `/history/${component_id}/7d/`;
+  const response = await fetch(url);
+  const json = await response.json();
+  return json;
+};
+const getComponentHistory14d = async (component_id) => {
+  const url = api_endpoint + `/history/${component_id}/14d/`;
   const response = await fetch(url);
   const json = await response.json();
   return json;
