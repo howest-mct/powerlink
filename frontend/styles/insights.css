@@ -231,10 +231,6 @@ a {
     color: var(--text_main-color);
 }
 
-.c-dropdown-trigger:hover {
-    box-shadow: 0 .125rem 0.25rem rgba(0, 0, 0, 0.1);
-}
-
 .c-dropdown-trigger:after {
     content: '▼';
     position: absolute;
@@ -439,15 +435,6 @@ a {
 
 .c-white-background {
     background-color: var(--white-color);
-}
-
-.c-hover--shadow {
-    transition: box-shadow 0.3s ease;
-}
-
-.c-hover--shadow:hover {
-    box-shadow: 0 0.25rem 0.5rem var(--border-color);
-    transition: box-shadow 0.3s ease;
 }
 
 .c-white-background {
