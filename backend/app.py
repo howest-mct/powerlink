@@ -1160,7 +1160,7 @@ async def get_energy_log_7d_by_id(id: int):
 
 
 @app.get(
-    ENDPOINT + "/history/{component_id}/{timeframe}/",
+    ENDPOINT + "/history/{component_id}/24h/",
     response_model=list[HistoryLog],
     summary="Retrieve all history",
     response_description="A list of all available history",

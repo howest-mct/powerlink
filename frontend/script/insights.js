@@ -42,7 +42,7 @@ const component_timeframes = {
 // #endregion
 
 // #region ***  HTML Generation Functions               ***********
-const generateChartParams = async (component_id, component_name) => {
+const generateChartParams = async (component_id, component_name, component_value_unit) => {
   if (component_timeframes['24h'].includes(component_id)) {
     const component_history = await getComponentHistory24h(component_id, '24h');
     const chart_data = [];
@@ -53,7 +53,6 @@ const generateChartParams = async (component_id, component_name) => {
         x: date_time,
         y: value,
       });
-      console.log(`Entry: ${entry.chart_date}, Value: ${value}`);
     });
 
     chart_data.sort((a, b) => a.x - b.x);
@@ -75,7 +74,7 @@ const generateChartParams = async (component_id, component_name) => {
           show: true,
         },
       },
-      colors: ['#77B6EA'],
+      colors: ['#4A90E2'],
       dataLabels: {
         enabled: false,
       },
@@ -101,7 +100,7 @@ const generateChartParams = async (component_id, component_name) => {
       },
       yaxis: {
         title: {
-          text: 'Value',
+          text: component_value_unit,
         },
       },
       legend: {
@@ -115,7 +114,6 @@ const generateChartParams = async (component_id, component_name) => {
     const component_history = await getComponentHistory7d(component_id, '7d');
     const chart_data = [];
     component_history.forEach((entry) => {
-      // FIXED: Use getTime() instead of getDate() for proper datetime handling
       const date_time = new Date(entry.chart_date).getTime();
       const value = parseFloat(entry.average_value) || 0;
       chart_data.push({
@@ -143,7 +141,7 @@ const generateChartParams = async (component_id, component_name) => {
           show: true,
         },
       },
-      colors: ['#77B6EA'],
+      colors: ['#4A90E2'],
       dataLabels: {
         enabled: false,
       },
@@ -152,7 +150,6 @@ const generateChartParams = async (component_id, component_name) => {
         width: 3,
       },
       title: {
-        // FIXED: Show correct timeframe in title
         text: component_name + ' - 7D History',
         align: 'left',
       },
@@ -165,12 +162,12 @@ const generateChartParams = async (component_id, component_name) => {
       xaxis: {
         type: 'datetime',
         title: {
-          text: 'Time',
+          text: 'Date',
         },
       },
       yaxis: {
         title: {
-          text: 'Value',
+          text: component_value_unit,
         },
       },
       legend: {
@@ -211,7 +208,7 @@ const generateChartParams = async (component_id, component_name) => {
           show: true,
         },
       },
-      colors: ['#77B6EA'],
+      colors: ['#4A90E2'],
       dataLabels: {
         enabled: false,
       },
@@ -232,12 +229,12 @@ const generateChartParams = async (component_id, component_name) => {
       xaxis: {
         type: 'datetime',
         title: {
-          text: 'Time',
+          text: 'Date',
         },
       },
       yaxis: {
         title: {
-          text: 'Value',
+          text: component_value_unit,
         },
       },
       legend: {
@@ -248,11 +245,10 @@ const generateChartParams = async (component_id, component_name) => {
 
     return options;
   } else if (component_timeframes['col'].includes(component_id)) {
-    // FIXED: Use correct API call for col timeframe
     const component_history = await getComponentHistory7d(component_id, '7d');
     const chart_data = [];
     component_history.forEach((entry) => {
-      const date_time = new Date(entry.chart_date).getTime();
+      const date_time = new Date(entry.chart_date).toLocaleDateString();
       const value = parseFloat(entry.average_value) || 0;
       chart_data.push({
         x: date_time,
@@ -260,7 +256,7 @@ const generateChartParams = async (component_id, component_name) => {
       });
     });
 
-    chart_data.sort((a, b) => a.x - b.x);
+    chart_data.sort((a, b) => new Date(a.x) - new Date(b.x));
 
     const options = {
       series: [
@@ -271,42 +267,56 @@ const generateChartParams = async (component_id, component_name) => {
       ],
       chart: {
         height: 350,
-        type: 'line',
-        zoom: {
-          enabled: true,
-        },
-        toolbar: {
-          show: true,
+        type: 'bar',
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 4,
+          dataLabels: {
+            position: 'top',
+          },
         },
       },
-      colors: ['#77B6EA'],
       dataLabels: {
-        enabled: false,
+        enabled: true,
+        formatter: function (val) {
+          return val + (component_value_unit === '%' ? '%' : '');
+        },
+        offsetY: -20,
+        style: {
+          fontSize: '12px',
+          colors: ['#304758'],
+        },
       },
-      stroke: {
-        curve: 'smooth',
-        width: 3,
-      },
+      colors: ['#4A90E2'],
       title: {
-        // FIXED: Corrected title to match actual data timeframe
-        text: component_name + ' - 7D History',
+        text: component_name + ' - 7D History (Bar Chart)',
         align: 'left',
       },
       grid: {
         borderColor: '#e7e7e7',
       },
-      markers: {
-        size: 4,
-      },
       xaxis: {
-        type: 'datetime',
+        type: 'category',
         title: {
-          text: 'Time',
+          text: 'Date',
+        },
+        axisBorder: {
+          show: true,
+        },
+        axisTicks: {
+          show: true,
         },
       },
       yaxis: {
         title: {
-          text: 'Value',
+          text: component_value_unit,
+        },
+        labels: {
+          show: true,
+          formatter: function (val) {
+            return val + (component_value_unit === '%' ? '%' : '');
+          },
         },
       },
       legend: {
@@ -317,7 +327,6 @@ const generateChartParams = async (component_id, component_name) => {
 
     return options;
   } else if (component_timeframes['idk'].includes(component_id)) {
-    // FIXED: Use correct API call for idk timeframe
     const component_history = await getComponentHistory7d(component_id, '7d');
     const chart_data = [];
     component_history.forEach((entry) => {
@@ -348,7 +357,7 @@ const generateChartParams = async (component_id, component_name) => {
           show: true,
         },
       },
-      colors: ['#77B6EA'],
+      colors: ['#4A90E2'],
       dataLabels: {
         enabled: false,
       },
@@ -357,7 +366,6 @@ const generateChartParams = async (component_id, component_name) => {
         width: 3,
       },
       title: {
-        // FIXED: Corrected title to match actual data timeframe
         text: component_name + ' - 7D History',
         align: 'left',
       },
@@ -370,12 +378,12 @@ const generateChartParams = async (component_id, component_name) => {
       xaxis: {
         type: 'datetime',
         title: {
-          text: 'Time',
+          text: 'Date',
         },
       },
       yaxis: {
         title: {
-          text: 'Value',
+          text: component_value_unit,
         },
       },
       legend: {
@@ -386,73 +394,87 @@ const generateChartParams = async (component_id, component_name) => {
 
     return options;
   } else if (component_timeframes['dumbbell'].includes(component_id)) {
-    // FIXED: Corrected typo from 'dumbell' to 'dumbbell'
     const component_history = await getComponentHistory7d(component_id, '7d');
-    const chart_data = [];
-    component_history.forEach((entry) => {
-      const date_time = new Date(entry.chart_date).getTime();
+
+    const dumbbell_data = [];
+    component_history.forEach((entry, index) => {
+      const date = new Date(entry.chart_date).toLocaleDateString();
       const value = parseFloat(entry.average_value) || 0;
-      chart_data.push({
-        x: date_time,
-        y: value,
+      const minValue = Math.max(0, value * 0.8);
+      const maxValue = value * 1.2;
+
+      dumbbell_data.push({
+        x: date,
+        y: [minValue, maxValue],
       });
     });
-
-    chart_data.sort((a, b) => a.x - b.x);
 
     const options = {
       series: [
         {
           name: component_name,
-          data: chart_data,
+          data: dumbbell_data,
         },
       ],
       chart: {
         height: 350,
-        type: 'line',
+        type: 'rangeBar',
         zoom: {
-          enabled: true,
-        },
-        toolbar: {
-          show: true,
+          enabled: false,
         },
       },
-      colors: ['#77B6EA'],
-      dataLabels: {
-        enabled: false,
+      plotOptions: {
+        bar: {
+          isDumbbell: true,
+          columnWidth: 3,
+          dumbbellColors: [['#008FFB', '#00E396']],
+        },
       },
-      stroke: {
-        curve: 'smooth',
-        width: 3,
-      },
+      colors: ['#4A90E2'],
       title: {
-        // FIXED: Corrected title to match actual data timeframe
-        text: component_name + ' - 7D History',
+        text: component_name + ' - Range Chart',
         align: 'left',
+      },
+      legend: {
+        show: true,
+        showForSingleSeries: true,
+        position: 'top',
+        horizontalAlign: 'left',
+        customLegendItems: ['Min Value', 'Max Value'],
+      },
+      fill: {
+        gradient: {
+          type: 'vertical',
+          Color: ['#00E396'],
+          stops: [0, 100],
+        },
       },
       grid: {
         borderColor: '#e7e7e7',
-      },
-      markers: {
-        size: 4,
+        xaxis: {
+          lines: {
+            show: true,
+          },
+        },
+        yaxis: {
+          lines: {
+            show: false,
+          },
+        },
       },
       xaxis: {
-        type: 'datetime',
+        type: 'category',
+        tickPlacement: 'on',
         title: {
-          text: 'Time',
+          text: 'Date',
         },
       },
       yaxis: {
         title: {
-          text: 'Value',
+          text: component_value_unit,
         },
       },
-      legend: {
-        position: 'top',
-        horizontalAlign: 'right',
-      },
     };
-
     return options;
   }
 };
@@ -528,7 +550,7 @@ const generateDropdownOptionHtml = (component_id, component_name, room_id, is_ch
 // #endregion
 
 // #region ***  Chart Functions                         ***********
-const renderChart = async (component_id, component_name) => {
+const renderChart = async (component_id, component_name, component_value_unit) => {
   const chart_element_id = `chart_${component_id}`;
   const chart_container = document.getElementById(chart_element_id);
 
@@ -537,7 +559,7 @@ const renderChart = async (component_id, component_name) => {
     return;
   }
 
-  const chart_options = await generateChartParams(component_id, component_name);
+  const chart_options = await generateChartParams(component_id, component_name, component_value_unit);
 
   if (!chart_options) {
     console.error(`Chart options not generated for component ${component_id}`);
@@ -568,7 +590,7 @@ const initTimeframeButtons = () => {
 
       const component_name = card_container.querySelector('.c-card__title').textContent;
 
-      await renderChart(component_id, component_name, timeframe);
+      await renderChart(component_id, component_name);
     }
   });
 };
@@ -946,7 +968,7 @@ const showAllRoomsAndComponents = async () => {
       });
 
       if (component_is_in_page) {
-        charts_to_render.push(renderChart(component.component_id, component.component_name, '24h'));
+        charts_to_render.push(renderChart(component.component_id, component.component_name, component.value_unit, '24h'));
       }
     });
   });
@@ -1165,6 +1187,7 @@ const getComponentHistory7d = async (component_id) => {
   const url = api_endpoint + `/history/${component_id}/7d/`;
   const response = await fetch(url);
   const json = await response.json();
+  console.log('7d history:', json);
   return json;
 };
 const getComponentHistory14d = async (component_id) => {
