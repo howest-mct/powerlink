@@ -16,6 +16,161 @@ const schedule_icons = {
 };
 // #endregion
 
+// #region ***  HTML Generation Functions               ***********
+const generateTemperatureControlHtml = (schedule_item) => {
+  const { schedule_id, schedule_name, start_time, end_time, value, value_unit, enabled, type_id, component_id, room_id, type_name } = schedule_item;
+  const icon_path = schedule_icons[schedule_id];
+
+  return `
+    <div class="c-temperature-control js-schedule__container js-temperature-control c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
+      <div class="c-schedule-card__header">
+        <div class="c-schedule-card__header">
+          <img src="${icon_path}" alt="${type_name}" class="c-schedule-icon">
+          <h4 class="c-schedule-card__title">${schedule_name}</h4>
+        </div>
+        <label class="c-switch">
+          <input type="checkbox" class="c-card__checkbox  js-schedule__checkbox" id="checkbox_${schedule_id}" ${enabled ? 'checked' : ''}>
+          <span class="c-switch-slider c-round"></span>
+        </label>
+      </div>
+      <div class="c-circular-progress" data-value="${value}" data-schedule_id="${schedule_id}">
+        <div class="c-circular-progress__chart" id="chart_${schedule_id}"></div>
+      </div>
+      <div class="c-controls">
+        <svg class="c-control-btn" id="decrease_btn_${schedule_id}" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
+          <path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z"></path>
+        </svg>
+        <svg class="c-control-btn" id="increase_btn_${schedule_id}" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
+          <path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"></path>
+        </svg>
+      </div>
+      <div class="c-temperature-card__meta">
+        <div class="c-temperature-card__info">
+          <p class="c-temperature-card__status">${value_unit}</p>
+          <div class="c-card__schedule">
+          <div class="c-card__schedule-time">
+            <div class="c-card__schedule-from">
+              <p>from</p>
+              <input type="time" class="js-input_container" value="${start_time}">
+            </div>
+            <div class="c-card__schedule-to">
+              <p>to</p>
+              <input type="time" class="js-input_container" value="${end_time}">
+            </div>
+          </div>
+          <div class="c-card__schedule-save__container">
+            <button class="js-card__schedule-save c-card__schedule-save" type="button">Save Changes</button>
+          </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+};
+
+const generateLightingControlHtml = (schedule_item) => {
+  const { schedule_id, schedule_name, start_time, end_time, value, value_unit, enabled, type_id, component_id, room_id, type_name } = schedule_item;
+  const icon_path = schedule_icons[schedule_id];
+
+  return `
+    <div class="c-lighting-card js-schedule__container c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
+      <div class="c-schedule-card__header">
+        <div class="c-schedule-card__header">
+          <img src="${icon_path}" alt="${type_name}" class="c-schedule-icon">
+          <h4 class="c-schedule-card__title">${schedule_name}</h4>
+        </div>
+        <label class="c-switch">
+          <input type="checkbox" class="c-card__checkbox  js-schedule__checkbox" id="checkbox_${schedule_id}" ${enabled ? 'checked' : ''}>
+          <span class="c-switch-slider c-round"></span>
+        </label>
+      </div>
+      <div class="c-card__content">
+        <div class="c-bulb-icon" id="bulb_icon_${schedule_id}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
+            <path d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z"></path>
+          </svg>
+        </div>
+        <input type="range" min="0" max="100" value="${value}" class="c-slider" id="light_slider_${schedule_id}">
+        <div class="c-value-display" id="value_display_${schedule_id}">${value}%</div>
+      </div>
+      <div class="c-card__info">
+        <p class="c-card__status">${value_unit}</p>
+        <div class="c-card__schedule">
+          <div class="c-card__schedule-time">
+            <div class="c-card__schedule-from">
+              <p>from</p>
+              <input type="time" class="js-input_container" value="${start_time}">
+            </div>
+            <div class="c-card__schedule-to">
+              <p>to</p>
+              <input type="time" class="js-input_container" value="${end_time}">
+            </div>
+          </div>
+          <div class="c-card__schedule-save__container">
+            <button class="js-card__schedule-save c-card__schedule-save" type="button">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+};
+
+const generateChartParams = (schedule_id, value) => {
+  return {
+    series: [((value - 16) / (30 - 16)) * 100],
+    chart: {
+      type: 'radialBar',
+      offsetY: 0,
+      sparkline: {
+        enabled: false,
+      },
+      width: '320px',
+      height: '320px',
+    },
+    plotOptions: {
+      radialBar: {
+        startAngle: -90,
+        endAngle: 90,
+        track: {
+          background: '#E0E0E0',
+          strokeWidth: '97%',
+          margin: 0,
+          dropShadow: {
+            enabled: false,
+            top: 2,
+            left: 0,
+            color: '#444',
+            opacity: 1,
+            blur: 2,
+          },
+        },
+        dataLabels: {
+          name: {
+            show: false,
+          },
+          value: {
+            offsetY: 0,
+            fontSize: '40px',
+            formatter: function (percentage_value) {
+              const temperature = (percentage_value / 100) * (30 - 16) + 16;
+              return temperature.toFixed(1) + '°C';
+            },
+          },
+        },
+      },
+    },
+    grid: {
+      padding: {
+        top: 0,
+      },
+    },
+    fill: {
+      type: 'linear',
+      colors: ['#4A90E2'],
+    },
+    labels: [''],
+  };
+};
+// #endregion
+
 // #region ***  Callback-Visualisation - show___         ***********
 const showSliders = async (light_slider_id, value_display_id, bulb_icon_id) => {
   const slider_element = document.getElementById(light_slider_id);
@@ -151,156 +306,19 @@ const showAllSchedules = (all_schedules) => {
     `;
 
     for (const schedule_item of room_schedule_data) {
-      const { schedule_id, schedule_name, start_time, end_time, value, value_unit, enabled, type_id, component_id, room_id, type_name } = schedule_item;
-      const icon_path = schedule_icons[schedule_id];
+      const { type_id, schedule_id, value } = schedule_item;
 
       if (type_id === 1) {
-        schedules_html += `
-          <div class="c-temperature-control js-schedule__container js-temperature-control c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
-            <div class="c-schedule-card__header">
-              <div class="c-schedule-card__header">
-                <img src="${icon_path}" alt="${type_name}" class="c-schedule-icon">
-                <h4 class="c-schedule-card__title">${schedule_name}</h4>
-              </div>
-              <label class="c-switch">
-                <input type="checkbox" class="c-card__checkbox  js-schedule__checkbox" id="checkbox_${schedule_id}" ${enabled ? 'checked' : ''}>
-                <span class="c-switch-slider c-round"></span>
-              </label>
-            </div>
-            <div class="c-circular-progress" data-value="${value}" data-schedule_id="${schedule_id}">
-              <div class="c-circular-progress__chart" id="chart_${schedule_id}"></div>
-            </div>
-            <div class="c-controls">
-              <svg class="c-control-btn" id="decrease_btn_${schedule_id}" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
-                <path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z"></path>
-              </svg>
-              <svg class="c-control-btn" id="increase_btn_${schedule_id}" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
-                <path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"></path>
-              </svg>
-            </div>
-            <div class="c-temperature-card__meta">
-              <div class="c-temperature-card__info">
-                <p class="c-temperature-card__status">${value_unit}</p>
-                <div class="c-card__schedule">
-                <div class="c-card__schedule-time">
-                  <div class="c-card__schedule-from">
-                    <p>from</p>
-                    <input type="time" class="js-input_container" value="${start_time}">
-                  </div>
-                  <div class="c-card__schedule-to">
-                    <p>to</p>
-                    <input type="time" class="js-input_container" value="${end_time}">
-                  </div>
-                </div>
-                <div class="c-card__schedule-save__container">
-                  <button class="js-card__schedule-save c-card__schedule-save" type="button">Save Changes</button>
-                </div>
-                </div>
-              </div>
-            </div>
-          </div>`;
+        schedules_html += generateTemperatureControlHtml(schedule_item);
 
         const chart_element_id = `chart_${schedule_id}`;
-        const chart_configuration = {
-          series: [((value - 16) / (30 - 16)) * 100],
-          chart: {
-            type: 'radialBar',
-            offsetY: 0,
-            sparkline: {
-              enabled: false,
-            },
-            width: '320px',
-            height: '320px',
-          },
-          plotOptions: {
-            radialBar: {
-              startAngle: -90,
-              endAngle: 90,
-              track: {
-                background: '#E0E0E0',
-                strokeWidth: '97%',
-                margin: 0,
-                dropShadow: {
-                  enabled: false,
-                  top: 2,
-                  left: 0,
-                  color: '#444',
-                  opacity: 1,
-                  blur: 2,
-                },
-              },
-              dataLabels: {
-                name: {
-                  show: false,
-                },
-                value: {
-                  offsetY: 0,
-                  fontSize: '40px',
-                  formatter: function (percentage_value) {
-                    const temperature = (percentage_value / 100) * (30 - 16) + 16;
-                    return temperature.toFixed(1) + '°C';
-                  },
-                },
-              },
-            },
-          },
-          grid: {
-            padding: {
-              top: 0,
-            },
-          },
-          fill: {
-            type: 'linear',
-            colors: ['#4A90E2'],
-          },
-          labels: [''],
-        };
-
+        const chart_configuration = generateChartParams(schedule_id, value);
         charts_to_render.push({
           id: chart_element_id,
           options: chart_configuration,
         });
       } else if (type_id === 2) {
-        schedules_html += `
-          <div class="c-lighting-card js-schedule__container c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
-            <div class="c-schedule-card__header">
-              <div class="c-schedule-card__header">
-                <img src="${icon_path}" alt="${type_name}" class="c-schedule-icon">
-                <h4 class="c-schedule-card__title">${schedule_name}</h4>
-              </div>
-              <label class="c-switch">
-                <input type="checkbox" class="c-card__checkbox  js-schedule__checkbox" id="checkbox_${schedule_id}" ${enabled ? 'checked' : ''}>
-                <span class="c-switch-slider c-round"></span>
-              </label>
-            </div>
-            <div class="c-card__content">
-              <div class="c-bulb-icon" id="bulb_icon_${schedule_id}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#000000" viewBox="0 0 256 256">
-                  <path d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z"></path>
-                </svg>
-              </div>
-              <input type="range" min="0" max="100" value="${value}" class="c-slider" id="light_slider_${schedule_id}">
-              <div class="c-value-display" id="value_display_${schedule_id}">${value}%</div>
-            </div>
-            <div class="c-card__info">
-              <p class="c-card__status">${value_unit}</p>
-              <div class="c-card__schedule">
-                <div class="c-card__schedule-time">
-                  <div class="c-card__schedule-from">
-                    <p>from</p>
-                    <input type="time" class="js-input_container" value="${start_time}">
-                  </div>
-                  <div class="c-card__schedule-to">
-                    <p>to</p>
-                    <input type="time" class="js-input_container" value="${end_time}">
-                  </div>
-                </div>
-                <div class="c-card__schedule-save__container">
-                  <button class="js-card__schedule-save c-card__schedule-save" type="button">Save Changes</button>
-                </div>
-              </div>
-            </div>
-          </div>`;
+        schedules_html += generateLightingControlHtml(schedule_item);
       }
     }
 
