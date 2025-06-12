@@ -166,7 +166,7 @@ scanned_card = None
 door_state = None
 switch_state_power = False
 errors = 0
-sleep_lcd = 3
+sleep_lcd = 6
 sleep_fast = 0.25
 sleep_medium = 1
 sleep_slow = 2
@@ -255,15 +255,10 @@ async def display_lcd():
 
     while True:
         try:
-            eth0_ip = get_ip("eth0")
             wlan0_ip = get_ip("wlan0")
             cpu_temp = get_cpu_temperature()
 
-            LCD.string("IP ETH0:", 1)
-            LCD.string(eth0_ip, 2)
-            await asyncio.sleep(sleep_lcd)
-
-            LCD.string("IP WLAN0:", 1)
+            LCD.string("PowerLink IP:", 1)
             LCD.string(wlan0_ip, 2)
             await asyncio.sleep(sleep_lcd)
 
@@ -277,10 +272,6 @@ async def display_lcd():
 
             LCD.string("Battery level:", 1)
             LCD.string(f"{battery_level}%", 2)
-            await asyncio.sleep(sleep_lcd)
-
-            LCD.string("Program running", 1)
-            LCD.string(f"{errors} error(s)", 2)
             await asyncio.sleep(sleep_lcd)
 
         except Exception as e:

@@ -1,8 +1,8 @@
 'use strict';
 
-const lan_ip = `http://192.168.168.169:8000`;
+const lan_ip = `http://${window.location.hostname}:8000`;
 const socket_connection = io(lan_ip);
-const api_endpoint = `http://192.168.168.169:8000/api/v1`;
+const api_endpoint = `http://localhost:8000/api/v1`;
 
 // #region ***  DOM references                           ***********
 const component_icons = {
