@@ -258,6 +258,9 @@ a {
     box-shadow: 0 .125rem 0.5rem rgba(0, 0, 0, 0.1);
 }
 
+.c-hover--shadow {
+    box-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.1);
+}
 .dropdown-option {
     display: block;
     padding: .5rem .9375rem;
@@ -402,8 +405,8 @@ a {
 }
 
 .c-card__level {
-    font-size: 2.025rem;
-    line-height: 3rem;
+    font-size: 1.802rem;
+    line-height: 2rem;
     color: var(--main-color);
 }
 

@@ -241,6 +241,9 @@ a {
     color: var(--text_sub-color);
 }
 
+.c-hover--shadow {
+    box-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.1);
+}
 .c-dropdown-menu {
     position: absolute;
     top: 100%;
@@ -401,8 +404,8 @@ a {
 }
 
 .c-card__level {
-    font-size: 2.025rem;
-    line-height: 3rem;
+    font-size: 1.802rem;
+    line-height: 2rem;
     color: var(--main-color);
 }
 

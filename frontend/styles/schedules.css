@@ -569,6 +569,9 @@ body {
 .c-edit {
     font-size: 0.75rem;
 }
+.c-hover--shadow {
+    box-shadow:0 0.0625rem 0.125rem rgba(0, 0, 0, 0.1);
+}
 
 .c-white-background {
     background-color: var(--white-color);
