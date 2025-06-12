@@ -29,81 +29,423 @@ const component_icons = {
   21: `img/svg/toggle-left.svg`,
   22: `img/svg/thermometer.svg`,
 };
+
+const component_timeframes = {
+  '24h': [6, 7, 9, 12, 15, 20, 22],
+  '7d': [1, 3, 4, 5, 11, 14],
+  '14d': [2],
+  col: [8, 16],
+  idk: [10, 13, 17, 18, 21],
+  dumbbell: [19],
+};
+
 // #endregion
 
 // #region ***  HTML Generation Functions               ***********
-const generateChartParams = async (component_id, component_name, timeframe) => {
-  const component_history = await getComponentHistory(component_id, timeframe);
-
-  if (!component_history || component_history.length === 0) {
-    return null;
-  }
-
-  const chart_data = [];
-  component_history.forEach((entry) => {
-    const date_time = new Date(entry.chart_date).getTime();
-    const value = parseFloat(entry.average_value) || 0;
-    chart_data.push({
-      x: date_time,
-      y: value,
+const generateChartParams = async (component_id, component_name) => {
+  if (component_timeframes['24h'].includes(component_id)) {
+    const component_history = await getComponentHistory(component_id, '24h');
+    const chart_data = [];
+    component_history.forEach((entry) => {
+      const date_time = new Date(entry.chart_date).getTime();
+      const value = parseFloat(entry.average_value) || 0;
+      chart_data.push({
+        x: date_time,
+        y: value,
+      });
     });
-  });
 
-  chart_data.sort((a, b) => a.x - b.x);
+    chart_data.sort((a, b) => a.x - b.x);
 
-  const options = {
-    series: [
-      {
-        name: component_name,
-        data: chart_data,
+    const options = {
+      series: [
+        {
+          name: component_name,
+          data: chart_data,
+        },
+      ],
+      chart: {
+        height: 350,
+        type: 'line',
+        zoom: {
+          enabled: true,
+        },
+        toolbar: {
+          show: true,
+        },
       },
-    ],
-    chart: {
-      height: 350,
-      type: 'line',
-      zoom: {
-        enabled: true,
+      colors: ['#77B6EA'],
+      dataLabels: {
+        enabled: false,
       },
-      toolbar: {
-        show: true,
+      stroke: {
+        curve: 'smooth',
+        width: 3,
       },
-    },
-    colors: ['#77B6EA'],
-    dataLabels: {
-      enabled: false,
-    },
-    stroke: {
-      curve: 'smooth',
-      width: 3,
-    },
-    title: {
-      text: component_name + ' - ' + timeframe.toUpperCase() + ' History',
-      align: 'left',
-    },
-    grid: {
-      borderColor: '#e7e7e7',
-    },
-    markers: {
-      size: 4,
-    },
-    xaxis: {
-      type: 'datetime',
       title: {
-        text: 'Time',
+        text: component_name + ' - ' + '24H' + ' History',
+        align: 'left',
       },
-    },
-    yaxis: {
-      title: {
-        text: 'Value',
+      grid: {
+        borderColor: '#e7e7e7',
       },
-    },
-    legend: {
-      position: 'top',
-      horizontalAlign: 'right',
-    },
-  };
+      markers: {
+        size: 4,
+      },
+      xaxis: {
+        type: 'datetime',
+        title: {
+          text: 'Time',
+        },
+      },
+      yaxis: {
+        title: {
+          text: 'Value',
+        },
+      },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'right',
+      },
+    };
 
-  return options;
+    return options;
+  } else if (component_timeframes['7d'].includes(component_id)) {
+    const component_history = await getComponentHistory(component_id, '7d');
+    const chart_data = [];
+    component_history.forEach((entry) => {
+      const date_time = new Date(entry.chart_date).getDate();
+      const value = parseFloat(entry.average_value) || 0;
+      chart_data.push({
+        x: date_time,
+        y: value,
+      });
+    });
+
+    chart_data.sort((a, b) => a.x - b.x);
+
+    const options = {
+      series: [
+        {
+          name: component_name,
+          data: chart_data,
+        },
+      ],
+      chart: {
+        height: 350,
+        type: 'line',
+        zoom: {
+          enabled: true,
+        },
+        toolbar: {
+          show: true,
+        },
+      },
+      colors: ['#77B6EA'],
+      dataLabels: {
+        enabled: false,
+      },
+      stroke: {
+        curve: 'smooth',
+        width: 3,
+      },
+      title: {
+        text: component_name + ' - ' + '7D' + ' History',
+        align: 'left',
+      },
+      grid: {
+        borderColor: '#e7e7e7',
+      },
+      markers: {
+        size: 4,
+      },
+      xaxis: {
+        type: 'datetime',
+        title: {
+          text: 'Time',
+        },
+      },
+      yaxis: {
+        title: {
+          text: 'Value',
+        },
+      },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'right',
+      },
+    };
+
+    return options;
+  } else if (component_timeframes['14d'].includes(component_id)) {
+    const component_history = await getComponentHistory(component_id, '14d');
+    const chart_data = [];
+    component_history.forEach((entry) => {
+      const date_time = new Date(entry.chart_date).getTime();
+      const value = parseFloat(entry.average_value) || 0;
+      chart_data.push({
+        x: date_time,
+        y: value,
+      });
+    });
+
+    chart_data.sort((a, b) => a.x - b.x);
+
+    const options = {
+      series: [
+        {
+          name: component_name,
+          data: chart_data,
+        },
+      ],
+      chart: {
+        height: 350,
+        type: 'line',
+        zoom: {
+          enabled: true,
+        },
+        toolbar: {
+          show: true,
+        },
+      },
+      colors: ['#77B6EA'],
+      dataLabels: {
+        enabled: false,
+      },
+      stroke: {
+        curve: 'smooth',
+        width: 3,
+      },
+      title: {
+        text: component_name + ' - ' + '14D' + ' History',
+        align: 'left',
+      },
+      grid: {
+        borderColor: '#e7e7e7',
+      },
+      markers: {
+        size: 4,
+      },
+      xaxis: {
+        type: 'datetime',
+        title: {
+          text: 'Time',
+        },
+      },
+      yaxis: {
+        title: {
+          text: 'Value',
+        },
+      },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'right',
+      },
+    };
+
+    return options;
+  } else if (component_timeframes['col'].includes(component_id)) {
+    const component_history = await getComponentHistory(component_id, '7D');
+    const chart_data = [];
+    component_history.forEach((entry) => {
+      const date_time = new Date(entry.chart_date).getTime();
+      const value = parseFloat(entry.average_value) || 0;
+      chart_data.push({
+        x: date_time,
+        y: value,
+      });
+    });
+
+    chart_data.sort((a, b) => a.x - b.x);
+
+    const options = {
+      series: [
+        {
+          name: component_name,
+          data: chart_data,
+        },
+      ],
+      chart: {
+        height: 350,
+        type: 'line',
+        zoom: {
+          enabled: true,
+        },
+        toolbar: {
+          show: true,
+        },
+      },
+      colors: ['#77B6EA'],
+      dataLabels: {
+        enabled: false,
+      },
+      stroke: {
+        curve: 'smooth',
+        width: 3,
+      },
+      title: {
+        text: component_name + ' - ' + '14D' + ' History',
+        align: 'left',
+      },
+      grid: {
+        borderColor: '#e7e7e7',
+      },
+      markers: {
+        size: 4,
+      },
+      xaxis: {
+        type: 'datetime',
+        title: {
+          text: 'Time',
+        },
+      },
+      yaxis: {
+        title: {
+          text: 'Value',
+        },
+      },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'right',
+      },
+    };
+
+    return options;
+  } else if (component_timeframes['idk'].includes(component_id)) {
+    const component_history = await getComponentHistory(component_id, '7D');
+    const chart_data = [];
+    component_history.forEach((entry) => {
+      const date_time = new Date(entry.chart_date).getTime();
+      const value = parseFloat(entry.average_value) || 0;
+      chart_data.push({
+        x: date_time,
+        y: value,
+      });
+    });
+
+    chart_data.sort((a, b) => a.x - b.x);
+
+    const options = {
+      series: [
+        {
+          name: component_name,
+          data: chart_data,
+        },
+      ],
+      chart: {
+        height: 350,
+        type: 'line',
+        zoom: {
+          enabled: true,
+        },
+        toolbar: {
+          show: true,
+        },
+      },
+      colors: ['#77B6EA'],
+      dataLabels: {
+        enabled: false,
+      },
+      stroke: {
+        curve: 'smooth',
+        width: 3,
+      },
+      title: {
+        text: component_name + ' - ' + '14D' + ' History',
+        align: 'left',
+      },
+      grid: {
+        borderColor: '#e7e7e7',
+      },
+      markers: {
+        size: 4,
+      },
+      xaxis: {
+        type: 'datetime',
+        title: {
+          text: 'Time',
+        },
+      },
+      yaxis: {
+        title: {
+          text: 'Value',
+        },
+      },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'right',
+      },
+    };
+
+    return options;
+  } else if (component_timeframes['dumbell'].includes(component_id)) {
+    const component_history = await getComponentHistory(component_id, '7D');
+    const chart_data = [];
+    component_history.forEach((entry) => {
+      const date_time = new Date(entry.chart_date).getTime();
+      const value = parseFloat(entry.average_value) || 0;
+      chart_data.push({
+        x: date_time,
+        y: value,
+      });
+    });
+
+    chart_data.sort((a, b) => a.x - b.x);
+
+    const options = {
+      series: [
+        {
+          name: component_name,
+          data: chart_data,
+        },
+      ],
+      chart: {
+        height: 350,
+        type: 'line',
+        zoom: {
+          enabled: true,
+        },
+        toolbar: {
+          show: true,
+        },
+      },
+      colors: ['#77B6EA'],
+      dataLabels: {
+        enabled: false,
+      },
+      stroke: {
+        curve: 'smooth',
+        width: 3,
+      },
+      title: {
+        text: component_name + ' - ' + '14D' + ' History',
+        align: 'left',
+      },
+      grid: {
+        borderColor: '#e7e7e7',
+      },
+      markers: {
+        size: 4,
+      },
+      xaxis: {
+        type: 'datetime',
+        title: {
+          text: 'Time',
+        },
+      },
+      yaxis: {
+        title: {
+          text: 'Value',
+        },
+      },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'right',
+      },
+    };
+
+    return options;
+  }
 };
 
 const generateChartParams24H = (component_id, component_name) => {
@@ -177,11 +519,11 @@ const generateDropdownOptionHtml = (component_id, component_name, room_id, is_ch
 // #endregion
 
 // #region ***  Chart Functions                         ***********
-const renderChart = async (component_id, component_name, timeframe) => {
-  const chart_element_id = 'chart_' + component_id;
+const renderChart = async (component_id, component_name) => {
+  const chart_element_id = `chart_${component_id}`;
   const chart_container = document.getElementById(chart_element_id);
 
-  const chart_options = await generateChartParams(component_id, component_name, timeframe);
+  const chart_options = await generateChartParams(component_id, component_name);
 
   if (chart_container.chart) {
     chart_container.chart.destroy();
@@ -739,7 +1081,7 @@ const formatDateTime = (iso_string) => {
 const getLastComponentLogs = async () => {
   const url_parameters = new URLSearchParams(window.location.search);
   const page_url_param = parseInt(url_parameters.get('page'));
-  const request_url = api_endpoint + '/components/last/' + page_url_param + '/';
+  const request_url = api_endpoint + `/components/last/${page_url_param}/`;
   const server_response = await fetch(request_url);
   const json_data = await server_response.json();
   return json_data;
@@ -762,7 +1104,7 @@ const getAllRooms = async () => {
 const getComponentsInPage = async () => {
   const url_parameters = new URLSearchParams(window.location.search);
   const page_id = parseInt(url_parameters.get('page'));
-  const request_url = api_endpoint + '/pages/' + page_id + '/components/';
+  const request_url = api_endpoint + `/pages/${page_id}/components/`;
   const server_response = await fetch(request_url);
   const json_data = await server_response.json();
   return json_data;
@@ -773,7 +1115,7 @@ const updateComponentInPage = async (component_id, is_component_selected) => {
   const page_id = parseInt(url_parameters.get('page'));
 
   if (is_component_selected) {
-    const request_url = api_endpoint + '/pages/' + page_id + '/components/';
+    const request_url = api_endpoint + `/pages/${page_id}/components/`;
     const server_response = await fetch(request_url, {
       method: 'POST',
       headers: {
@@ -786,7 +1128,7 @@ const updateComponentInPage = async (component_id, is_component_selected) => {
     });
     return true;
   } else {
-    const request_url = api_endpoint + '/pages/' + page_id + '/components/' + component_id + '/';
+    const request_url = api_endpoint + `/pages/${page_id}/components/${component_id}/`;
     const server_response = await fetch(request_url, {
       method: 'DELETE',
     });
@@ -795,7 +1137,7 @@ const updateComponentInPage = async (component_id, is_component_selected) => {
 };
 
 const getComponentHistory = async (component_id, timeframe) => {
-  const url = api_endpoint + '/history/' + component_id + '/' + timeframe + '/';
+  const url = api_endpoint + `/history/${component_id}/${timeframe}/`;
   const response = await fetch(url);
   const json = await response.json();
   return json;
