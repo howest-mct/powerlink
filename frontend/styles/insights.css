@@ -205,6 +205,7 @@ a {
     color: #379937;
 }
 
+
 .c-room__header {
     display: flex;
     justify-content: space-between;
@@ -552,6 +553,10 @@ a {
     margin: 0;
 }
 
+.apexcharts-title-text{
+    font-family: "Manrope", sans-serif;
+    color: var(--text_main-color);
+}
 
 
 @media (min-width: 30rem) {

@@ -1,9 +1,9 @@
 from .Database import Database
+import pandas as pd
+from datetime import datetime, timedelta
 
 
 class DataRepository:
-
-    # region Read ---------------------------------
 
     @staticmethod
     def read_all_schedules():
@@ -170,129 +170,307 @@ class DataRepository:
     @staticmethod
     def read_log_history_24h(component_id):
         sql = """
-            WITH RECURSIVE hourly_intervals AS (
-                SELECT 
-                    CAST(DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 23 HOUR), '%Y-%m-%d %H:00:00') AS DATETIME) AS hour_start,
-                    0 as hour_offset
-                UNION ALL
-                SELECT 
-                    DATE_ADD(hour_start, INTERVAL 1 HOUR),
-                    hour_offset + 1
-                FROM hourly_intervals 
-                WHERE hour_offset < 23
-            ),
-            hourly_averages AS (
-                SELECT 
-                    hi.hour_start,
-                    hi.hour_start AS hour_end_exclusive,
-                    DATE_ADD(hi.hour_start, INTERVAL 1 HOUR) AS hour_end,
-                    AVG(cl.value) as avg_value,
-                    COUNT(cl.value) as log_count,
-                    MIN(cl.datetime) as first_log_time,
-                    MAX(cl.datetime) as last_log_time
-                FROM hourly_intervals hi
-                LEFT JOIN component_logs cl ON (
-                    cl.datetime >= hi.hour_start 
-                    AND cl.datetime < DATE_ADD(hi.hour_start, INTERVAL 1 HOUR)
-                    AND cl.component_id = %s
-                )
-                GROUP BY hi.hour_start
-            )
-            SELECT 
-                hour_start as chart_date,
-                COALESCE(ROUND(avg_value, 2), 0) as average_value
-            FROM hourly_averages
-            ORDER BY hour_start;
+            SELECT datetime, value
+            FROM component_logs 
+            WHERE component_id = %s
+                AND datetime >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+            ORDER BY datetime;
         """
-        params = [component_id]
-        return Database.get_rows(sql, params)
+        raw_data = Database.get_rows(sql, [component_id])
+
+        if not raw_data:
+            current_hour = datetime.now().replace(minute=0, second=0, microsecond=0)
+            empty_result = []
+
+            for hour_number in range(24):
+                hours_ago = 23 - hour_number
+                time_for_this_hour = current_hour - timedelta(hours=hours_ago)
+
+                empty_result.append(
+                    {
+                        "chart_date": time_for_this_hour.strftime("%Y-%m-%d %H:00:00"),
+                        "average_value": 0.0,
+                    }
+                )
+
+            return empty_result
+
+        df = pd.DataFrame(raw_data)
+        df["datetime"] = pd.to_datetime(df["datetime"])
+
+        df = df.sort_values("datetime")
+        df["wh_consumed"] = 0.0
+
+        for i in range(1, len(df)):
+            time_diff = (
+                df.iloc[i]["datetime"] - df.iloc[i - 1]["datetime"]
+            ).total_seconds() / 3600
+            wh = df.iloc[i - 1]["value"] * time_diff
+            df.iloc[i, df.columns.get_loc("wh_consumed")] = wh
+
+        df["hour_slot"] = df["datetime"].dt.floor("H")
+        hourly_wh = df.groupby("hour_slot")["wh_consumed"].sum()
+
+        current_hour = datetime.now().replace(minute=0, second=0, microsecond=0)
+        first_hour = current_hour - timedelta(hours=23)
+        all_hours_we_want = pd.date_range(start=first_hour, end=current_hour, freq="H")
+
+        complete_data = hourly_wh.reindex(all_hours_we_want, fill_value=0)
+
+        final_result = []
+        for hour_timestamp, total_wh in complete_data.items():
+            final_result.append(
+                {
+                    "chart_date": hour_timestamp.strftime("%Y-%m-%d %H:00:00"),
+                    "average_value": round(float(total_wh), 2),
+                }
+            )
+
+        return final_result
 
     @staticmethod
     def read_log_history_7d(component_id):
         sql = """
-            WITH RECURSIVE previous_week_intervals AS (
-                SELECT 
-                    CAST(DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 DAY), '%Y-%m-%d 00:00:00') AS DATETIME) AS day_start,
-                    0 as day_offset
-                UNION ALL
-                SELECT 
-                    DATE_ADD(day_start, INTERVAL 1 DAY),
-                    day_offset + 1
-                FROM previous_week_intervals 
-                WHERE day_offset < 6
-            ),
-            previous_week_averages AS (
-                -- Calculate average for each day window in previous week
-                SELECT 
-                    pi.day_start,
-                    AVG(cl.value) as avg_value,
-                    COUNT(cl.value) as log_count
-                FROM previous_week_intervals pi
-                LEFT JOIN component_logs cl ON (
-                    cl.datetime >= pi.day_start 
-                    AND cl.datetime < DATE_ADD(pi.day_start, INTERVAL 1 DAY)
-                    AND cl.component_id = %s
-                )
-                GROUP BY pi.day_start
-            )
-            SELECT 
-                day_start as chart_date,
-                COALESCE(ROUND(avg_value, 2), 0) as average_value
-            FROM previous_week_averages
-            ORDER BY day_start;
+            SELECT datetime, value
+            FROM component_logs 
+            WHERE component_id = %s
+                AND datetime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            ORDER BY datetime;
         """
-        params = [component_id]
-        return Database.get_rows(sql, params)
+        raw_data = Database.get_rows(sql, [component_id])
+
+        if not raw_data:
+            today = datetime.now().date()
+            empty_result = []
+
+            for day_number in range(7):
+                days_ago = 6 - day_number
+                date_for_this_day = today - timedelta(days=days_ago)
+
+                empty_result.append(
+                    {
+                        "chart_date": date_for_this_day.strftime("%Y-%m-%d"),
+                        "average_value": 0.0,
+                    }
+                )
+
+            return empty_result
+
+        df = pd.DataFrame(raw_data)
+        df["datetime"] = pd.to_datetime(df["datetime"])
+
+        df = df.sort_values("datetime")
+        df["wh_consumed"] = 0.0
+
+        for i in range(1, len(df)):
+            time_diff = (
+                df.iloc[i]["datetime"] - df.iloc[i - 1]["datetime"]
+            ).total_seconds() / 3600
+            wh = df.iloc[i - 1]["value"] * time_diff
+            df.iloc[i, df.columns.get_loc("wh_consumed")] = wh
+
+        df["day_slot"] = df["datetime"].dt.date
+        daily_wh = df.groupby("day_slot")["wh_consumed"].sum()
+
+        today = datetime.now().date()
+        first_day = today - timedelta(days=6)
+
+        all_days_we_want = pd.date_range(start=first_day, end=today, freq="D").date
+
+        daily_wh.index = pd.to_datetime(daily_wh.index).date
+
+        final_result = []
+        for day_date in all_days_we_want:
+            total_wh = daily_wh.get(day_date, 0.0)
+            final_result.append(
+                {
+                    "chart_date": day_date.strftime("%Y-%m-%d"),
+                    "average_value": round(float(total_wh), 2),
+                }
+            )
+
+        return final_result
 
     @staticmethod
     def read_log_history_14d(component_id):
         sql = """
-            WITH RECURSIVE previous_14d_intervals AS (
-                SELECT 
-                    CAST(DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 13 DAY), '%Y-%m-%d 00:00:00') AS DATETIME) AS day_start,
-                    0 as day_offset
-                UNION ALL
-                SELECT 
-                    DATE_ADD(day_start, INTERVAL 1 DAY),
-                    day_offset + 1
-                FROM previous_14d_intervals 
-                WHERE day_offset < 13
-            ),
-            daily_averages AS (
-                SELECT 
-                    pi.day_start,
-                    AVG(cl.value) as avg_value,
-                    COUNT(cl.value) as log_count
-                FROM previous_14d_intervals pi
-                LEFT JOIN component_logs cl ON (
-                    cl.datetime >= pi.day_start 
-                    AND cl.datetime < DATE_ADD(pi.day_start, INTERVAL 1 DAY)
-                    AND cl.component_id = %s
-                )
-                GROUP BY pi.day_start
-            )
-            SELECT 
-                day_start as chart_date,
-                COALESCE(ROUND(avg_value, 2), 0) as average_value
-            FROM daily_averages
-            ORDER BY day_start;
+            SELECT datetime, value
+            FROM component_logs 
+            WHERE component_id = %s
+                AND datetime >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
+            ORDER BY datetime;
         """
-        params = [component_id]
-        return Database.get_rows(sql, params)
+        raw_data = Database.get_rows(sql, [component_id])
 
-    # endregion Read ********************************
+        if not raw_data:
+            today = datetime.now().date()
+            empty_result = []
 
-    # region Create ---------------------------------
+            for day_number in range(14):
+                days_ago = 13 - day_number
+                date_for_this_day = today - timedelta(days=days_ago)
+
+                empty_result.append(
+                    {
+                        "chart_date": date_for_this_day.strftime("%Y-%m-%d"),
+                        "average_value": 0.0,
+                    }
+                )
+
+            return empty_result
+
+        df = pd.DataFrame(raw_data)
+        df["datetime"] = pd.to_datetime(df["datetime"])
+
+        df = df.sort_values("datetime")
+        df["wh_consumed"] = 0.0
+
+        for i in range(1, len(df)):
+            time_diff = (
+                df.iloc[i]["datetime"] - df.iloc[i - 1]["datetime"]
+            ).total_seconds() / 3600
+            wh = df.iloc[i - 1]["value"] * time_diff
+            df.iloc[i, df.columns.get_loc("wh_consumed")] = wh
+
+        df["day_slot"] = df["datetime"].dt.date
+        daily_wh = df.groupby("day_slot")["wh_consumed"].sum()
+
+        today = datetime.now().date()
+        first_day = today - timedelta(days=13)
+
+        all_days_we_want = pd.date_range(start=first_day, end=today, freq="D").date
+
+        daily_wh.index = pd.to_datetime(daily_wh.index).date
+
+        final_result = []
+        for day_date in all_days_we_want:
+            total_wh = daily_wh.get(day_date, 0.0)
+            final_result.append(
+                {
+                    "chart_date": day_date.strftime("%Y-%m-%d"),
+                    "average_value": round(float(total_wh), 2),
+                }
+            )
+
+        return final_result
+
+    @staticmethod
+    def read_temp_history_14d(component_id):
+        sql = """
+            SELECT datetime, value
+            FROM component_logs 
+            WHERE component_id = %s
+                AND datetime >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
+            ORDER BY datetime;
+        """
+        raw_data = Database.get_rows(sql, [component_id])
+
+        if not raw_data:
+            today = datetime.now().date()
+            empty_result = []
+
+            for day_number in range(14):
+                days_ago = 13 - day_number
+                date_for_this_day = today - timedelta(days=days_ago)
+
+                empty_result.append(
+                    {
+                        "chart_date": date_for_this_day.strftime("%Y-%m-%d"),
+                        "average_value": 0.0,
+                    }
+                )
+
+            return empty_result
+
+        df = pd.DataFrame(raw_data)
+        df["datetime"] = pd.to_datetime(df["datetime"])
+
+        df = df.sort_values("datetime")
+        df["wh_consumed"] = 0.0
+
+        for i in range(1, len(df)):
+            time_diff = (
+                df.iloc[i]["datetime"] - df.iloc[i - 1]["datetime"]
+            ).total_seconds() / 3600
+            wh = df.iloc[i - 1]["value"] * time_diff
+            df.iloc[i, df.columns.get_loc("wh_consumed")] = wh
+
+        df["day_slot"] = df["datetime"].dt.date
+        daily_wh = df.groupby("day_slot")["wh_consumed"].sum()
+
+        today = datetime.now().date()
+        first_day = today - timedelta(days=13)
+
+        all_days_we_want = pd.date_range(start=first_day, end=today, freq="D").date
+
+        daily_wh.index = pd.to_datetime(daily_wh.index).date
+
+        final_result = []
+        for day_date in all_days_we_want:
+            total_wh = daily_wh.get(day_date, 0.0)
+            final_result.append(
+                {
+                    "chart_date": day_date.strftime("%Y-%m-%d"),
+                    "average_value": round(float(total_wh), 2),
+                }
+            )
+
+        return final_result
+
+    @staticmethod
+    def read_temperature_daily_history_7d(component_id):
+        sql = """
+            SELECT 
+                DATE(datetime) as date_part,
+                AVG(value) as average_value
+            FROM component_logs 
+            WHERE component_id = %s
+                AND datetime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            GROUP BY DATE(datetime)  -- Only group by date, not hour
+            ORDER BY date_part;
+        """
+        raw_data = Database.get_rows(sql, [component_id])
+
+        if not raw_data:
+            today = datetime.now().date()
+            empty_result = []
+            for day_offset in range(7):
+                date_for_day = today - timedelta(days=6 - day_offset)
+                empty_result.append(
+                    {
+                        "chart_date": date_for_day.strftime("%Y-%m-%d"),
+                        "average_value": 0.0,
+                    }
+                )
+            return empty_result
+
+        result = []
+        today = datetime.now().date()
+
+        data_lookup = {}
+        for row in raw_data:
+            date_key = str(row["date_part"])
+            data_lookup[date_key] = float(row["average_value"])
+
+        for day_offset in range(7):
+            date_for_day = today - timedelta(days=6 - day_offset)
+            date_str = str(date_for_day)
+            avg_value = data_lookup.get(date_str, 0.0)
+
+            result.append(
+                {
+                    "chart_date": date_for_day.strftime("%Y-%m-%d"),
+                    "average_value": round(avg_value, 2),
+                }
+            )
+
+        return result
 
     @staticmethod
     def create_log(value, component_id):
         sql = "INSERT INTO component_logs (value, component_id) VALUES (%s, %s)"
         params = [value, component_id]
         return Database.execute_sql(sql, params)
-
-    # endregion Create ********************************
-
-    # region Update ---------------------------------
 
     @staticmethod
     def update_schedule(schedule_id, start_time, end_time, value, enabled):
@@ -305,5 +483,3 @@ class DataRepository:
         sql = "UPDATE schedules SET start_time = %s, end_time = %s, enabled = %s WHERE schedule_id = %s"
         params = [start_time, end_time, enabled, schedule_id]
         return Database.execute_sql(sql, params)
-
-    # endregion Update ********************************

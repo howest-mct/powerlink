@@ -32,11 +32,12 @@ const component_icons = {
 
 const component_timeframes = {
   '24h': [6, 7, 9, 12, 15, 20, 22],
-  '7d': [1, 3, 4, 5, 11, 14],
+  '7d': [1, 11, 14],
   '14d': [2],
   col: [8, 16],
   idk: [10, 13, 17, 18, 21],
   dumbbell: [19],
+  '7dblock': [3, 4, 5],
 };
 
 // #endregion
@@ -65,47 +66,58 @@ const generateChartParams = async (component_id, component_name, component_value
         },
       ],
       chart: {
+        type: 'area',
+        stacked: false,
         height: 350,
-        type: 'line',
         zoom: {
+          type: 'x',
           enabled: true,
+          autoScaleYaxis: true,
         },
         toolbar: {
-          show: true,
+          autoSelected: 'zoom',
         },
       },
-      colors: ['#4A90E2'],
       dataLabels: {
         enabled: false,
       },
-      stroke: {
-        curve: 'smooth',
-        width: 3,
+      markers: {
+        size: 0,
       },
       title: {
-        text: component_name + ' - 24H History',
+        text: `${component_name} - 24H History`,
         align: 'left',
       },
-      grid: {
-        borderColor: '#e7e7e7',
-      },
-      markers: {
-        size: 4,
-      },
-      xaxis: {
-        type: 'datetime',
-        title: {
-          text: 'Time',
+      fill: {
+        type: 'gradient',
+        gradient: {
+          shadeIntensity: 1,
+          inverseColors: false,
+          opacityFrom: 0,
+          opacityTo: 0,
+          stops: [0, 90, 100],
         },
       },
       yaxis: {
+        labels: {
+          formatter: function (val) {
+            return val.toFixed(2);
+          },
+        },
         title: {
           text: component_value_unit,
         },
       },
-      legend: {
-        position: 'top',
-        horizontalAlign: 'right',
+      xaxis: {
+        type: 'datetime',
+      },
+      tooltip: {
+        shared: false,
+        y: {
+          formatter: function (val) {
+            return val.toFixed(2) + ' ' + component_value_unit;
+          },
+        },
       },
     };
 
@@ -132,47 +144,58 @@ const generateChartParams = async (component_id, component_name, component_value
         },
       ],
       chart: {
+        type: 'area',
+        stacked: false,
         height: 350,
-        type: 'line',
         zoom: {
+          type: 'x',
           enabled: true,
+          autoScaleYaxis: true,
         },
         toolbar: {
-          show: true,
+          autoSelected: 'zoom',
         },
       },
-      colors: ['#4A90E2'],
       dataLabels: {
         enabled: false,
       },
-      stroke: {
-        curve: 'smooth',
-        width: 3,
+      markers: {
+        size: 0,
       },
       title: {
-        text: component_name + ' - 7D History',
+        text: `${component_name} - 7D History`,
         align: 'left',
       },
-      grid: {
-        borderColor: '#e7e7e7',
-      },
-      markers: {
-        size: 4,
-      },
-      xaxis: {
-        type: 'datetime',
-        title: {
-          text: 'Date',
+      fill: {
+        type: 'gradient',
+        gradient: {
+          shadeIntensity: 1,
+          inverseColors: false,
+          opacityFrom: 0,
+          opacityTo: 0,
+          stops: [0, 90, 100],
         },
       },
       yaxis: {
+        labels: {
+          formatter: function (val) {
+            return val.toFixed(2);
+          },
+        },
         title: {
           text: component_value_unit,
         },
       },
-      legend: {
-        position: 'top',
-        horizontalAlign: 'right',
+      xaxis: {
+        type: 'datetime',
+      },
+      tooltip: {
+        shared: false,
+        y: {
+          formatter: function (val) {
+            return val.toFixed(2) + ' ' + component_value_unit;
+          },
+        },
       },
     };
 
@@ -199,53 +222,64 @@ const generateChartParams = async (component_id, component_name, component_value
         },
       ],
       chart: {
+        type: 'area',
+        stacked: false,
         height: 350,
-        type: 'line',
         zoom: {
+          type: 'x',
           enabled: true,
+          autoScaleYaxis: true,
         },
         toolbar: {
-          show: true,
+          autoSelected: 'zoom',
         },
       },
-      colors: ['#4A90E2'],
       dataLabels: {
         enabled: false,
       },
-      stroke: {
-        curve: 'smooth',
-        width: 3,
+      markers: {
+        size: 0,
       },
       title: {
-        text: component_name + ' - 14D History',
+        text: `${component_name} - 14D History`,
         align: 'left',
       },
-      grid: {
-        borderColor: '#e7e7e7',
-      },
-      markers: {
-        size: 4,
-      },
-      xaxis: {
-        type: 'datetime',
-        title: {
-          text: 'Date',
+      fill: {
+        type: 'gradient',
+        gradient: {
+          shadeIntensity: 1,
+          inverseColors: false,
+          opacityFrom: 0,
+          opacityTo: 0,
+          stops: [0, 90, 100],
         },
       },
       yaxis: {
+        labels: {
+          formatter: function (val) {
+            return val.toFixed(2);
+          },
+        },
         title: {
           text: component_value_unit,
         },
       },
-      legend: {
-        position: 'top',
-        horizontalAlign: 'right',
+      xaxis: {
+        type: 'datetime',
+      },
+      tooltip: {
+        shared: false,
+        y: {
+          formatter: function (val) {
+            return val.toFixed(2) + ' ' + component_value_unit;
+          },
+        },
       },
     };
 
     return options;
   } else if (component_timeframes['col'].includes(component_id)) {
-    const component_history = await getComponentHistory7d(component_id, '7d');
+    const component_history = await getComponentTemperatureHistory7d(component_id, '7d');
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).toLocaleDateString();
@@ -290,7 +324,7 @@ const generateChartParams = async (component_id, component_name, component_value
       },
       colors: ['#4A90E2'],
       title: {
-        text: component_name + ' - 7D History (Bar Chart)',
+        text: `${component_name} - 7D History (Bar Chart)`,
         align: 'left',
       },
       grid: {
@@ -366,7 +400,7 @@ const generateChartParams = async (component_id, component_name, component_value
         width: 3,
       },
       title: {
-        text: component_name + ' - 7D History',
+        text: `${component_name} - 7D History`,
         align: 'left',
       },
       grid: {
@@ -385,6 +419,11 @@ const generateChartParams = async (component_id, component_name, component_value
         title: {
           text: component_value_unit,
         },
+        labels: {
+          formatter: function (val) {
+            return val.toFixed(2);
+          },
+        },
       },
       legend: {
         position: 'top',
@@ -395,7 +434,6 @@ const generateChartParams = async (component_id, component_name, component_value
     return options;
   } else if (component_timeframes['dumbbell'].includes(component_id)) {
     const component_history = await getComponentHistory7d(component_id, '7d');
-
     const dumbbell_data = [];
     component_history.forEach((entry, index) => {
       const date = new Date(entry.chart_date).toLocaleDateString();
@@ -443,9 +481,11 @@ const generateChartParams = async (component_id, component_name, component_value
         customLegendItems: ['Min Value', 'Max Value'],
       },
       fill: {
+        type: 'gradient',
         gradient: {
           type: 'vertical',
-          Color: ['#00E396'],
+          gradientToColors: ['#00E396'],
+          inverseColors: true,
           stops: [0, 100],
         },
       },
@@ -476,19 +516,83 @@ const generateChartParams = async (component_id, component_name, component_value
       },
     };
     return options;
+  } else if (component_timeframes['7dblock'].includes(component_id)) {
+    const component_history = await getComponentTemperatureHistory7d(component_id, '7dblock');
+    const chart_data = [];
+    component_history.forEach((entry) => {
+      const date_time = new Date(entry.chart_date).getTime();
+      const value = parseFloat(entry.average_value) || 0;
+      chart_data.push({
+        x: date_time,
+        y: value,
+      });
+    });
+
+    chart_data.sort((a, b) => a.x - b.x);
+
+    const options = {
+      series: [
+        {
+          name: component_name,
+          data: chart_data,
+        },
+      ],
+      chart: {
+        type: 'line',
+        height: 350,
+        zoom: {
+          enabled: true,
+        },
+        toolbar: {
+          show: true,
+        },
+      },
+      colors: ['#4A90E2'],
+      stroke: {
+        curve: 'stepline',
+        width: 4,
+      },
+      dataLabels: {
+        enabled: false,
+      },
+      title: {
+        text: component_name + ' - 7D Block History (Step Line)',
+        align: 'left',
+      },
+      grid: {
+        borderColor: '#e7e7e7',
+      },
+      xaxis: {
+        type: 'datetime',
+        title: {
+          text: 'Date',
+        },
+      },
+      yaxis: {
+        title: {
+          text: component_value_unit,
+        },
+        labels: {
+          formatter: function (val) {
+            return val.toFixed(2);
+          },
+        },
+      },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'right',
+      },
+      tooltip: {
+        y: {
+          formatter: function (val) {
+            return val.toFixed(2) + ' ' + component_value_unit;
+          },
+        },
+      },
+    };
+
+    return options;
   }
-};
-
-const generateChartParams24H = (component_id, component_name) => {
-  return generateChartParams(component_id, component_name, '24h');
-};
-
-const generateChartParams7D = (component_id, component_name) => {
-  return generateChartParams(component_id, component_name, '7d');
-};
-
-const generateChartParams14D = (component_id, component_name) => {
-  return generateChartParams(component_id, component_name, '14d');
 };
 
 const generateComponentCardHtml = (component_id, component_name, component_log) => {
@@ -1187,13 +1291,21 @@ const getComponentHistory7d = async (component_id) => {
   const url = api_endpoint + `/history/${component_id}/7d/`;
   const response = await fetch(url);
   const json = await response.json();
-  console.log('7d history:', json);
   return json;
 };
+
 const getComponentHistory14d = async (component_id) => {
   const url = api_endpoint + `/history/${component_id}/14d/`;
   const response = await fetch(url);
   const json = await response.json();
+  return json;
+};
+
+const getComponentTemperatureHistory7d = async (component_id) => {
+  const url = api_endpoint + `/history/temperature/${component_id}/7d/`;
+  const response = await fetch(url);
+  const json = await response.json();
+  console.log('7d temperature history:', json);
   return json;
 };
 // #endregion

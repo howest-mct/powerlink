@@ -878,20 +878,28 @@ async def lifespan_manager(app: FastAPI):
         logger.info("Shutting down application...")
 
         try:
-            log_and_emit_sync(0, heater_id)
-            log_and_emit_sync(0, fan_id)
-            log_and_emit_sync(0, led_bottom_id)
-            log_and_emit_sync(0, button_lights_id)
-            log_and_emit_sync(0, led_top_id)
-            log_and_emit_sync(0, led_outdoors_id)
-            log_and_emit_sync(0, servo_lock_id)
-            log_and_emit_sync(0, wh_heater_id)
-            log_and_emit_sync(0, wh_fan_id)
-            log_and_emit_sync(0, wh_led_bottom_id)
-            log_and_emit_sync(0, wh_led_top_id)
             log_and_emit_sync(0, wh_bat_in_id)
             log_and_emit_sync(0, wh_bat_out_id)
+            log_and_emit_sync(0, pot_id)
+            log_and_emit_sync(0, temp_control_id)
+            log_and_emit_sync(0, temp_sensor_id)
+            log_and_emit_sync(0, heater_id)
+            log_and_emit_sync(0, wh_heater_id)
+            log_and_emit_sync(0, fan_id)
+            log_and_emit_sync(0, wh_fan_id)
+            log_and_emit_sync(0, button_lights_id)
+            log_and_emit_sync(0, led_bottom_id)
+            log_and_emit_sync(0, wh_led_bottom_id)
+            log_and_emit_sync(0, motion_sensor_id)
+            log_and_emit_sync(0, led_top_id)
+            log_and_emit_sync(0, wh_led_top_id)
+            log_and_emit_sync(0, card_reader_id)
+            log_and_emit_sync(0, reed_switch_id)
+            log_and_emit_sync(0, servo_lock_id)
+            log_and_emit_sync(0, light_sensor_id)
+            log_and_emit_sync(0, led_outdoors_id)
             log_and_emit_sync(0, button_power_id)
+            log_and_emit_sync(0, cpu_temp_sensor_id)
 
             logger.info("All component shutdown states logged")
 
@@ -1173,18 +1181,23 @@ async def get_all_history_24h(component_id: int):
     return data
 
 
-@app.get(
-    ENDPOINT + "/history/{component_id}/7d/",
-    response_model=list[HistoryLog],
-    summary="Retrieve all history",
-    response_description="A list of all available history",
-    tags=["history"],
-)
-async def get_all_history_7d(component_id: int):
-    data = DataRepository.read_log_history_7d(component_id)
-    if data is None or len(data) == 0:
-        raise HTTPException(status_code=404, detail=f"No history found in the database")
-    return data
+@app.get("/api/v1/history/{component_id}/7d/")
+async def get_component_history_7d(component_id: int, chart_type: str = "default"):
+    """
+    Get 7-day component history
+    chart_type can be 'default' for energy consumption or 'temperature' for hourly averages
+    """
+    try:
+        if chart_type == "temperature":
+            history_data = DataRepository.read_temperature_history_7d(component_id)
+        else:
+            history_data = DataRepository.read_log_history_7d(component_id)
+
+        return history_data
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching component history: {str(e)}"
+        )
 
 
 @app.get(
@@ -1199,6 +1212,21 @@ async def get_all_history_14d(component_id: int):
     if data is None or len(data) == 0:
         raise HTTPException(status_code=404, detail=f"No history found in the database")
     return data
+
+
+@app.get(ENDPOINT + "/history/temperature/{component_id}/7d/")
+async def get_component_history_7d_temp(component_id: int, chart_type: str = "default"):
+    try:
+        if chart_type == "temperature":
+            history_data = DataRepository.read_temperature_history_7d(component_id)
+        else:
+            history_data = DataRepository.read_log_history_7d(component_id)
+
+        return history_data
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching component history: {str(e)}"
+        )
 
 
 # endregion FastAPI Endpoints *************************
