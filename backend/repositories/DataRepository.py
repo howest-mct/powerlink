@@ -418,6 +418,56 @@ class DataRepository:
         return final_result
 
     @staticmethod
+    def read_log_history_15min(component_id):
+        sql = """
+            SELECT 
+                DATE_FORMAT(datetime, '%Y-%m-%d %H:%i:00') as minute_part,
+                AVG(value) as average_value
+            FROM component_logs 
+            WHERE component_id = %s
+                AND datetime >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+            GROUP BY DATE_FORMAT(datetime, '%Y-%m-%d %H:%i:00')
+            ORDER BY minute_part;
+        """
+        raw_data = Database.get_rows(sql, [component_id])
+
+        if not raw_data:
+            now = datetime.now()
+            empty_result = []
+            for minute_offset in range(15):
+                time_for_minute = now - timedelta(minutes=14 - minute_offset)
+                minute_rounded = time_for_minute.replace(second=0, microsecond=0)
+                empty_result.append(
+                    {
+                        "chart_date": minute_rounded.strftime("%Y-%m-%d %H:%M:%S"),
+                        "average_value": 0.0,
+                    }
+                )
+            return empty_result
+
+        data_lookup = {}
+        for row in raw_data:
+            minute_key = str(row["minute_part"])
+            data_lookup[minute_key] = round(float(row["average_value"]), 2)
+
+        result = []
+        now = datetime.now()
+        for minute_offset in range(15):
+            time_for_minute = now - timedelta(minutes=14 - minute_offset)
+            minute_rounded = time_for_minute.replace(second=0, microsecond=0)
+            minute_str = minute_rounded.strftime("%Y-%m-%d %H:%M:00")
+            avg_value = data_lookup.get(minute_str, 0.0)
+
+            result.append(
+                {
+                    "chart_date": minute_rounded.strftime("%Y-%m-%d %H:%M:%S"),
+                    "average_value": avg_value,
+                }
+            )
+
+        return result
+
+    @staticmethod
     def read_temperature_daily_history_7d(component_id):
         sql = """
             SELECT 
@@ -426,7 +476,7 @@ class DataRepository:
             FROM component_logs 
             WHERE component_id = %s
                 AND datetime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-            GROUP BY DATE(datetime)  -- Only group by date, not hour
+            GROUP BY DATE(datetime)
             ORDER BY date_part;
         """
         raw_data = Database.get_rows(sql, [component_id])
@@ -444,14 +494,13 @@ class DataRepository:
                 )
             return empty_result
 
-        result = []
-        today = datetime.now().date()
-
         data_lookup = {}
         for row in raw_data:
             date_key = str(row["date_part"])
-            data_lookup[date_key] = float(row["average_value"])
+            data_lookup[date_key] = round(float(row["average_value"]), 2)
 
+        result = []
+        today = datetime.now().date()
         for day_offset in range(7):
             date_for_day = today - timedelta(days=6 - day_offset)
             date_str = str(date_for_day)
@@ -460,7 +509,7 @@ class DataRepository:
             result.append(
                 {
                     "chart_date": date_for_day.strftime("%Y-%m-%d"),
-                    "average_value": round(avg_value, 2),
+                    "average_value": avg_value,
                 }
             )
 

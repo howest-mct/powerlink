@@ -31,25 +31,26 @@ const component_icons = {
 };
 
 const component_timeframes = {
-  '24h': [6, 7, 9, 12, 15, 20, 22],
-  '7d': [1, 11, 14],
-  '14d': [2],
+  '24hline': [6, 7, 9, 12, 15, 20],
+  '7dline': [1, 11, 14],
+  '14dline': [2],
   col: [8, 16],
   idk: [10, 13, 17, 18, 21],
   dumbbell: [19],
   '7dblock': [3, 4, 5],
+  '15mline': [22],
 };
 
 // #endregion
 
 // #region ***  HTML Generation Functions               ***********
 const generateChartParams = async (component_id, component_name, component_value_unit) => {
-  if (component_timeframes['24h'].includes(component_id)) {
-    const component_history = await getComponentHistory24h(component_id, '24h');
+  if (component_timeframes['24hline'].includes(component_id)) {
+    const component_history = await getComponentHistory24h(component_id);
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).getTime();
-      const value = parseFloat(entry.average_value) || 0;
+      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
       chart_data.push({
         x: date_time,
         y: value,
@@ -101,7 +102,7 @@ const generateChartParams = async (component_id, component_name, component_value
       yaxis: {
         labels: {
           formatter: function (val) {
-            return val.toFixed(2);
+            return val.toFixed(1);
           },
         },
         title: {
@@ -110,24 +111,37 @@ const generateChartParams = async (component_id, component_name, component_value
       },
       xaxis: {
         type: 'datetime',
+        title: {
+          text: 'Time',
+        },
+        labels: {
+          format: 'HH:mm',
+          datetimeUTC: false,
+        },
+        axisBorder: {
+          show: true,
+        },
+        axisTicks: {
+          show: true,
+        },
       },
       tooltip: {
         shared: false,
         y: {
           formatter: function (val) {
-            return val.toFixed(2) + ' ' + component_value_unit;
+            return val.toFixed(1) + ' ' + component_value_unit;
           },
         },
       },
     };
 
     return options;
-  } else if (component_timeframes['7d'].includes(component_id)) {
-    const component_history = await getComponentHistory7d(component_id, '7d');
+  } else if (component_timeframes['7dline'].includes(component_id)) {
+    const component_history = await getComponentHistory7d(component_id);
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).getTime();
-      const value = parseFloat(entry.average_value) || 0;
+      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
       chart_data.push({
         x: date_time,
         y: value,
@@ -179,7 +193,7 @@ const generateChartParams = async (component_id, component_name, component_value
       yaxis: {
         labels: {
           formatter: function (val) {
-            return val.toFixed(2);
+            return val.toFixed(1);
           },
         },
         title: {
@@ -188,24 +202,37 @@ const generateChartParams = async (component_id, component_name, component_value
       },
       xaxis: {
         type: 'datetime',
+        title: {
+          text: 'Date',
+        },
+        labels: {
+          format: 'MMM dd',
+          datetimeUTC: false,
+        },
+        axisBorder: {
+          show: true,
+        },
+        axisTicks: {
+          show: true,
+        },
       },
       tooltip: {
         shared: false,
         y: {
           formatter: function (val) {
-            return val.toFixed(2) + ' ' + component_value_unit;
+            return val.toFixed(1) + ' ' + component_value_unit;
           },
         },
       },
     };
 
     return options;
-  } else if (component_timeframes['14d'].includes(component_id)) {
-    const component_history = await getComponentHistory14d(component_id, '14d');
+  } else if (component_timeframes['14dline'].includes(component_id)) {
+    const component_history = await getComponentHistory14d(component_id);
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).getTime();
-      const value = parseFloat(entry.average_value) || 0;
+      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
       chart_data.push({
         x: date_time,
         y: value,
@@ -257,7 +284,7 @@ const generateChartParams = async (component_id, component_name, component_value
       yaxis: {
         labels: {
           formatter: function (val) {
-            return val.toFixed(2);
+            return val.toFixed(1);
           },
         },
         title: {
@@ -266,12 +293,25 @@ const generateChartParams = async (component_id, component_name, component_value
       },
       xaxis: {
         type: 'datetime',
+        title: {
+          text: 'Date',
+        },
+        labels: {
+          format: 'MMM dd',
+          datetimeUTC: false,
+        },
+        axisBorder: {
+          show: true,
+        },
+        axisTicks: {
+          show: true,
+        },
       },
       tooltip: {
         shared: false,
         y: {
           formatter: function (val) {
-            return val.toFixed(2) + ' ' + component_value_unit;
+            return val.toFixed(1) + ' ' + component_value_unit;
           },
         },
       },
@@ -279,11 +319,11 @@ const generateChartParams = async (component_id, component_name, component_value
 
     return options;
   } else if (component_timeframes['col'].includes(component_id)) {
-    const component_history = await getComponentTemperatureHistory7d(component_id, '7d');
+    const component_history = await getComponentTemperatureHistory7d(component_id);
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).toLocaleDateString();
-      const value = parseFloat(entry.average_value) || 0;
+      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
       chart_data.push({
         x: date_time,
         y: value,
@@ -314,7 +354,7 @@ const generateChartParams = async (component_id, component_name, component_value
       dataLabels: {
         enabled: true,
         formatter: function (val) {
-          return val + (component_value_unit === '%' ? '%' : '');
+          return val.toFixed(1) + (component_value_unit === '%' ? '%' : '');
         },
         offsetY: -20,
         style: {
@@ -335,6 +375,10 @@ const generateChartParams = async (component_id, component_name, component_value
         title: {
           text: 'Date',
         },
+        labels: {
+          rotate: -45,
+          rotateAlways: true,
+        },
         axisBorder: {
           show: true,
         },
@@ -349,7 +393,7 @@ const generateChartParams = async (component_id, component_name, component_value
         labels: {
           show: true,
           formatter: function (val) {
-            return val + (component_value_unit === '%' ? '%' : '');
+            return val.toFixed(1) + (component_value_unit === '%' ? '%' : '');
           },
         },
       },
@@ -361,11 +405,11 @@ const generateChartParams = async (component_id, component_name, component_value
 
     return options;
   } else if (component_timeframes['idk'].includes(component_id)) {
-    const component_history = await getComponentHistory7d(component_id, '7d');
+    const component_history = await getComponentHistory7d(component_id);
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).getTime();
-      const value = parseFloat(entry.average_value) || 0;
+      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
       chart_data.push({
         x: date_time,
         y: value,
@@ -414,6 +458,16 @@ const generateChartParams = async (component_id, component_name, component_value
         title: {
           text: 'Date',
         },
+        labels: {
+          format: 'MMM dd',
+          datetimeUTC: false,
+        },
+        axisBorder: {
+          show: true,
+        },
+        axisTicks: {
+          show: true,
+        },
       },
       yaxis: {
         title: {
@@ -421,7 +475,7 @@ const generateChartParams = async (component_id, component_name, component_value
         },
         labels: {
           formatter: function (val) {
-            return val.toFixed(2);
+            return val.toFixed(1);
           },
         },
       },
@@ -433,13 +487,13 @@ const generateChartParams = async (component_id, component_name, component_value
 
     return options;
   } else if (component_timeframes['dumbbell'].includes(component_id)) {
-    const component_history = await getComponentHistory7d(component_id, '7d');
+    const component_history = await getComponentTemperatureHistory7d(component_id);
     const dumbbell_data = [];
     component_history.forEach((entry, index) => {
       const date = new Date(entry.chart_date).toLocaleDateString();
-      const value = parseFloat(entry.average_value) || 0;
-      const minValue = Math.max(0, value * 0.8);
-      const maxValue = value * 1.2;
+      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
+      const minValue = Math.max(0, Math.round(value * 0.8 * 10) / 10);
+      const maxValue = Math.round(value * 1.2 * 10) / 10;
 
       dumbbell_data.push({
         x: date,
@@ -504,24 +558,39 @@ const generateChartParams = async (component_id, component_name, component_value
       },
       xaxis: {
         type: 'category',
-        tickPlacement: 'on',
         title: {
           text: 'Date',
+        },
+        labels: {
+          rotate: -45,
+          rotateAlways: true,
+        },
+        tickPlacement: 'on',
+        axisBorder: {
+          show: true,
+        },
+        axisTicks: {
+          show: true,
         },
       },
       yaxis: {
         title: {
           text: component_value_unit,
         },
+        labels: {
+          formatter: function (val) {
+            return val.toFixed(1);
+          },
+        },
       },
     };
     return options;
   } else if (component_timeframes['7dblock'].includes(component_id)) {
-    const component_history = await getComponentTemperatureHistory7d(component_id, '7dblock');
+    const component_history = await getComponentTemperatureHistory7d(component_id);
     const chart_data = [];
     component_history.forEach((entry) => {
       const date_time = new Date(entry.chart_date).getTime();
-      const value = parseFloat(entry.average_value) || 0;
+      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
       chart_data.push({
         x: date_time,
         y: value,
@@ -567,6 +636,16 @@ const generateChartParams = async (component_id, component_name, component_value
         title: {
           text: 'Date',
         },
+        labels: {
+          format: 'MMM dd',
+          datetimeUTC: false,
+        },
+        axisBorder: {
+          show: true,
+        },
+        axisTicks: {
+          show: true,
+        },
       },
       yaxis: {
         title: {
@@ -574,7 +653,7 @@ const generateChartParams = async (component_id, component_name, component_value
         },
         labels: {
           formatter: function (val) {
-            return val.toFixed(2);
+            return val.toFixed(1);
           },
         },
       },
@@ -585,7 +664,93 @@ const generateChartParams = async (component_id, component_name, component_value
       tooltip: {
         y: {
           formatter: function (val) {
-            return val.toFixed(2) + ' ' + component_value_unit;
+            return val.toFixed(1) + ' ' + component_value_unit;
+          },
+        },
+      },
+    };
+
+    return options;
+  } else if (component_timeframes['15mline'].includes(component_id)) {
+    const component_history = await getComponentTemperatureHistory15m(component_id);
+    const chart_data = [];
+    component_history.forEach((entry) => {
+      const date_time = new Date(entry.chart_date).getTime();
+      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
+      chart_data.push({
+        x: date_time,
+        y: value,
+      });
+    });
+
+    chart_data.sort((a, b) => a.x - b.x);
+
+    const options = {
+      series: [
+        {
+          name: component_name,
+          data: chart_data,
+        },
+      ],
+      chart: {
+        type: 'line',
+        height: 350,
+        zoom: {
+          enabled: true,
+        },
+        toolbar: {
+          show: true,
+        },
+      },
+      colors: ['#4A90E2'],
+      stroke: {
+        curve: 'stepline',
+        width: 4,
+      },
+      dataLabels: {
+        enabled: false,
+      },
+      title: {
+        text: component_name + ' - 7D Block History (Step Line)',
+        align: 'left',
+      },
+      grid: {
+        borderColor: '#e7e7e7',
+      },
+      xaxis: {
+        type: 'datetime',
+        title: {
+          text: 'Date',
+        },
+        labels: {
+          format: 'MMM dd',
+          datetimeUTC: false,
+        },
+        axisBorder: {
+          show: true,
+        },
+        axisTicks: {
+          show: true,
+        },
+      },
+      yaxis: {
+        title: {
+          text: component_value_unit,
+        },
+        labels: {
+          formatter: function (val) {
+            return val.toFixed(1);
+          },
+        },
+      },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'right',
+      },
+      tooltip: {
+        y: {
+          formatter: function (val) {
+            return val.toFixed(1) + ' ' + component_value_unit;
           },
         },
       },
@@ -1305,7 +1470,13 @@ const getComponentTemperatureHistory7d = async (component_id) => {
   const url = api_endpoint + `/history/temperature/${component_id}/7d/`;
   const response = await fetch(url);
   const json = await response.json();
-  console.log('7d temperature history:', json);
+  return json;
+};
+
+const getComponentTemperatureHistory15m = async (component_id) => {
+  const url = api_endpoint + `/history/temperature/${component_id}/15m/`;
+  const response = await fetch(url);
+  const json = await response.json();
   return json;
 };
 // #endregion

@@ -880,9 +880,6 @@ async def lifespan_manager(app: FastAPI):
         try:
             log_and_emit_sync(0, wh_bat_in_id)
             log_and_emit_sync(0, wh_bat_out_id)
-            log_and_emit_sync(0, pot_id)
-            log_and_emit_sync(0, temp_control_id)
-            log_and_emit_sync(0, temp_sensor_id)
             log_and_emit_sync(0, heater_id)
             log_and_emit_sync(0, wh_heater_id)
             log_and_emit_sync(0, fan_id)
@@ -1136,33 +1133,18 @@ async def get_inhabitant_by_id(card_id: str):
 
 
 @app.get(
-    ENDPOINT + "/energy/{id}/24h/",
-    response_model=EnergyLog,
-    summary="Retrieve a energy_log by ID",
-    response_description="The energy_log with the specified ID",
-    tags=["energy"],
+    ENDPOINT + "/history/temperature/${component_id}/15m/",
+    response_model=list[HistoryLog],
+    summary="Retrieve 15 minutes history",
+    response_description="A list of history for the last 15 minutes",
+    tags=["history"],
 )
-async def get_energy_log_24h_by_id(id: str):
-    data = DataRepository.read_energy_24h(id)
-    if data is None:
+async def get_all_history_15min(component_id: int):
+    data = DataRepository.read_log_history_15min(component_id)
+    if data is None or len(data) == 0:
         raise HTTPException(
-            status_code=404, detail=f"energy_log with ID {id} not found"
-        )
-    return data
-
-
-@app.get(
-    ENDPOINT + "/energy/{id}/7d/",
-    response_model=EnergyLog,
-    summary="Retrieve a energy_log by ID",
-    response_description="The energy_log with the specified ID",
-    tags=["energy"],
-)
-async def get_energy_log_7d_by_id(id: int):
-    data = DataRepository.read_energy_7d(id)
-    if data is None:
-        raise HTTPException(
-            status_code=404, detail=f"energy_log with ID {id} not found"
+            status_code=404,
+            detail=f"No history found in the database for the last 15 minutes",
         )
     return data
 
@@ -1215,17 +1197,13 @@ async def get_all_history_14d(component_id: int):
 
 
 @app.get(ENDPOINT + "/history/temperature/{component_id}/7d/")
-async def get_component_history_7d_temp(component_id: int, chart_type: str = "default"):
+async def get_temperature_history_7d(component_id: int):
     try:
-        if chart_type == "temperature":
-            history_data = DataRepository.read_temperature_history_7d(component_id)
-        else:
-            history_data = DataRepository.read_log_history_7d(component_id)
-
+        history_data = DataRepository.read_temperature_daily_history_7d(component_id)
         return history_data
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Error fetching component history: {str(e)}"
+            status_code=500, detail=f"Error fetching temperature history: {str(e)}"
         )
 
 
