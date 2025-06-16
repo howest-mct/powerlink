@@ -516,6 +516,22 @@ class DataRepository:
         return result
 
     @staticmethod
+    def read_log_count_history_7d_by_id(component_id):
+        sql = """
+            SELECT 
+                component_id,
+                DATE(datetime) as chart_date,
+                COUNT(*) as log_count
+            FROM component_logs 
+            WHERE component_id = %s 
+            AND datetime >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+            GROUP BY component_id, DATE(datetime)
+            ORDER BY chart_date ASC;
+        """
+        params = [component_id]
+        return Database.get_rows(sql, params)
+
+    @staticmethod
     def create_log(value, component_id):
         sql = "INSERT INTO component_logs (value, component_id) VALUES (%s, %s)"
         params = [value, component_id]

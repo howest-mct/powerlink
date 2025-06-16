@@ -185,6 +185,10 @@ const createComponentCard = async (component_id, room_id) => {
     const formatted_date = new Date(component_log.datetime);
     const icon_path = component_icons[component_id];
 
+    if (component.room_id === 1) {
+      component_description = 'Energy Consumption';
+    }
+
     const component_card_html = `
       <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${component_log.log_id}">
         <div class="c-article__header">
@@ -196,7 +200,7 @@ const createComponentCard = async (component_id, room_id) => {
         <div class="c-card">
           <h3 class="c-card__level">${component_log.value} ${component_details.value_unit}</h3>
           <div class="c-card__meta">
-            <p class="c-card__status">Last log</p>
+            <p class="c-card__status">${component_description}</p>
             <p class="c-card__capacity">${formatDateTime(formatted_date)}</p>
           </div>
         </div>
@@ -331,6 +335,11 @@ const showAllRoomsAndComponents = async () => {
         if (component_is_in_page && component_log) {
           const formatted_date = new Date(component_log.datetime);
           const icon_path = component_icons[component.component_id];
+          let component_description = '';
+
+          if (component.room_id === 1) {
+            component_description = 'Energy Consumption';
+          }
 
           components_html += `
             <article class="c-article c-hover--shadow js-component__container" data-component_id="${component.component_id}" data-room_id="${room.room_id}" data-log_id="${component_log.log_id}">
@@ -343,8 +352,7 @@ const showAllRoomsAndComponents = async () => {
               <div class="c-card">
                 <h3 class="c-card__level">${component_log.value} ${component.value_unit}</h3>
                 <div class="c-card__meta">
-                  <p class="c-card__status">Last log</p>
-                  <p class="c-card__capacity">${formatDateTime(formatted_date)}</p>
+                  <p class="c-card__status">${component_description}</p>
                 </div>
               </div>
             </article>
@@ -428,7 +436,11 @@ const showAllLastLogs = (json_data) => {
       const { log_id, datetime, value, component_id, component_name, value_unit, room_id } = item;
       const formatted_date = new Date(datetime);
       const icon_path = component_icons[component_id];
+      let component_description = '';
 
+      if (room_id === 1) {
+        component_description = 'Energy Consumption';
+      }
       components_html += `
         <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}">
           <div class="c-article__header">
@@ -440,8 +452,7 @@ const showAllLastLogs = (json_data) => {
           <div class="c-card">
             <h3 class="c-card__level">${value} ${value_unit}</h3>
             <div class="c-card__meta">
-              <p class="c-card__status">Last log</p>
-              <p class="c-card__capacity">${formatDateTime(formatted_date)}</p>
+              <p class="c-card__status">${component_description}</p>
             </div>
           </div>
         </article>
@@ -512,6 +523,12 @@ const showLastLog = (log_data) => {
     if (room_container) {
       const components_container = room_container.querySelector('.c-room__components');
       const dropdown_element = room_container.querySelector('.component-dropdown');
+      let component_description = '';
+      let value_description = '';
+      if (component.room_id === 1) {
+        component_description = 'Todays Wattage';
+        value_description = 'Wh';
+      }
 
       if (components_container) {
         const icon_path = component_icons[log_data.component_id];
@@ -524,10 +541,9 @@ const showLastLog = (log_data) => {
               <h2 class="c-article__title">${log_data.component_name}</h2>
             </div>
             <div class="c-card">
-              <h3 class="c-card__level">${log_data.value} ${log_data.value_unit}</h3>
+              <h3 class="c-card__level">${log_data.value} ${value_description}</h3>
               <div class="c-card__meta">
-                <p class="c-card__status">Last log</p>
-                <p class="c-card__capacity">${formatDateTime(formatted_date)}</p>
+                <p class="c-card__status">${component_description}</p>
               </div>
             </div>
           </article>
@@ -646,6 +662,13 @@ const updateComponentInPage = async (component_id, is_component_selected) => {
     }
     return false;
   }
+};
+
+const getTodaysWattage = async (component_id) => {
+  const url = api_endpoint + `/wattage/${component_id}/today/`;
+  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
+  const json = await response.json().catch((err) => console.error('JSON-error:', err));
+  return json;
 };
 // #endregion
 

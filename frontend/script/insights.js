@@ -31,15 +31,15 @@ const component_icons = {
 };
 
 const component_timeframes = {
-  '24hline': [6, 7, 9, 12, 15, 20],
-  '7dline': [1, 11, 14],
-  '14dline': [2],
-  col: [8, 16],
-  idk: [10, 13, 17, 18, 21],
+  '24hline': [6, 7, 9, 12, 15, 22],
+  '7dline': [7, 9, 12, 15],
+  '14dline': [1, 2],
+  col: [8, 16, 10, 11, 13, 14, 17, 18, 21, 20],
   dumbbell: [19],
   '7dblock': [3, 4, 5],
-  '15mline': [22],
 };
+
+let dropdownEventsInitialized = false;
 
 // #endregion
 
@@ -48,9 +48,9 @@ const generateChartParams = async (component_id, component_name, component_value
   if (component_timeframes['24hline'].includes(component_id)) {
     const component_history = await getComponentHistory24h(component_id);
     const chart_data = [];
-    component_history.forEach((entry) => {
-      const date_time = new Date(entry.chart_date).getTime();
-      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
+    component_history.forEach((log) => {
+      const date_time = new Date(log.chart_date).getTime();
+      const value = Math.round((parseFloat(log.average_value) || 0) * 10) / 10;
       chart_data.push({
         x: date_time,
         y: value,
@@ -139,9 +139,9 @@ const generateChartParams = async (component_id, component_name, component_value
   } else if (component_timeframes['7dline'].includes(component_id)) {
     const component_history = await getComponentHistory7d(component_id);
     const chart_data = [];
-    component_history.forEach((entry) => {
-      const date_time = new Date(entry.chart_date).getTime();
-      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
+    component_history.forEach((log) => {
+      const date_time = new Date(log.chart_date).getTime();
+      const value = Math.round((parseFloat(log.average_value) || 0) * 10) / 10;
       chart_data.push({
         x: date_time,
         y: value,
@@ -230,9 +230,9 @@ const generateChartParams = async (component_id, component_name, component_value
   } else if (component_timeframes['14dline'].includes(component_id)) {
     const component_history = await getComponentHistory14d(component_id);
     const chart_data = [];
-    component_history.forEach((entry) => {
-      const date_time = new Date(entry.chart_date).getTime();
-      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
+    component_history.forEach((log) => {
+      const date_time = new Date(log.chart_date).getTime();
+      const value = Math.round((parseFloat(log.average_value) || 0) * 10) / 10;
       chart_data.push({
         x: date_time,
         y: value,
@@ -319,11 +319,11 @@ const generateChartParams = async (component_id, component_name, component_value
 
     return options;
   } else if (component_timeframes['col'].includes(component_id)) {
-    const component_history = await getComponentTemperatureHistory7d(component_id);
+    const component_history = await getComponentLogCount7d(component_id);
     const chart_data = [];
-    component_history.forEach((entry) => {
-      const date_time = new Date(entry.chart_date).toLocaleDateString();
-      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
+    component_history.forEach((log) => {
+      const date_time = new Date(log.chart_date).toLocaleDateString();
+      const value = log.log_count || 0;
       chart_data.push({
         x: date_time,
         y: value,
@@ -354,7 +354,7 @@ const generateChartParams = async (component_id, component_name, component_value
       dataLabels: {
         enabled: true,
         formatter: function (val) {
-          return val.toFixed(1) + (component_value_unit === '%' ? '%' : '');
+          return val.toFixed(1);
         },
         offsetY: -20,
         style: {
@@ -364,7 +364,7 @@ const generateChartParams = async (component_id, component_name, component_value
       },
       colors: ['#4A90E2'],
       title: {
-        text: `${component_name} - 7D History (Bar Chart)`,
+        text: `${component_name} - 7D Log Count`,
         align: 'left',
       },
       grid: {
@@ -388,92 +388,10 @@ const generateChartParams = async (component_id, component_name, component_value
       },
       yaxis: {
         title: {
-          text: component_value_unit,
+          text: 'Count',
         },
         labels: {
           show: true,
-          formatter: function (val) {
-            return val.toFixed(1) + (component_value_unit === '%' ? '%' : '');
-          },
-        },
-      },
-      legend: {
-        position: 'top',
-        horizontalAlign: 'right',
-      },
-    };
-
-    return options;
-  } else if (component_timeframes['idk'].includes(component_id)) {
-    const component_history = await getComponentHistory7d(component_id);
-    const chart_data = [];
-    component_history.forEach((entry) => {
-      const date_time = new Date(entry.chart_date).getTime();
-      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
-      chart_data.push({
-        x: date_time,
-        y: value,
-      });
-    });
-
-    chart_data.sort((a, b) => a.x - b.x);
-
-    const options = {
-      series: [
-        {
-          name: component_name,
-          data: chart_data,
-        },
-      ],
-      chart: {
-        height: 350,
-        type: 'line',
-        zoom: {
-          enabled: true,
-        },
-        toolbar: {
-          show: true,
-        },
-      },
-      colors: ['#4A90E2'],
-      dataLabels: {
-        enabled: false,
-      },
-      stroke: {
-        curve: 'smooth',
-        width: 3,
-      },
-      title: {
-        text: `${component_name} - 7D History`,
-        align: 'left',
-      },
-      grid: {
-        borderColor: '#e7e7e7',
-      },
-      markers: {
-        size: 4,
-      },
-      xaxis: {
-        type: 'datetime',
-        title: {
-          text: 'Date',
-        },
-        labels: {
-          format: 'MMM dd',
-          datetimeUTC: false,
-        },
-        axisBorder: {
-          show: true,
-        },
-        axisTicks: {
-          show: true,
-        },
-      },
-      yaxis: {
-        title: {
-          text: component_value_unit,
-        },
-        labels: {
           formatter: function (val) {
             return val.toFixed(1);
           },
@@ -489,9 +407,9 @@ const generateChartParams = async (component_id, component_name, component_value
   } else if (component_timeframes['dumbbell'].includes(component_id)) {
     const component_history = await getComponentTemperatureHistory7d(component_id);
     const dumbbell_data = [];
-    component_history.forEach((entry, index) => {
-      const date = new Date(entry.chart_date).toLocaleDateString();
-      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
+    component_history.forEach((log, index) => {
+      const date = new Date(log.chart_date).toLocaleDateString();
+      const value = Math.round((parseFloat(log.average_value) || 0) * 10) / 10;
       const minValue = Math.max(0, Math.round(value * 0.8 * 10) / 10);
       const maxValue = Math.round(value * 1.2 * 10) / 10;
 
@@ -588,9 +506,9 @@ const generateChartParams = async (component_id, component_name, component_value
   } else if (component_timeframes['7dblock'].includes(component_id)) {
     const component_history = await getComponentTemperatureHistory7d(component_id);
     const chart_data = [];
-    component_history.forEach((entry) => {
-      const date_time = new Date(entry.chart_date).getTime();
-      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
+    component_history.forEach((log) => {
+      const date_time = new Date(log.chart_date).getTime();
+      const value = Math.round((parseFloat(log.average_value) || 0) * 10) / 10;
       chart_data.push({
         x: date_time,
         y: value,
@@ -625,7 +543,7 @@ const generateChartParams = async (component_id, component_name, component_value
         enabled: false,
       },
       title: {
-        text: component_name + ' - 7D Block History (Step Line)',
+        text: component_name + ' - 7D Block History',
         align: 'left',
       },
       grid: {
@@ -671,51 +589,91 @@ const generateChartParams = async (component_id, component_name, component_value
     };
 
     return options;
-  } else if (component_timeframes['15mline'].includes(component_id)) {
-    const component_history = await getComponentTemperatureHistory15m(component_id);
-    const chart_data = [];
-    component_history.forEach((entry) => {
-      const date_time = new Date(entry.chart_date).getTime();
-      const value = Math.round((parseFloat(entry.average_value) || 0) * 10) / 10;
-      chart_data.push({
+  }
+};
+
+// NEW: Function to generate combined chart for components 1 and 2
+const generateCombinedChartParams = async () => {
+  try {
+    const [component1_history, component2_history] = await Promise.all([getComponentHistory7d(1), getComponentHistory7d(2)]);
+
+    const component1_data = [];
+    const component2_data = [];
+
+    component1_history.forEach((log) => {
+      const date_time = new Date(log.chart_date).getTime();
+      const value = Math.round((parseFloat(log.average_value) || 0) * 10) / 10;
+      component1_data.push({
         x: date_time,
         y: value,
       });
     });
 
-    chart_data.sort((a, b) => a.x - b.x);
+    component2_history.forEach((log) => {
+      const date_time = new Date(log.chart_date).getTime();
+      const value = Math.round((parseFloat(log.average_value) || 0) * 10) / 10;
+      component2_data.push({
+        x: date_time,
+        y: value,
+      });
+    });
+
+    component1_data.sort((a, b) => a.x - b.x);
+    component2_data.sort((a, b) => a.x - b.x);
 
     const options = {
       series: [
         {
-          name: component_name,
-          data: chart_data,
+          name: 'Component 1',
+          data: component1_data,
+          color: '#4A90E2',
+        },
+        {
+          name: 'Component 2',
+          data: component2_data,
+          color: '#E24A90',
         },
       ],
       chart: {
         type: 'line',
+        stacked: false,
         height: 350,
         zoom: {
+          type: 'x',
           enabled: true,
+          autoScaleYaxis: true,
         },
         toolbar: {
-          show: true,
+          autoSelected: 'zoom',
         },
-      },
-      colors: ['#4A90E2'],
-      stroke: {
-        curve: 'stepline',
-        width: 4,
       },
       dataLabels: {
         enabled: false,
       },
+      stroke: {
+        width: 3,
+        curve: 'smooth',
+      },
+      markers: {
+        size: 4,
+        hover: {
+          size: 6,
+        },
+      },
       title: {
-        text: component_name + ' - 7D Block History (Step Line)',
+        text: 'Components 1 & 2 - Combined 7D History',
         align: 'left',
       },
-      grid: {
-        borderColor: '#e7e7e7',
+      colors: ['#4A90E2', '#E24A90'],
+      yaxis: {
+        labels: {
+          formatter: function (val) {
+            return val.toFixed(1);
+          },
+        },
+        title: {
+          text: 'Value',
+        },
       },
       xaxis: {
         type: 'datetime',
@@ -733,30 +691,25 @@ const generateChartParams = async (component_id, component_name, component_value
           show: true,
         },
       },
-      yaxis: {
-        title: {
-          text: component_value_unit,
-        },
-        labels: {
-          formatter: function (val) {
-            return val.toFixed(1);
-          },
-        },
-      },
       legend: {
         position: 'top',
         horizontalAlign: 'right',
       },
       tooltip: {
+        shared: true,
+        intersect: false,
         y: {
-          formatter: function (val) {
-            return val.toFixed(1) + ' ' + component_value_unit;
+          formatter: function (val, opts) {
+            return val.toFixed(1);
           },
         },
       },
     };
 
     return options;
+  } catch (error) {
+    console.error('Error generating combined chart:', error);
+    return null;
   }
 };
 
@@ -785,6 +738,19 @@ const generateComponentCardHtml = (component_id, component_name, component_log) 
   `;
 };
 
+const generateCombinedChartHtml = () => {
+  return `
+    <div class="c-component__container js-component__container js-combined-chart" 
+         data-component_id="combined_1_2">
+      <div class="c-card">
+        <div class="c-card__chart">
+          <div id="chart_combined_1_2" class="apex-chart"></div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
 const generateRoomContainerHtml = (room_id, room_name, room_number, components_html, dropdown_html) => {
   return `
     <div class="c-room__container js-room__container" data-room_id="${room_id}" data-room_name="${room_name}" data-room_number="${room_number}">
@@ -801,11 +767,8 @@ const generateRoomContainerHtml = (room_id, room_name, room_number, components_h
   `;
 };
 
-const generateDropdownOptionHtml = (component_id, component_name, room_id, is_checked) => {
-  let checked_attribute = '';
-  if (is_checked) {
-    checked_attribute = 'checked';
-  }
+const generateDropdownOptionHtml = (component_id, component_name, room_id, is_checked = false) => {
+  const checked_attribute = is_checked ? 'checked' : '';
 
   return `
     <div class="c-dropdown-option c-checkbox-option">
@@ -840,6 +803,63 @@ const renderChart = async (component_id, component_name, component_value_unit) =
   }
   chart_container.chart = new ApexCharts(chart_container, chart_options);
   chart_container.chart.render();
+};
+
+// NEW: Function to render combined chart
+const renderCombinedChart = async () => {
+  const chart_element_id = 'chart_combined_1_2';
+  const chart_container = document.getElementById(chart_element_id);
+
+  if (!chart_container) {
+    console.error(`Combined chart container not found: ${chart_element_id}`);
+    return;
+  }
+
+  const chart_options = await generateCombinedChartParams();
+
+  if (!chart_options) {
+    console.error('Combined chart options not generated');
+    return;
+  }
+
+  if (chart_container.chart) {
+    chart_container.chart.destroy();
+  }
+  chart_container.chart = new ApexCharts(chart_container, chart_options);
+  chart_container.chart.render();
+};
+
+// NEW: Function to check if components 1 and 2 are both selected
+const checkForCombinedChart = async () => {
+  const component1_visible = document.querySelector('.js-component__container[data-component_id="1"]') && document.querySelector('.js-component__container[data-component_id="1"]').style.display !== 'none';
+  const component2_visible = document.querySelector('.js-component__container[data-component_id="2"]') && document.querySelector('.js-component__container[data-component_id="2"]').style.display !== 'none';
+
+  const existing_combined_chart = document.querySelector('.js-combined-chart');
+
+  if (component1_visible && component2_visible) {
+    if (!existing_combined_chart) {
+      const component1_room = document.querySelector('.js-component__container[data-component_id="1"]')?.closest('.js-room__container');
+      if (component1_room) {
+        const components_container = component1_room.querySelector('.c-room__components');
+        const combined_chart_html = generateCombinedChartHtml();
+        components_container.insertAdjacentHTML('beforeend', combined_chart_html);
+
+        const room_number = parseInt(component1_room.dataset.room_number);
+        const new_combined_chart = document.querySelector('.js-combined-chart');
+        if (room_number % 2 === 0) {
+          new_combined_chart.classList.add('c-white-background');
+        } else {
+          new_combined_chart.classList.add('c-grey-background');
+        }
+
+        await renderCombinedChart();
+      }
+    }
+  } else {
+    if (existing_combined_chart) {
+      existing_combined_chart.remove();
+    }
+  }
 };
 
 const initTimeframeButtons = () => {
@@ -897,6 +917,11 @@ const createComponentDropdown = (room_id, all_components, components_in_current_
 };
 
 const initDropdownEvents = () => {
+  // Prevent multiple initializations
+  if (dropdownEventsInitialized) {
+    return;
+  }
+
   document.addEventListener('click', (event) => {
     if (event.target.classList.contains('c-dropdown-trigger')) {
       event.stopPropagation();
@@ -962,6 +987,9 @@ const initDropdownEvents = () => {
       });
     }
   });
+
+  // Mark as initialized
+  dropdownEventsInitialized = true;
 };
 
 const updateDropdownLabel = (dropdown_element) => {
@@ -976,7 +1004,7 @@ const updateDropdownLabel = (dropdown_element) => {
   } else if (checked_checkboxes.length === all_checkboxes.length) {
     trigger_button.textContent = 'All Components Selected';
   } else {
-    trigger_button.textContent = checked_checkboxes.length + ' Components Selected';
+    trigger_button.textContent = `${checked_checkboxes.length} Components Selected`;
   }
 };
 
@@ -1006,7 +1034,7 @@ const sendComponentSelection = async (checkbox_element) => {
       selected: is_checkbox_checked,
     });
 
-    let component_card = document.querySelector('.js-component__container[data-component_id="' + component_id + '"]');
+    let component_card = document.querySelector(`.js-component__container[data-component_id="${component_id}"]`);
 
     if (is_checkbox_checked) {
       if (component_card) {
@@ -1019,59 +1047,66 @@ const sendComponentSelection = async (checkbox_element) => {
         component_card.style.display = 'none';
       }
     }
+
+    // NEW: Check for combined chart after any component selection change
+    await checkForCombinedChart();
   }
 };
 
 const createComponentCard = async (component_id, room_id) => {
-  const url_parameters = new URLSearchParams(window.location.search);
-  const page_parameter = parseInt(url_parameters.get('page'));
+  try {
+    const url_parameters = new URLSearchParams(window.location.search);
+    const page_parameter = parseInt(url_parameters.get('page'));
 
-  const log_url = api_endpoint + '/components/last/' + page_parameter + '/';
-  const log_response = await fetch(log_url);
-  const all_component_logs = await log_response.json();
+    const log_url = `${api_endpoint}/components/last/${page_parameter}/`;
+    const log_response = await fetch(log_url);
+    const all_component_logs = await log_response.json();
 
-  let component_log = null;
-  all_component_logs.forEach((log) => {
-    if (log.component_id === component_id) {
-      component_log = log;
-    }
-  });
-
-  const components_url = api_endpoint + '/components/';
-  const components_response = await fetch(components_url);
-  const all_components = await components_response.json();
-
-  let component_details = null;
-  all_components.forEach((comp) => {
-    if (comp.component_id === component_id) {
-      component_details = comp;
-    }
-  });
-
-  if (!component_details) {
-    return;
-  }
-
-  const component_card_html = generateComponentCardHtml(component_id, component_details.component_name, component_log);
-
-  const room_container = document.querySelector('.js-room__container[data-room_id="' + room_id + '"]');
-  if (room_container) {
-    const components_container = room_container.querySelector('.c-room__components');
-    if (components_container) {
-      components_container.insertAdjacentHTML('beforeend', component_card_html);
-
-      const new_component_card = components_container.querySelector('.js-component__container[data-component_id="' + component_id + '"]');
-      if (new_component_card) {
-        const room_number = parseInt(room_container.dataset.room_number);
-        if (room_number % 2 === 0) {
-          new_component_card.classList.add('c-white-background');
-        } else {
-          new_component_card.classList.add('c-grey-background');
-        }
+    let component_log = null;
+    all_component_logs.forEach((log) => {
+      if (log.component_id === component_id) {
+        component_log = log;
       }
+    });
 
-      await renderChart(component_id, component_details.component_name, '24h');
+    const components_url = `${api_endpoint}/components/`;
+    const components_response = await fetch(components_url);
+    const all_components = await components_response.json();
+
+    let component_details = null;
+    all_components.forEach((comp) => {
+      if (comp.component_id === component_id) {
+        component_details = comp;
+      }
+    });
+
+    if (!component_details) {
+      return;
     }
+
+    const component_card_html = generateComponentCardHtml(component_id, component_details.component_name, component_log);
+
+    const room_container = document.querySelector(`.js-room__container[data-room_id="${room_id}"]`);
+    if (room_container) {
+      const components_container = room_container.querySelector('.c-room__components');
+      if (components_container) {
+        components_container.insertAdjacentHTML('beforeend', component_card_html);
+
+        const new_component_card = components_container.querySelector(`.js-component__container[data-component_id="${component_id}"]`);
+        if (new_component_card) {
+          const room_number = parseInt(room_container.dataset.room_number);
+          if (room_number % 2 === 0) {
+            new_component_card.classList.add('c-white-background');
+          } else {
+            new_component_card.classList.add('c-grey-background');
+          }
+        }
+
+        await renderChart(component_id, component_details.component_name, component_details.value_unit);
+      }
+    }
+  } catch (error) {
+    console.error('Error creating component card:', error);
   }
 };
 // #endregion
@@ -1154,101 +1189,108 @@ const showDropdown = () => {
 };
 
 const showAllRoomsAndComponents = async () => {
-  const all_rooms = await getAllRooms();
-  const all_components = await getAllComponents();
-  const all_component_logs = await getLastComponentLogs();
-  const components_in_page = await getComponentsInPage();
+  try {
+    const all_rooms = await getAllRooms();
+    const all_components = await getAllComponents();
+    const all_component_logs = await getLastComponentLogs();
+    const components_in_page = await getComponentsInPage();
 
-  const components_grouped_by_room = {};
-  all_components.forEach((component) => {
-    if (!components_grouped_by_room[component.room_id]) {
-      components_grouped_by_room[component.room_id] = [];
-    }
-    components_grouped_by_room[component.room_id].push(component);
-  });
+    const components_grouped_by_room = {};
+    all_components.forEach((component) => {
+      if (!components_grouped_by_room[component.room_id]) {
+        components_grouped_by_room[component.room_id] = [];
+      }
+      components_grouped_by_room[component.room_id].push(component);
+    });
 
-  const logs_by_component_id = {};
-  all_component_logs.forEach((log) => {
-    logs_by_component_id[log.component_id] = log;
-  });
+    const logs_by_component_id = {};
+    all_component_logs.forEach((log) => {
+      logs_by_component_id[log.component_id] = log;
+    });
 
-  const page_component_ids = [];
-  components_in_page.forEach((component) => {
-    page_component_ids.push(component.component_id);
-  });
+    const page_component_ids = [];
+    components_in_page.forEach((component) => {
+      page_component_ids.push(component.component_id);
+    });
 
-  let rooms_html = '';
-  const main_container = document.querySelector('.js-main');
+    let rooms_html = '';
+    const main_container = document.querySelector('.js-main');
 
-  all_rooms.forEach((room, room_index) => {
-    const room_components = components_grouped_by_room[room.room_id] || [];
+    all_rooms.forEach((room, room_index) => {
+      const room_components = components_grouped_by_room[room.room_id] || [];
 
-    let components_html = '';
+      let components_html = '';
 
-    room_components.forEach((component) => {
-      let component_is_in_page = false;
-      page_component_ids.forEach((page_component_id) => {
-        if (page_component_id === component.component_id) {
-          component_is_in_page = true;
+      room_components.forEach((component) => {
+        let component_is_in_page = false;
+        page_component_ids.forEach((page_component_id) => {
+          if (page_component_id === component.component_id) {
+            component_is_in_page = true;
+          }
+        });
+
+        const component_log = logs_by_component_id[component.component_id];
+
+        if (component_is_in_page && component_log) {
+          components_html += generateComponentCardHtml(component.component_id, component.component_name, component_log);
         }
       });
 
-      const component_log = logs_by_component_id[component.component_id];
+      const dropdown_html = createComponentDropdown(room.room_id, room_components, components_in_page);
 
-      if (component_is_in_page && component_log) {
-        components_html += generateComponentCardHtml(component.component_id, component.component_name, component_log);
+      rooms_html += generateRoomContainerHtml(room.room_id, room.room_name, room_index, components_html, dropdown_html);
+    });
+
+    main_container.innerHTML = rooms_html;
+
+    const all_room_containers = document.querySelectorAll('.js-room__container');
+    all_room_containers.forEach((room_container) => {
+      const room_number = parseInt(room_container.dataset.room_number);
+      const component_containers = room_container.querySelectorAll('.js-component__container');
+
+      if (room_number % 2 === 0) {
+        room_container.classList.add('c-grey-background');
+        component_containers.forEach((component_container) => {
+          component_container.classList.add('c-white-background');
+        });
+      } else {
+        room_container.classList.add('c-white-background');
+        component_containers.forEach((component_container) => {
+          component_container.classList.add('c-grey-background');
+        });
       }
     });
 
-    const dropdown_html = createComponentDropdown(room.room_id, room_components, components_in_page);
+    const charts_to_render = [];
+    all_rooms.forEach((room) => {
+      const room_components = components_grouped_by_room[room.room_id] || [];
+      room_components.forEach((component) => {
+        let component_is_in_page = false;
+        page_component_ids.forEach((page_component_id) => {
+          if (page_component_id === component.component_id) {
+            component_is_in_page = true;
+          }
+        });
 
-    rooms_html += generateRoomContainerHtml(room.room_id, room.room_name, room_index, components_html, dropdown_html);
-  });
-
-  main_container.innerHTML = rooms_html;
-
-  const all_room_containers = document.querySelectorAll('.js-room__container');
-  all_room_containers.forEach((room_container) => {
-    const room_number = parseInt(room_container.dataset.room_number);
-    const component_containers = room_container.querySelectorAll('.js-component__container');
-
-    if (room_number % 2 === 0) {
-      room_container.classList.add('c-grey-background');
-      component_containers.forEach((component_container) => {
-        component_container.classList.add('c-white-background');
-      });
-    } else {
-      room_container.classList.add('c-white-background');
-      component_containers.forEach((component_container) => {
-        component_container.classList.add('c-grey-background');
-      });
-    }
-  });
-
-  const charts_to_render = [];
-  all_rooms.forEach((room) => {
-    const room_components = components_grouped_by_room[room.room_id] || [];
-    room_components.forEach((component) => {
-      let component_is_in_page = false;
-      page_component_ids.forEach((page_component_id) => {
-        if (page_component_id === component.component_id) {
-          component_is_in_page = true;
+        if (component_is_in_page) {
+          charts_to_render.push(renderChart(component.component_id, component.component_name, component.value_unit));
         }
       });
-
-      if (component_is_in_page) {
-        charts_to_render.push(renderChart(component.component_id, component.component_name, component.value_unit, '24h'));
-      }
     });
-  });
 
-  for (let i = 0; i < charts_to_render.length; i++) {
-    await charts_to_render[i];
+    for (let i = 0; i < charts_to_render.length; i++) {
+      await charts_to_render[i];
+    }
+
+    initDropdownEvents();
+    initTimeframeButtons();
+    updateAllDropdownLabels();
+
+    // NEW: Check for combined chart after initial load
+    await checkForCombinedChart();
+  } catch (error) {
+    console.error('Error loading rooms and components:', error);
   }
-
-  initDropdownEvents();
-  initTimeframeButtons();
-  updateAllDropdownLabels();
 };
 
 const updateAllDropdownLabels = () => {
@@ -1323,7 +1365,7 @@ const showLastLog = (log_data) => {
   const log_id = log_data.log_id;
   const component_name = log_data.component_name;
 
-  let existing_log_container = document.querySelector('.js-component__container[data-component_id="' + component_id + '"]');
+  let existing_log_container = document.querySelector(`.js-component__container[data-component_id="${component_id}"]`);
   const formatted_date = new Date(datetime);
 
   if (existing_log_container) {
@@ -1331,7 +1373,7 @@ const showLastLog = (log_data) => {
     const capacity_element = existing_log_container.querySelector('.c-card__capacity');
 
     if (level_element) {
-      level_element.textContent = value + ' ' + value_unit;
+      level_element.textContent = `${value} ${value_unit}`;
     }
 
     if (capacity_element) {
@@ -1340,7 +1382,7 @@ const showLastLog = (log_data) => {
 
     existing_log_container.setAttribute('data-log_id', log_id);
   } else {
-    const room_container = document.querySelector('.js-room__container[data-room_id="' + room_id + '"]');
+    const room_container = document.querySelector(`.js-room__container[data-room_id="${room_id}"]`);
     if (room_container) {
       const components_container = room_container.querySelector('.c-room__components');
       const dropdown_element = room_container.querySelector('.c-component-dropdown');
@@ -1351,7 +1393,7 @@ const showLastLog = (log_data) => {
         components_container.innerHTML += component_card_html;
 
         if (dropdown_element) {
-          const existing_checkbox = dropdown_element.querySelector('input[value="' + component_id + '"]');
+          const existing_checkbox = dropdown_element.querySelector(`input[value="${component_id}"]`);
           if (!existing_checkbox) {
             const dropdown_menu = dropdown_element.querySelector('.c-dropdown-menu');
             const new_option_html = generateDropdownOptionHtml(component_id, component_name, room_id, false);
@@ -1359,7 +1401,7 @@ const showLastLog = (log_data) => {
           }
         }
 
-        const new_log_container = components_container.querySelector('.js-component__container[data-component_id="' + component_id + '"]');
+        const new_log_container = components_container.querySelector(`.js-component__container[data-component_id="${component_id}"]`);
         if (new_log_container) {
           const room_id_num = parseInt(room_id);
           if (room_id_num % 2 === 0) {
@@ -1371,6 +1413,9 @@ const showLastLog = (log_data) => {
       }
     }
   }
+
+  // NEW: Check for combined chart when new logs arrive
+  checkForCombinedChart();
 };
 // #endregion
 
@@ -1390,21 +1435,21 @@ const formatDateTime = (iso_string) => {
 const getLastComponentLogs = async () => {
   const url_parameters = new URLSearchParams(window.location.search);
   const page_url_param = parseInt(url_parameters.get('page'));
-  const request_url = api_endpoint + `/components/last/${page_url_param}/`;
+  const request_url = `${api_endpoint}/components/last/${page_url_param}/`;
   const server_response = await fetch(request_url);
   const json_data = await server_response.json();
   return json_data;
 };
 
 const getAllComponents = async () => {
-  const request_url = api_endpoint + '/components/';
+  const request_url = `${api_endpoint}/components/`;
   const server_response = await fetch(request_url);
   const json_data = await server_response.json();
   return json_data;
 };
 
 const getAllRooms = async () => {
-  const request_url = api_endpoint + '/rooms/';
+  const request_url = `${api_endpoint}/rooms/`;
   const server_response = await fetch(request_url);
   const json_data = await server_response.json();
   return json_data;
@@ -1413,7 +1458,7 @@ const getAllRooms = async () => {
 const getComponentsInPage = async () => {
   const url_parameters = new URLSearchParams(window.location.search);
   const page_id = parseInt(url_parameters.get('page'));
-  const request_url = api_endpoint + `/pages/${page_id}/components/`;
+  const request_url = `${api_endpoint}/pages/${page_id}/components/`;
   const server_response = await fetch(request_url);
   const json_data = await server_response.json();
   return json_data;
@@ -1423,58 +1468,70 @@ const updateComponentInPage = async (component_id, is_component_selected) => {
   const url_parameters = new URLSearchParams(window.location.search);
   const page_id = parseInt(url_parameters.get('page'));
 
-  if (is_component_selected) {
-    const request_url = api_endpoint + `/pages/${page_id}/components/`;
-    const server_response = await fetch(request_url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        component_id: component_id,
-        page_id: page_id,
-      }),
-    });
-    return true;
-  } else {
-    const request_url = api_endpoint + `/pages/${page_id}/components/${component_id}/`;
-    const server_response = await fetch(request_url, {
-      method: 'DELETE',
-    });
-    return true;
+  try {
+    if (is_component_selected) {
+      const request_url = `${api_endpoint}/pages/${page_id}/components/`;
+      const server_response = await fetch(request_url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          component_id: component_id,
+          page_id: page_id,
+        }),
+      });
+      return true;
+    } else {
+      const request_url = `${api_endpoint}/pages/${page_id}/components/${component_id}/`;
+      const server_response = await fetch(request_url, {
+        method: 'DELETE',
+      });
+      return true;
+    }
+  } catch (error) {
+    console.error('Error updating component in page:', error);
+    return false;
   }
 };
 
 const getComponentHistory24h = async (component_id) => {
-  const url = api_endpoint + `/history/${component_id}/24h/`;
+  const url = `${api_endpoint}/history/${component_id}/24h/`;
   const response = await fetch(url);
   const json = await response.json();
   return json;
 };
 
 const getComponentHistory7d = async (component_id) => {
-  const url = api_endpoint + `/history/${component_id}/7d/`;
+  const url = `${api_endpoint}/history/${component_id}/7d/`;
   const response = await fetch(url);
   const json = await response.json();
   return json;
 };
 
 const getComponentHistory14d = async (component_id) => {
-  const url = api_endpoint + `/history/${component_id}/14d/`;
+  const url = `${api_endpoint}/history/${component_id}/14d/`;
   const response = await fetch(url);
   const json = await response.json();
   return json;
 };
 
 const getComponentTemperatureHistory7d = async (component_id) => {
-  const url = api_endpoint + `/history/temperature/${component_id}/7d/`;
+  const url = `${api_endpoint}/history/temperature/${component_id}/7d/`;
   const response = await fetch(url);
   const json = await response.json();
   return json;
 };
 
 const getComponentTemperatureHistory15m = async (component_id) => {
-  const url = api_endpoint + `/history/temperature/${component_id}/15m/`;
+  const url = `${api_endpoint}/history/temperature/${component_id}/15m/`;
+  const response = await fetch(url);
+  const json = await response.json();
+  return json;
+};
+
+const getComponentLogCount7d = async (component_id) => {
+  const url = `${api_endpoint}/history/${component_id}/count/7d/`;
   const response = await fetch(url);
   const json = await response.json();
   return json;

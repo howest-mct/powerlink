@@ -86,6 +86,17 @@ class HistoryLog(P1BaseModel):
     average_value: float
 
 
+class LogAmount(P1BaseModel):
+    component_id: int
+    log_amount: int
+
+
+class LogCountHistory(P1BaseModel):
+    component_id: int
+    chart_date: datetime
+    log_count: int
+
+
 # endregion Models ********************************
 
 

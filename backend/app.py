@@ -25,6 +25,8 @@ from models.backend_models import (
     ComponentPage,
     DTOComponentPage,
     HistoryLog,
+    LogAmount,
+    LogCountHistory,
 )
 
 from models.device_models import (
@@ -159,7 +161,7 @@ lights_button_pressed = False
 last_log_time_switch = 0
 previous_state_switch = False
 last_state_led = None
-light_duration = 10
+light_duration = 5
 prev_led_brightness = None
 ldr_value = None
 scanned_card = None
@@ -375,7 +377,7 @@ async def climate_control(temp_id):
     global HEATING, AIRCO, temp, temp_sensor_id, pot_id, MCP, TEMP_SENSOR, dict_schedules
     global errors, heater_id, fan_id, sleep_medium, temp_control_id
 
-    hysteresis = 0.5
+    hysteresis = 1.0
     max_range = 1.0
     fan_active = False
     min_heater_power = 50
@@ -832,45 +834,45 @@ async def lifespan_manager(app: FastAPI):
         global HEATING, AIRCO, MCP, CARD_READER
         global temp_id, POWER_BUTTON, I2C_EXPANDER
 
-        MOTION_SENSOR = 17
-        GPIO.setup(MOTION_SENSOR, GPIO.IN)
-        LED_BUTTON = 21
-        GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        POWER_BUTTON = 27
-        GPIO.setup(POWER_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        REED_SWITCH = 22
-        GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        TEMP_SENSOR = DS18B20()
-        temp_id = TEMP_SENSOR.get_id()
-        CARD_READER = RFIDReader()
-        LCD = LCD_Display(0x38, 5, 6)
-        DOOR_LOCK = ServoLock(12)
-        LED_OUTDOORS = 24
-        GPIO.setup(LED_OUTDOORS, GPIO.OUT)
-        LED_BOTTOM = LED(13)
-        LED_TOP = LED(19)
-        HEATING = HeatingPad(20)
-        AIRCO = DCMotor(18)
-        MCP = MCP3008(0, 1)
-        I2C_EXPANDER = TCA9548A()
+        # MOTION_SENSOR = 17
+        # GPIO.setup(MOTION_SENSOR, GPIO.IN)
+        # LED_BUTTON = 21
+        # GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        # POWER_BUTTON = 27
+        # GPIO.setup(POWER_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        # REED_SWITCH = 22
+        # GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        # TEMP_SENSOR = DS18B20()
+        # temp_id = TEMP_SENSOR.get_id()
+        # CARD_READER = RFIDReader()
+        # LCD = LCD_Display(0x38, 5, 6)
+        # DOOR_LOCK = ServoLock(12)
+        # LED_OUTDOORS = 13
+        # GPIO.setup(LED_OUTDOORS, GPIO.OUT)
+        # LED_BOTTOM = LED(24)
+        # LED_TOP = LED(19)
+        # HEATING = HeatingPad(20)
+        # AIRCO = DCMotor(18)
+        # MCP = MCP3008(0, 1)
+        # I2C_EXPANDER = TCA9548A()
 
-        tasks = [
-            asyncio.create_task(get_wattage()),
-            asyncio.create_task(climate_control(temp_id)),
-            asyncio.create_task(do_lights_button()),
-            asyncio.create_task(lights_bottom()),
-            asyncio.create_task(lights_top()),
-            asyncio.create_task(front_door()),
-            asyncio.create_task(lights_outdoors()),
-            asyncio.create_task(display_lcd()),
-        ]
+        # tasks = [
+        #     asyncio.create_task(get_wattage()),
+        #     asyncio.create_task(climate_control(temp_id)),
+        #     asyncio.create_task(do_lights_button()),
+        #     asyncio.create_task(lights_bottom()),
+        #     asyncio.create_task(lights_top()),
+        #     asyncio.create_task(front_door()),
+        #     asyncio.create_task(lights_outdoors()),
+        #     asyncio.create_task(display_lcd()),
+        # ]
 
-        GPIO.add_event_detect(
-            LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=250
-        )
-        GPIO.add_event_detect(
-            POWER_BUTTON, GPIO.FALLING, callback=power_button, bouncetime=250
-        )
+        # GPIO.add_event_detect(
+        #     LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=250
+        # )
+        # GPIO.add_event_detect(
+        #     POWER_BUTTON, GPIO.FALLING, callback=power_button, bouncetime=250
+        # )
 
         yield
 
@@ -890,7 +892,6 @@ async def lifespan_manager(app: FastAPI):
             log_and_emit_sync(0, motion_sensor_id)
             log_and_emit_sync(0, led_top_id)
             log_and_emit_sync(0, wh_led_top_id)
-            log_and_emit_sync(0, card_reader_id)
             log_and_emit_sync(0, reed_switch_id)
             log_and_emit_sync(0, servo_lock_id)
             log_and_emit_sync(0, light_sensor_id)
@@ -1205,6 +1206,39 @@ async def get_temperature_history_7d(component_id: int):
         raise HTTPException(
             status_code=500, detail=f"Error fetching temperature history: {str(e)}"
         )
+
+
+@app.get(
+    ENDPOINT + "/history/{component_id}/",
+    response_model=LogAmount,
+    summary="Retrieve a log_amount by ID",
+    response_description="The log_amount with the specified ID",
+    tags=["history"],
+)
+async def get_log_amount_by_id(component_id: int):
+    data = DataRepository.read_log_history_amount_7d_by_id(component_id)
+    if data is None:
+        raise HTTPException(
+            status_code=404, detail=f"log_amount with ID {component_id} not found"
+        )
+    return data
+
+
+@app.get(
+    ENDPOINT + "/history/{component_id}/count/7d/",
+    response_model=list[LogCountHistory],
+    summary="Retrieve 7-day log count history by component ID",
+    response_description="The 7-day log count history for the specified component",
+    tags=["history"],
+)
+async def get_log_count_history_7d_by_id(component_id: int):
+    data = DataRepository.read_log_count_history_7d_by_id(component_id)
+    if data is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Log count history for component ID {component_id} not found",
+        )
+    return data
 
 
 # endregion FastAPI Endpoints *************************

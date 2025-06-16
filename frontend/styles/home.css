@@ -223,7 +223,6 @@ a {
     padding: .625rem .9375rem;
     background: #fff;
     border: .0625rem solid var(--border-color);
-    border-radius: .25rem;
     cursor: pointer;
     user-select: none;
     position: relative;
