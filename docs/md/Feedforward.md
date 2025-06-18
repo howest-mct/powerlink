@@ -111,23 +111,28 @@ Dit is de feedback op mijn vragen.
 - In schedule vooral meer duidelijkheid
 - Gewone gebruiker proberen te overtuigen
 
-## Gesprek 3 (Datum: x/06/2025)
+## Gesprek 3 (Datum: 18/06/2025)
 
-Lector:
+Lector: Geert
 
 Vragen voor dit gesprek:
 
-- vraag 1:
+- vraag 1: RaspBerry Pi start thuis niet meer op, wat nu?
 
 Dit is de feedback op mijn vragen.
 
-- feedback 1
+- feedback 1: Met nieuwe image proberen, lukte niet.
+  Opnieuw met oude SD geprobeerd, dit lukte wel. Waarschijnlijk ergens een hardwarematige fout.
 
-  ## Gesprek 4 (Datum: x/06/2025)
+  ## Gesprek 4 (Datum: 18/06/2025)
 
-Lector:
+Lector: Pieter-Jan
 
 Vragen voor dit gesprek:
 
-- vraag 1:
-- feedback 1:
+- vraag 1: Geen verbinding meer met GitHub, pushen of synchen lukt niet meer, wat nu?
+
+Dit is de feedback op mijn vragen.
+
+- feedback 1: .git file was corrupt, dus kopie genomen van de oude repo en de .git verwijderen. Clone nemen van de oude repo van op github.
+  Dan de oude kopie plakken in de net geclone repo en dan committen en pushen.
