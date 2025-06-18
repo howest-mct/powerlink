@@ -1298,142 +1298,81 @@ async def schedule_handler(sid, data):
 
 @sio.on("BF2_manual_door_control")
 async def manual_door_control_handler(sid, data):
-    global DOOR_LOCK, servo_lock_id
+    component_id = data.get("component_id")
+    action = data.get("action")
 
-    try:
-        component_id = data.get("component_id")
-        action = data.get("action")
-        manual_override = data.get("manual_override", False)
+    if not DOOR_LOCK:
+        return
 
-        if not DOOR_LOCK:
-            await sio.emit(
-                "B2F_door_control_error",
-                {"error": "Door lock not available", "component_id": component_id},
-            )
-            return
+    if action == "unlock":
+        DOOR_LOCK.unlock()
+        new_state = 1
+    else:
+        DOOR_LOCK.lock()
+        new_state = 0
 
-        if action == "unlock":
-            DOOR_LOCK.unlock()
-            new_state = 1
-        elif action == "lock":
-            DOOR_LOCK.lock()
-            new_state = 0
-        else:
-            await sio.emit(
-                "B2F_door_control_error",
-                {"error": "Invalid action", "component_id": component_id},
-            )
-            return
+    await log_and_emit_async(new_state, servo_lock_id)
 
-        await log_and_emit_async(new_state, servo_lock_id)
-
-        await sio.emit(
-            "B2F_door_control_success",
-            {
-                "component_id": component_id,
-                "action": action,
-                "new_state": new_state,
-                "manual_override": manual_override,
-            },
-        )
-
-    except Exception as e:
-        logger.error(f"Error in manual door control handler: {e}")
-        await sio.emit(
-            "B2F_door_control_error",
-            {"error": str(e), "component_id": data.get("component_id")},
-        )
+    await sio.emit(
+        "B2F_door_control_success",
+        {
+            "component_id": component_id,
+            "action": action,
+            "new_state": new_state,
+        },
+    )
 
 
 @sio.on("BF2_manual_light_control")
 async def manual_light_control_handler(sid, data):
-    global LED_BOTTOM, LED_TOP, LED_OUTDOORS
-    global led_bottom_id, led_top_id, led_outdoors_id
-    global switch_state
+    component_id = data.get("component_id")
+    new_value = data.get("value", 0)
 
-    try:
-        component_id = data.get("component_id")
-        new_value = data.get("value", 0)
-        manual_override = data.get("manual_override", False)
-
-        logger.info(
-            f"Manual light control: Component {component_id}, Value: {new_value}"
-        )
-
-        if component_id == led_bottom_id:
-            if LED_BOTTOM:
-                if new_value > 0:
-                    LED_BOTTOM.set_brightness(new_value)
-                    switch_state = True
-                else:
-                    LED_BOTTOM.off()
-                    switch_state = False
-
-                await log_and_emit_async(new_value, led_bottom_id)
-
-                await sio.emit(
-                    "B2F_light_control_success",
-                    {
-                        "component_id": component_id,
-                        "new_value": new_value,
-                        "manual_override": manual_override,
-                    },
-                )
-            else:
-                raise Exception("LED_BOTTOM not available")
-
-        elif component_id == led_top_id:
-            if LED_TOP:
-                if new_value > 0:
-                    LED_TOP.set_brightness(new_value)
-                else:
-                    LED_TOP.off()
-
-                await log_and_emit_async(new_value, led_top_id)
-
-                await sio.emit(
-                    "B2F_light_control_success",
-                    {
-                        "component_id": component_id,
-                        "new_value": new_value,
-                        "manual_override": manual_override,
-                    },
-                )
-            else:
-                raise Exception("LED_TOP not available")
-
-        elif component_id == led_outdoors_id:
-            if LED_OUTDOORS:
-                if new_value > 0:
-                    GPIO.output(LED_OUTDOORS, GPIO.HIGH)
-                else:
-                    GPIO.output(LED_OUTDOORS, GPIO.LOW)
-
-                await log_and_emit_async(new_value, led_outdoors_id)
-
-                await sio.emit(
-                    "B2F_light_control_success",
-                    {
-                        "component_id": component_id,
-                        "new_value": new_value,
-                        "manual_override": manual_override,
-                    },
-                )
-            else:
-                raise Exception("LED_OUTDOORS not available")
+    if component_id == led_bottom_id and LED_BOTTOM:
+        if new_value > 0:
+            LED_BOTTOM.set_brightness(new_value)
+            switch_state = True
         else:
-            raise Exception(f"Invalid light component ID: {component_id}")
+            LED_BOTTOM.off()
+            switch_state = False
 
-    except Exception as e:
-        logger.error(f"Error in manual light control handler: {e}")
-        await sio.emit(
-            "B2F_light_control_error",
-            {
-                "error": str(e),
-                "component_id": data.get("component_id"),
-                "requested_value": data.get("value"),
-            },
-        )
+    elif component_id == led_top_id and LED_TOP:
+        if new_value > 0:
+            LED_TOP.set_brightness(new_value)
+        else:
+            LED_TOP.off()
+
+    elif component_id == led_outdoors_id and LED_OUTDOORS:
+        GPIO.output(LED_OUTDOORS, GPIO.HIGH if new_value > 0 else GPIO.LOW)
+
+    else:
+        return
+
+    await log_and_emit_async(new_value, component_id)
+
+    await sio.emit(
+        "B2F_light_control_success",
+        {
+            "component_id": component_id,
+            "new_value": new_value,
+        },
+    )
+
+
+@sio.on("BF2_manual_powerlink_control")
+async def manual_powerlink_control_handler(sid, data):
+    component_id = data.get("component_id")
+    action = data.get("action")
+
+    await log_and_emit_async(0 if action == "off" else 1, component_id)
+
+    await sio.emit(
+        "B2F_powerlink_control_success",
+        {
+            "component_id": component_id,
+            "action": action,
+        },
+    )
 
 
 # endregion Socket.IO Handlers *************************
