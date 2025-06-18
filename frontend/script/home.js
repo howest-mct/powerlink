@@ -34,6 +34,48 @@ const LIGHT_COMPONENT_IDS = [11, 14, 20];
 const SERVO_COMPONENT_IDS = [18];
 const POWERLINK_COMPONENT_IDS = [21];
 const USAGE_IDS = [1, 2];
+
+// Global variables to store energy data
+let energy_data = {
+  1: 0, // Component ID 1 energy
+  2: 0, // Component ID 2 energy
+};
+// #endregion
+
+// #region ***  Energy Data Functions                   ***********
+const load_energy_data = async () => {
+  try {
+    // Fetch energy data for both usage components
+    const energy_promises = USAGE_IDS.map(async (component_id) => {
+      try {
+        const energy_value = await get_energy_24h(component_id);
+        return { component_id, energy_value };
+      } catch (error) {
+        console.error(`Error fetching energy for component ${component_id}:`, error);
+        return { component_id, energy_value: 0 };
+      }
+    });
+
+    const energy_results = await Promise.all(energy_promises);
+
+    // Store results in global variable
+    energy_results.forEach(({ component_id, energy_value }) => {
+      energy_data[component_id] = energy_value;
+    });
+  } catch (error) {
+    console.error('Error loading energy data:', error);
+  }
+};
+
+const get_energy_color_class = (energy_value) => {
+  if (energy_value > 7) {
+    return 'c-card--red';
+  } else if (energy_value > 3) {
+    return 'c-card--mainblue';
+  } else {
+    return 'c-card--green';
+  }
+};
 // #endregion
 
 // #region ***  HTML Generation Functions               ***********
@@ -69,7 +111,14 @@ const generate_servo_component_card_html = (component_id, component_name, value,
 
 const generate_rfid_card_html = async (component_id, component_name, value, log_id, room_id) => {
   const icon_path = component_icons[component_id];
-  const inhabitant_name = await get_inhabitant_name_by_card_id(String(value));
+
+  let inhabitant_name;
+  try {
+    inhabitant_name = await get_inhabitant_name_by_card_id(String(value));
+  } catch (error) {
+    console.error('Error getting inhabitant name:', error);
+    inhabitant_name = 'Unknown';
+  }
 
   return `
     <article class="c-article c-hover--shadow js-component__container" 
@@ -85,14 +134,14 @@ const generate_rfid_card_html = async (component_id, component_name, value, log_
       <div class="c-card c-card--light">
         <h3 class="c-card__level">${inhabitant_name}</h3>
         <div class="c-card__meta c-card__meta--light">
-          <button class="c-card__status c-card__status--toggle" type="button">Edit Family</button>
+          <a href="family.html" class="c-card__status c-card__status--toggle" type="button">Edit Family</a>
         </div>
       </div>
     </article>
   `;
 };
 
-const generate_light_component_card_html = (component_id, component_name, value, room_id, log_id) => {
+const generate_light_component_card_html = (component_id, component_name, value, value_unit, room_id, log_id) => {
   const icon_path = component_icons[component_id];
   const is_on = parseInt(value) > 0;
   const brightness_text = is_on ? `${value} ${value_unit}` : 'Off';
@@ -175,18 +224,11 @@ const generate_power_switch_html = (component_id, component_name, datetime, log_
   `;
 };
 
-const generate_usage_card_html = async (component_id, component_name, value, value_unit, log_id, room_id) => {
+const generate_usage_card_html = (component_id, component_name, value, value_unit, log_id, room_id) => {
   const icon_path = component_icons[component_id];
-  const today_value = await get_energy_24h(component_id);
-
-  let color_class = '';
-  if (today_value > 7) {
-    color_class = 'c-card--red';
-  } else if (today_value > 3) {
-    color_class = 'c-card--mainblue';
-  } else {
-    color_class = 'c-card--green';
-  }
+  // Use the pre-loaded global energy data
+  const today_value = energy_data[component_id] || 0;
+  const color_class = get_energy_color_class(today_value);
 
   return `
     <article class="c-article c-hover--shadow js-component__container" 
@@ -236,9 +278,9 @@ const generate_temp_control_component_card_html = (component_id, component_name,
 
 const generate_smart_component_card_html = async (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
   if (USAGE_IDS.includes(parseInt(component_id))) {
-    return await generate_usage_card_html(component_id, component_name, value, value_unit, log_id, room_id);
+    return generate_usage_card_html(component_id, component_name, value, value_unit, log_id, room_id);
   } else if (LIGHT_COMPONENT_IDS.includes(parseInt(component_id))) {
-    return generate_light_component_card_html(component_id, component_name, value, room_id, log_id);
+    return generate_light_component_card_html(component_id, component_name, value, value_unit, room_id, log_id);
   } else if (component_id === 4) {
     return generate_temp_control_component_card_html(component_id, component_name, value, value_unit, log_id, room_id);
   } else if (component_id === 18) {
@@ -608,8 +650,6 @@ const toggle_light = (component_id, new_value, card_element) => {
       timestamp: Date.now(),
     });
 
-    console.log(`Toggling light ${component_id} to ${new_value}`);
-
     if (!window.pending_light_toggles) {
       window.pending_light_toggles = new Map();
     }
@@ -666,8 +706,6 @@ const toggle_powerlink = (component_id, action, card_element) => {
       timestamp: Date.now(),
     });
 
-    console.log(`Toggling PowerLink ${component_id} to ${action}`);
-
     if (!window.pending_powerlink_toggles) {
       window.pending_powerlink_toggles = new Map();
     }
@@ -686,8 +724,6 @@ const toggle_door_lock = (component_id, action, card_element) => {
       manual_override: true,
       timestamp: Date.now(),
     });
-
-    console.log(`Toggling door lock ${component_id} to ${action}`);
 
     if (!window.pending_servo_toggles) {
       window.pending_servo_toggles = new Map();
@@ -793,6 +829,7 @@ const show_all_rooms_and_components = async () => {
       const room = all_rooms[room_index];
       const room_components = components_grouped_by_room[room.room_id] || [];
 
+      // Use Promise.all to handle multiple async calls efficiently
       const component_html_promises = room_components
         .filter((component) => {
           const component_is_in_page = page_component_ids.includes(component.component_id);
@@ -870,6 +907,7 @@ const show_all_last_logs = async (json_data) => {
     const room_data = room_components[room_id];
     const room_name = room_data[0].room_name;
 
+    // Use Promise.all to handle multiple async calls efficiently
     const component_html_promises = room_data.map(async (item) => {
       return await generate_smart_component_card_html(item.component_id, item.component_name, item.value, item.value_unit, item.datetime, item.log_id, item.room_id);
     });
@@ -934,24 +972,35 @@ const update_existing_component = async (container, component_id, value, value_u
     }
     container.setAttribute('aria-pressed', is_active.toString());
   } else if (USAGE_IDS.includes(parseInt(component_id))) {
-    const capacity_element = container.querySelector('.c-card__capacity');
-    const today_value = await get_energy_24h(component_id);
+    // For usage components, update energy data and refresh the display
+    try {
+      const new_energy_value = await get_energy_24h(component_id);
+      energy_data[component_id] = new_energy_value;
 
-    let color_class = '';
-    if (today_value > 7) {
-      color_class = 'c-card--red';
-    } else if (today_value > 3) {
-      color_class = 'c-card--mainblue';
-    } else {
-      color_class = 'c-card--green';
-    }
+      const capacity_element = container.querySelector('.c-card__capacity');
+      const color_class = get_energy_color_class(new_energy_value);
 
-    if (level_element) {
-      level_element.textContent = `${value} ${value_unit}`;
-    }
-    if (capacity_element) {
-      capacity_element.className = `c-card__capacity ${color_class}`;
-      capacity_element.textContent = `${today_value} Wh`;
+      if (level_element) {
+        level_element.textContent = `${value} ${value_unit}`;
+      }
+      if (capacity_element) {
+        capacity_element.className = `c-card__capacity ${color_class}`;
+        capacity_element.textContent = `${new_energy_value} Wh`;
+      }
+    } catch (error) {
+      console.error('Error updating energy data:', error);
+      // Fallback to current stored value
+      const capacity_element = container.querySelector('.c-card__capacity');
+      const today_value = energy_data[component_id] || 0;
+      const color_class = get_energy_color_class(today_value);
+
+      if (level_element) {
+        level_element.textContent = `${value} ${value_unit}`;
+      }
+      if (capacity_element) {
+        capacity_element.className = `c-card__capacity ${color_class}`;
+        capacity_element.textContent = `${today_value} Wh`;
+      }
     }
   } else {
     const capacity_element = container.querySelector('.c-card__capacity');
@@ -1111,8 +1160,7 @@ const get_inhabitant_name_by_card_id = async (card_id) => {
     const request_url = api_endpoint + `/entered/${card_id}/last/`;
     const server_response = await fetch(request_url);
     const json_data = await server_response.json();
-    console.log('Inhabitant name by card ID:', json_data);
-    return json_data;
+    return json_data.first_name;
   } catch (error) {
     console.error('Error fetching inhabitant name:', error);
     return 'Unknown';
@@ -1124,7 +1172,7 @@ const get_energy_24h = async (component_id) => {
     const url = api_endpoint + `/energy/${component_id}/24h/`;
     const response = await fetch(url);
     const json = await response.json();
-    return json;
+    return json.total_kwh;
   } catch (error) {
     console.error('Error fetching 24h energy data:', error);
     return 0;
@@ -1154,8 +1202,12 @@ const listen_to_socket = () => {
 // #endregion
 
 // #region ***  Initialization                          ***********
-const init = () => {
+const init = async () => {
   console.log('DOM loaded');
+
+  // Load energy data first, before showing components
+  await load_energy_data();
+
   show_dropdown();
   show_all_rooms_and_components();
   listen_to_socket();

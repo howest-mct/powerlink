@@ -231,7 +231,7 @@ a {
     color: var(--text_main-color);
 }
 
-.c-hover--shadow{
+.c-hover--shadow {
     box-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.1);
 }
 
@@ -419,6 +419,7 @@ a {
     line-height: 1.5rem;
     color: var(--text_sub-color);
 }
+
 .c-card__status--toggle {
     display: flex;
     align-items: center;
@@ -581,6 +582,20 @@ a {
     margin: 0;
 }
 
+/* Updated disabled states - both lights and servos now use opacity */
+.c-light-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.c-servo-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Removed background-based disabled states for lights:
 .c-grey-background .c-light-disabled {
     background-color: #e8e8e8;
 }
@@ -588,18 +603,20 @@ a {
 .c-white-background .c-light-disabled {
     background-color: #f5f5f5;
 }
+*/
 
-.c-card--blue{
+.c-card--blue {
     font-size: .75rem;
 }
 
-.c-card--mainblue{
+.c-card--mainblue {
     color: var(--main_color);
 }
 
 .c-card--green {
     color: var(--active-color);
 }
+
 .c-card--red {
     color: var(--warning-color);
 }
@@ -689,17 +706,11 @@ a {
     gap: 0.25rem;
 }
 
-.c-card--light{
+.c-card--light {
     display: flex;
     flex-direction: column;
     gap: 1rem;
     padding: 1rem;
     flex: 1;
     width: 100%;
-}
-
-.c-servo-disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    pointer-events: none;
 }

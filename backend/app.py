@@ -146,7 +146,7 @@ AIRCO = None
 MCP = None
 I2C_EXPANDER = None
 
-battery_level = 0.0
+battery_level = 100.0
 kw_led_bottom = 0.0
 kw_led_top = 0.0
 kw_heating = 0.0
@@ -172,7 +172,11 @@ sleep_fast = 0.25
 sleep_medium = 1
 sleep_slow = 2
 sleep_long = 5
-battery_percentage = 100.0
+powerbank_capacity = 0.055
+battery_efficiency = 0.85
+total_energy_in = 0.0
+total_energy_out = 0.0
+last_time = None
 
 try:
     all_schedules = DataRepository.read_all_schedules()
@@ -258,9 +262,9 @@ async def display_lcd():
             LCD.string(f"{round(current_usage, 3)}W", 2)
             await asyncio.sleep(sleep_lcd)
 
-            # LCD.string("Battery level:", 1)
-            # LCD.string(f"{battery_level}%", 2)
-            # await asyncio.sleep(sleep_lcd)
+            LCD.string("Battery level:", 1)
+            LCD.string(f"{battery_level}%", 2)
+            await asyncio.sleep(sleep_lcd)
 
         except Exception as e:
             await asyncio.sleep(sleep_long)
@@ -278,9 +282,70 @@ def initialize_power_monitoring():
         power_monitor = None
 
 
+def reset_battery_tracking():
+
+    global total_energy_in, total_energy_out, last_time, battery_level
+
+    total_energy_in = 0.0
+    total_energy_out = 0.0
+    last_time = None
+    battery_level = 100.0
+
+
+def update_battery_level(power_in, power_out):
+    global total_energy_in, total_energy_out, battery_level, last_time
+    global powerbank_capacity, battery_efficiency
+
+    try:
+        current_time = time.time()
+
+        if last_time is None:
+            last_time = current_time
+            return
+
+        hours_passed = (current_time - last_time) / 3600.0
+
+        energy_in_this_period = power_in * hours_passed / 1000.0
+        energy_out_this_period = power_out * hours_passed / 1000.0
+
+        total_energy_in += energy_in_this_period
+        total_energy_out += energy_out_this_period
+
+        usable_energy = (total_energy_in * battery_efficiency) - total_energy_out
+        new_battery_level = max(0, min(100, (usable_energy / powerbank_capacity) * 100))
+
+        if abs(new_battery_level - battery_level) > 0.5:
+            old_battery_level = battery_level
+            battery_level = new_battery_level
+
+            loop = asyncio.get_event_loop()
+            loop.create_task(
+                sio.emit(
+                    "B2F_battery_level",
+                    {
+                        "battery_level": round(battery_level, 1),
+                        "previous_level": round(old_battery_level, 1),
+                        "total_energy_in": round(total_energy_in, 3),
+                        "total_energy_out": round(total_energy_out, 3),
+                        "timestamp": current_time,
+                    },
+                )
+            )
+            logger.debug(
+                f"Battery level: {battery_level:.1f}% (was {old_battery_level:.1f}%)"
+            )
+        else:
+            battery_level = new_battery_level
+
+        last_time = current_time
+
+    except Exception as e:
+        logger.error(f"Error updating battery level: {e}")
+
+
 async def get_wattage():
     global power_monitor, current_usage, battery_level
-    global kw_led_bottom, kw_led_top, kw_heating, kw_airco
+    global kw_led_bottom, kw_led_top, kw_heating, kw_airco, kw_bat_out
 
     prev_values = {
         "led_bottom": None,
@@ -307,15 +372,10 @@ async def get_wattage():
             battery_in_power = round(readings.get("battery_in", 0.0), 2)
             battery_out_power = round(readings.get("battery_out", 0.0), 2)
 
+            update_battery_level(battery_in_power, battery_out_power)
+
             current_usage = battery_out_power
-
-            if battery_out_power > 0.1:
-                battery_level = max(
-                    0, min(100, (battery_in_power / battery_out_power) * 100)
-                )
-
-            else:
-                battery_level = 100.0
+            kw_bat_out = battery_out_power
 
             if kw_led_bottom != 0 or prev_values.get("led_bottom", 0) != 0:
                 await log_and_emit_async(kw_led_bottom, wh_led_bottom_id)
@@ -347,7 +407,6 @@ async def get_wattage():
             if power_monitor:
                 try:
                     power_monitor.close()
-
                 except Exception as e:
                     logger.error(f"Error closing power monitor: {e}")
                 power_monitor = None
@@ -1281,6 +1340,16 @@ async def get_last_entered_by_card_id(card_id: str):
     return data
 
 
+@app.get(
+    ENDPOINT + "/battery/level/",
+    summary="Get current battery level",
+    response_description="Current battery level percentage",
+    tags=["battery"],
+)
+async def get_current_battery_level():
+    return {"battery_level": round(battery_level, 1)}
+
+
 # endregion FastAPI Endpoints *************************
 
 
@@ -1373,6 +1442,22 @@ async def manual_powerlink_control_handler(sid, data):
             "action": action,
         },
     )
+
+
+@sio.on("BF2_reset_battery_tracking")
+async def reset_battery_tracking_handler(sid, data):
+    try:
+        reset_battery_tracking()
+        await sio.emit(
+            "B2F_battery_tracking_reset",
+            {"success": True, "message": "Battery tracking reset to 100%"},
+        )
+        logger.info("Battery tracking reset via Socket.IO")
+    except Exception as e:
+        logger.error(f"Error resetting battery tracking: {e}")
+        await sio.emit(
+            "B2F_battery_tracking_reset", {"success": False, "error": str(e)}
+        )
 
 
 # endregion Socket.IO Handlers *************************
