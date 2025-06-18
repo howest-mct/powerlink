@@ -392,8 +392,7 @@ const createComponentCard = async (component_id, room_id) => {
 };
 // #endregion
 
-// #region ***  Enhanced Light Toggle Functions         ***********
-
+// #region ***  Component Control Functions             ***********
 const initComponentCardEvents = () => {
   document.addEventListener('click', (event) => {
     const component_card = event.target.closest('.js-component__container');
@@ -401,7 +400,6 @@ const initComponentCardEvents = () => {
     if (component_card) {
       const component_id = parseInt(component_card.dataset.component_id);
 
-      // Existing light handling code...
       if (LIGHT_COMPONENT_IDS.includes(component_id)) {
         event.preventDefault();
         event.stopPropagation();
@@ -427,7 +425,6 @@ const initComponentCardEvents = () => {
         }
       }
 
-      // ADD THIS: Door/Servo handling code
       if (SERVO_COMPONENT_IDS.includes(component_id)) {
         event.preventDefault();
         event.stopPropagation();
@@ -449,7 +446,6 @@ const initComponentCardEvents = () => {
     }
   });
 
-  // Keyboard support for door locks too
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
       const component_card = event.target.closest('.js-component__container');
@@ -462,27 +458,6 @@ const initComponentCardEvents = () => {
       }
     }
   });
-};
-
-const addServoLoadingState = (card_element) => {
-  card_element.classList.add('c-servo-disabled');
-  card_element.style.pointerEvents = 'none';
-
-  setTimeout(() => {
-    removeServoLoadingState(card_element);
-  }, 3000); // Slightly longer timeout for physical servo movement
-};
-
-const removeServoLoadingState = (card_element) => {
-  card_element.classList.remove('c-servo-disabled');
-  card_element.style.pointerEvents = '';
-};
-
-const addServoToggleAnimation = (card_element) => {
-  card_element.classList.add('servo-toggling');
-  setTimeout(() => {
-    card_element.classList.remove('servo-toggling');
-  }, 500); // Longer animation for servo movement
 };
 
 const addLoadingState = (card_element) => {
@@ -504,6 +479,27 @@ const addToggleAnimation = (card_element) => {
   setTimeout(() => {
     card_element.classList.remove('toggling');
   }, 300);
+};
+
+const addServoLoadingState = (card_element) => {
+  card_element.classList.add('c-servo-disabled');
+  card_element.style.pointerEvents = 'none';
+
+  setTimeout(() => {
+    removeServoLoadingState(card_element);
+  }, 3000);
+};
+
+const removeServoLoadingState = (card_element) => {
+  card_element.classList.remove('c-servo-disabled');
+  card_element.style.pointerEvents = '';
+};
+
+const addServoToggleAnimation = (card_element) => {
+  card_element.classList.add('servo-toggling');
+  setTimeout(() => {
+    card_element.classList.remove('servo-toggling');
+  }, 500);
 };
 
 const toggleLight = (component_id, new_value, card_element) => {
@@ -589,13 +585,11 @@ const listenToDoorControlFeedback = () => {
       addServoToggleAnimation(card_element);
       window.pendingServoToggles.delete(component_id);
 
-      // Update the UI to show new state
       const level_element = card_element.querySelector('.c-card__level');
       if (level_element) {
         level_element.textContent = new_state > 0 ? 'Unlocked' : 'Locked';
       }
 
-      // Update aria-pressed attribute
       card_element.setAttribute('aria-pressed', (new_state > 0).toString());
 
       console.log(`Door lock ${component_id} successfully ${action}ed`);
@@ -612,8 +606,6 @@ const listenToDoorControlFeedback = () => {
       window.pendingServoToggles.delete(component_id);
 
       console.error(`Door lock ${component_id} toggle failed:`, error_message);
-
-      // Optional: Show user-friendly error message
       alert(`Failed to control door lock: ${error_message}`);
     }
   });
@@ -1041,7 +1033,6 @@ const listenToSocket = () => {
   });
 
   listenToLightControlFeedback();
-
   listenToDoorControlFeedback();
 };
 // #endregion
