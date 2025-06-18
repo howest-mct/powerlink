@@ -30,35 +30,12 @@ const component_icons = {
   22: `img/svg/thermometer.svg`,
 };
 
-// List of light component IDs
 const LIGHT_COMPONENT_IDS = [11, 14, 20];
-const SERVO_COMPONENT_IDS = [18];
-const INTERACTIVE_COMPONENT_IDS = [...LIGHT_COMPONENT_IDS, ...SERVO_COMPONENT_IDS];
-const listenToLightControlFeedback = () => {
+// #endregion
 
 // #region ***  Enhanced HTML Generation Functions      ***********
-const generateServoComponentCardHtml = (component_id, component_name, value, value_unit, room_id, log_id) => {
-  const icon_path = component_icons[component_id];
-  const is_unlocked = parseInt(value) > 0;
-  const status_text = is_unlocked ? 'Unlocked' : 'Locked';
 
-  return `
-    <article class="c-article c-hover--shadow c-light-card js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}" role="button" tabindex="0" aria-label="Toggle ${component_name}" aria-pressed="${is_unlocked}">
-      <div class="c-article__header">
-        <a href="#" class="c-article__link">
-          <img src="${icon_path}" alt="Lock icon" class="c-article__icon">
-        </a>
-        <h2 class="c-article__title">${component_name}</h2>
-      </div>
-      <div class="c-card">
-        <h3 class="c-card__level">${status_text}</h3>
-        <div class="c-card__meta">
-          <p class="c-card__capacity">Tap to toggle</p>
-        </div>
-      </div>
-    </article>
-  `;
-};
+const generateLightComponentCardHtml = (component_id, component_name, value, value_unit, room_id, log_id) => {
   const icon_path = component_icons[component_id];
   const is_on = parseInt(value) > 0;
   const brightness_text = is_on ? `${value} ${value_unit}` : 'Off';
@@ -74,31 +51,7 @@ const generateServoComponentCardHtml = (component_id, component_name, value, val
       <div class="c-card">
         <h3 class="c-card__level">${brightness_text}</h3>
         <div class="c-card__meta">
-          <p class="c-card__status">Light</p>
           <p class="c-card__capacity">Tap to toggle</p>
-        </div>
-      </div>
-    </article>
-  `;
-};
-
-const generateLightComponentCardHtml = (component_id, component_name, value, value_unit, room_id, log_id) => {
-  const formatted_date = new Date(datetime);
-  const icon_path = component_icons[component_id];
-
-  return `
-    <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}">
-      <div class="c-article__header">
-        <a href="#" class="c-article__link">
-          <img src="${icon_path}" alt="Component icon" class="c-article__icon">
-        </a>
-        <h2 class="c-article__title">${component_name}</h2>
-      </div>
-      <div class="c-card">
-        <h3 class="c-card__level">${value} ${value_unit}</h3>
-        <div class="c-card__meta">
-          <p class="c-card__status">Last log</p>
-          <p class="c-card__capacity">${formatDateTime(formatted_date)}</p>
         </div>
       </div>
     </article>
@@ -127,11 +80,33 @@ const generateRegularComponentCardHtml = (component_id, component_name, value, v
     </article>
   `;
 };
+
+const generateTempControlComponentCardHtml = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
+  const icon_path = component_icons[component_id];
+
+  return `
+    <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}">
+      <div class="c-article__header">
+        <a href="#" class="c-article__link">
+          <img src="${icon_path}" alt="Component icon" class="c-article__icon">
+        </a>
+        <h2 class="c-article__title">${component_name}</h2>
+      </div>
+      <div class="c-card">
+        <h3 class="c-card__level">${value} ${value_unit}</h3>
+        <div class="c-card__meta">
+          <a href="schedules.html?page=2" class="c-card__capacity">EDIT SCHEDULES</a>
+        </div>
+      </div>
+    </article>
+  `;
+};
+
 const generateSmartComponentCardHtml = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
   if (LIGHT_COMPONENT_IDS.includes(parseInt(component_id))) {
     return generateLightComponentCardHtml(component_id, component_name, value, value_unit, room_id, log_id);
-  } else if (SERVO_COMPONENT_IDS.includes(parseInt(component_id))) {
-    return generateServoComponentCardHtml(component_id, component_name, value, value_unit, room_id, log_id);
+  } else if (component_id === 4) {
+    return generateTempControlComponentCardHtml(component_id, component_name, value, value_unit, datetime, log_id, room_id);
   } else {
     return generateRegularComponentCardHtml(component_id, component_name, value, value_unit, datetime, log_id, room_id);
   }
@@ -274,37 +249,6 @@ const initDropdownEvents = () => {
   });
 };
 
-const listenToServoControlFeedback = () => {
-  socket_connection.on('B2F_door_control_success', (data) => {
-    const component_id = data.component_id;
-    const action = data.action;
-    
-    if (window.pendingServoToggles && window.pendingServoToggles.has(component_id)) {
-      const card_element = window.pendingServoToggles.get(component_id);
-      removeLoadingState(card_element);
-      addToggleAnimation(card_element);
-      window.pendingServoToggles.delete(component_id);
-      
-      console.log(`Servo ${component_id} successfully ${action}ed`);
-    }
-  });
-  
-  socket_connection.on('B2F_door_control_error', (data) => {
-    const component_id = data.component_id;
-    const error_message = data.error || 'Unknown error';
-    
-    if (window.pendingServoToggles && window.pendingServoToggles.has(component_id)) {
-      const card_element = window.pendingServoToggles.get(component_id);
-      removeLoadingState(card_element);
-      window.pendingServoToggles.delete(component_id);
-      
-      console.error(`Servo ${component_id} toggle failed:`, error_message);
-    }
-  });
-};
-
-// #endregion
-
 const updateDropdownLabel = (dropdown_element) => {
   const trigger_button = dropdown_element.querySelector('.c-dropdown-trigger');
   const all_checkboxes = dropdown_element.querySelectorAll('input[type="checkbox"]');
@@ -392,15 +336,7 @@ const createComponentCard = async (component_id, room_id) => {
       }
     }
 
-    const component_card_html = generateSmartComponentCardHtml(
-      component_id, 
-      component_details.component_name, 
-      component_log.value, 
-      component_details.value_unit, 
-      component_log.datetime, 
-      component_log.log_id, 
-      room_id
-    );
+    const component_card_html = generateSmartComponentCardHtml(component_id, component_details.component_name, component_log.value, component_details.value_unit, component_log.datetime, component_log.log_id, room_id);
 
     const room_container = document.querySelector(`.js-room__container[data-room_id="${room_id}"]`);
     if (room_container) {
@@ -430,45 +366,45 @@ const createComponentCard = async (component_id, room_id) => {
 const initComponentCardEvents = () => {
   document.addEventListener('click', (event) => {
     const component_card = event.target.closest('.js-component__container');
-    
+
     if (component_card) {
       const component_id = parseInt(component_card.dataset.component_id);
-      
-      if (INTERACTIVE_COMPONENT_IDS.includes(component_id)) {
+
+      if (LIGHT_COMPONENT_IDS.includes(component_id)) {
         event.preventDefault();
         event.stopPropagation();
-        
+
         if (component_card.classList.contains('c-light-disabled')) {
           return;
         }
-        
+
         const level_element = component_card.querySelector('.c-card__level');
         if (level_element) {
           const current_text = level_element.textContent.trim();
           let current_value = 0;
-          
+
           if (current_text.toLowerCase() === 'off') {
             current_value = 0;
           } else {
             current_value = parseInt(current_text.split(' ')[0]) || 0;
           }
-          
+
           const new_value = current_value > 0 ? 0 : 100;
-          
+
           addLoadingState(component_card);
-          
+
           toggleLight(component_id, new_value, component_card);
         }
       }
     }
   });
-  
+
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
       const component_card = event.target.closest('.js-component__container');
       if (component_card && component_card === document.activeElement) {
         const component_id = parseInt(component_card.dataset.component_id);
-        if (INTERACTIVE_COMPONENT_IDS.includes(component_id)) {
+        if (LIGHT_COMPONENT_IDS.includes(component_id)) {
           event.preventDefault();
           component_card.click();
         }
@@ -480,7 +416,7 @@ const initComponentCardEvents = () => {
 const addLoadingState = (card_element) => {
   card_element.classList.add('c-light-disabled');
   card_element.style.pointerEvents = 'none';
-  
+
   setTimeout(() => {
     removeLoadingState(card_element);
   }, 2000);
@@ -504,95 +440,45 @@ const toggleLight = (component_id, new_value, card_element) => {
       component_id: component_id,
       value: new_value,
       manual_override: true,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
-    
+
     console.log(`Toggling light ${component_id} to ${new_value}`);
-    
+
     if (!window.pendingLightToggles) {
       window.pendingLightToggles = new Map();
     }
     window.pendingLightToggles.set(component_id, card_element);
-    
   } catch (error) {
     console.error('Error toggling light:', error);
     removeLoadingState(card_element);
-    showLightToggleError(card_element, 'Failed to send command');
   }
 };
 
-const showLightToggleError = (card_element, message) => {
-  const error_element = document.createElement('div');
-  error_element.className = 'c-light-error';
-  error_element.textContent = message;
-  error_element.style.cssText = `
-    position: absolute;
-    top: -30px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #dc3545;
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    z-index: 1000;
-    animation: fadeInOut 3s ease-in-out;
-  `;
-  
-  card_element.style.position = 'relative';
-  card_element.appendChild(error_element);
-  
-  setTimeout(() => {
-    if (error_element.parentNode) {
-      error_element.parentNode.removeChild(error_element);
-    }
-  }, 3000);
-};
-
-const toggleServo = (component_id, action, card_element) => {
-  try {
-    socket_connection.emit('BF2_manual_door_control', {
-      component_id: component_id,
-      action: action,
-      manual_override: true,
-      timestamp: Date.now(),
-    });
-
-    console.log(`Toggling servo ${component_id} to ${action}`);
-
-    if (!window.pendingServoToggles) {
-      window.pendingServoToggles = new Map();
-    }
-    window.pendingServoToggles.set(component_id, card_element);
-  } catch (error) {
-    console.error('Error toggling servo:', error);
-    removeLoadingState(card_element);
-  }
-};
+const listenToLightControlFeedback = () => {
   socket_connection.on('B2F_light_control_success', (data) => {
     const component_id = data.component_id;
     const new_value = data.new_value;
-    
+
     if (window.pendingLightToggles && window.pendingLightToggles.has(component_id)) {
       const card_element = window.pendingLightToggles.get(component_id);
       removeLoadingState(card_element);
       addToggleAnimation(card_element);
       window.pendingLightToggles.delete(component_id);
-      
+
       console.log(`Light ${component_id} successfully toggled to ${new_value}`);
     }
   });
-  
+
   socket_connection.on('B2F_light_control_error', (data) => {
     const component_id = data.component_id;
     const error_message = data.error || 'Unknown error';
-    
+
     if (window.pendingLightToggles && window.pendingLightToggles.has(component_id)) {
       const card_element = window.pendingLightToggles.get(component_id);
       removeLoadingState(card_element);
-      showLightToggleError(card_element, error_message);
       window.pendingLightToggles.delete(component_id);
-      
+
       console.error(`Light ${component_id} toggle failed:`, error_message);
     }
   });
@@ -727,15 +613,7 @@ const showAllRoomsAndComponents = async () => {
         const component_log = logs_by_component_id[component.component_id];
 
         if (component_is_in_page === true && component_log) {
-          components_html += generateSmartComponentCardHtml(
-            component.component_id, 
-            component.component_name, 
-            component_log.value, 
-            component.value_unit, 
-            component_log.datetime, 
-            component_log.log_id, 
-            room.room_id
-          );
+          components_html += generateSmartComponentCardHtml(component.component_id, component.component_name, component_log.value, component.value_unit, component_log.datetime, component_log.log_id, room.room_id);
         }
       }
 
@@ -856,15 +734,15 @@ const showLastLog = (log_data) => {
 
   if (existing_log_container) {
     const level_element = existing_log_container.querySelector('.c-card__level');
-    
+
     if (LIGHT_COMPONENT_IDS.includes(parseInt(component_id))) {
       const is_on = parseInt(value) > 0;
       const brightness_text = is_on ? `${value} ${value_unit}` : 'Off';
-      
+
       if (level_element) {
         level_element.textContent = brightness_text;
       }
-      
+
       existing_log_container.setAttribute('aria-pressed', is_on.toString());
     } else {
       const capacity_element = existing_log_container.querySelector('.c-card__capacity');
@@ -881,21 +759,14 @@ const showLastLog = (log_data) => {
 
     existing_log_container.setAttribute('data-log_id', log_id);
   } else {
+    // Create new card
     const room_container = document.querySelector(`.js-room__container[data-room_id="${room_id}"]`);
     if (room_container) {
       const components_container = room_container.querySelector('.c-room__components');
       const dropdown_element = room_container.querySelector('.c-component-dropdown');
 
       if (components_container) {
-        const component_card_html = generateSmartComponentCardHtml(
-          component_id, 
-          component_name, 
-          value, 
-          value_unit, 
-          datetime, 
-          log_id, 
-          room_id
-        );
+        const component_card_html = generateSmartComponentCardHtml(component_id, component_name, value, value_unit, datetime, log_id, room_id);
 
         components_container.innerHTML += component_card_html;
 
@@ -1026,9 +897,9 @@ const listenToSocket = () => {
   socket_connection.on('B2F_new_log', (data) => {
     showLastLog(data);
   });
-  
+
+  // Add light control feedback listeners
   listenToLightControlFeedback();
-  listenToServoControlFeedback();
 };
 // #endregion
 
