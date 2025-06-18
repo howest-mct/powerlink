@@ -35,14 +35,14 @@ const TEMP_CONTROL_COMPONENT_IDS = [4];
 const SERVO_COMPONENT_IDS = [18];
 // #endregion
 
-// #region ***  Simplified HTML Generation Functions    ***********
+// #region ***  Enhanced HTML Generation Functions      ***********
 const generateServoComponentCardHtml = (component_id, component_name, value, value_unit, room_id, log_id) => {
   const icon_path = component_icons[component_id];
   const is_unlocked = parseInt(value) > 0;
   const servo_text = is_unlocked ? 'Unlocked' : 'Locked';
 
   return `
-    <article class="c-article c-hover--shadow c-light-card js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}">
+    <article class="c-article c-hover--shadow c-light-card js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}" role="button" tabindex="0" aria-label="Toggle ${component_name}" aria-pressed="${is_unlocked}">
       <div class="c-article__header">
         <a href="#" class="c-article__link">
           <img src="${icon_path}" alt="Servo icon" class="c-article__icon">
@@ -52,7 +52,7 @@ const generateServoComponentCardHtml = (component_id, component_name, value, val
       <div class="c-card">
         <h3 class="c-card__level">${servo_text}</h3>
         <div class="c-card__meta">
-          <button class="servo-toggle-btn" data-component="${component_id}">Toggle Lock</button>
+          <p class="c-card__status">Tap to toggle</p>
         </div>
       </div>
     </article>
@@ -69,7 +69,7 @@ const generateLightComponentCardHtml = (component_id, component_name, value, val
   }
 
   return `
-    <article class="c-article c-hover--shadow c-light-card js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}">
+    <article class="c-article c-hover--shadow c-light-card js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}" role="button" tabindex="0" aria-label="Toggle ${component_name}" aria-pressed="${is_on}">
       <div class="c-article__header">
         <a href="#" class="c-article__link">
           <img src="${icon_path}" alt="Light icon" class="c-article__icon">
@@ -79,7 +79,7 @@ const generateLightComponentCardHtml = (component_id, component_name, value, val
       <div class="c-card c-card--light">
         <h3 class="c-card__level">${brightness_text}</h3>
         <div class="c-card__meta c-card__meta--light">
-          <button class="light-toggle-btn" data-component="${component_id}">Toggle Light</button>
+          <p class="c-card__status c-card__status--toggle">Tap to toggle</p>
           ${schedule_text}
         </div>
       </div>
@@ -176,94 +176,7 @@ const generateDropdownOptionHtml = (component_id, component_name, room_id, is_ch
 };
 // #endregion
 
-// #region ***  Simplified Component Control Functions  ***********
-const initSimpleControlEvents = () => {
-  document.addEventListener('click', (event) => {
-    if (event.target.classList.contains('light-toggle-btn')) {
-      event.preventDefault();
-      const component_id = parseInt(event.target.dataset.component);
-      toggleLight(component_id);
-    }
-  });
-
-  document.addEventListener('click', (event) => {
-    if (event.target.classList.contains('servo-toggle-btn')) {
-      event.preventDefault();
-      const component_id = parseInt(event.target.dataset.component);
-      toggleServo(component_id);
-    }
-  });
-};
-
-const toggleLight = (component_id) => {
-  const light_card = document.querySelector(`[data-component_id="${component_id}"]`);
-  const level_element = light_card.querySelector('.c-card__level');
-  const current_text = level_element.textContent.trim();
-
-  let is_currently_on = false;
-  if (current_text.toLowerCase() !== 'off') {
-    is_currently_on = true;
-  }
-
-  const new_value = is_currently_on ? 0 : 100;
-
-  const new_text = new_value > 0 ? `${new_value} %` : 'Off';
-  level_element.textContent = new_text;
-
-  socket_connection.emit('BF2_manual_light_control', {
-    component_id: component_id,
-    value: new_value,
-    manual_override: true,
-    timestamp: Date.now(),
-  });
-
-  console.log(`Light ${component_id} toggled to ${new_value}`);
-};
-
-const toggleServo = (component_id) => {
-  const servo_card = document.querySelector(`[data-component_id="${component_id}"]`);
-  const level_element = servo_card.querySelector('.c-card__level');
-  const current_text = level_element.textContent.trim();
-
-  const is_currently_unlocked = current_text.toLowerCase() === 'unlocked';
-
-  const action = is_currently_unlocked ? 'lock' : 'unlock';
-
-  const new_text = is_currently_unlocked ? 'Locked' : 'Unlocked';
-  level_element.textContent = new_text;
-
-  socket_connection.emit('BF2_manual_door_control', {
-    component_id: component_id,
-    action: action,
-    manual_override: true,
-    timestamp: Date.now(),
-  });
-
-  console.log(`Servo ${component_id} ${action}ed`);
-};
-
-const listenToSimpleSocketEvents = () => {
-  socket_connection.on('B2F_light_control_success', (data) => {
-    console.log(`Light ${data.component_id} successfully changed to ${data.new_value}`);
-  });
-
-  socket_connection.on('B2F_light_control_error', (data) => {
-    console.log(`Light ${data.component_id} control failed: ${data.error}`);
-    alert('Light control failed. Please try again.');
-  });
-
-  socket_connection.on('B2F_door_control_success', (data) => {
-    console.log(`Door ${data.component_id} successfully ${data.action}ed`);
-  });
-
-  socket_connection.on('B2F_door_control_error', (data) => {
-    console.log(`Door ${data.component_id} control failed: ${data.error}`);
-    alert('Door control failed. Please try again.');
-  });
-};
-// #endregion
-
-// #region ***  Dropdown Functions (kept from original) ***********
+// #region ***  Dropdown Functions                      ***********
 const createComponentDropdown = (room_id, all_components, components_in_current_page) => {
   let dropdown_options_html = `<div class="c-dropdown-option c-check-all-option" data-room="${room_id}">Check All</div>`;
 
@@ -479,7 +392,214 @@ const createComponentCard = async (component_id, room_id) => {
 };
 // #endregion
 
-// #region ***  Display Functions (kept from original)  ***********
+// #region ***  Component Control Functions             ***********
+const initComponentCardEvents = () => {
+  document.addEventListener('click', (event) => {
+    const component_card = event.target.closest('.js-component__container');
+
+    if (component_card) {
+      const component_id = parseInt(component_card.dataset.component_id);
+
+      if (LIGHT_COMPONENT_IDS.includes(component_id)) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (component_card.classList.contains('c-light-disabled')) {
+          return;
+        }
+
+        const level_element = component_card.querySelector('.c-card__level');
+        if (level_element) {
+          const current_text = level_element.textContent.trim();
+          let current_value = 0;
+
+          if (current_text.toLowerCase() === 'off') {
+            current_value = 0;
+          } else {
+            current_value = parseInt(current_text.split(' ')[0]) || 0;
+          }
+
+          const new_value = current_value > 0 ? 0 : 100;
+          addLoadingState(component_card);
+          toggleLight(component_id, new_value, component_card);
+        }
+      }
+
+      if (SERVO_COMPONENT_IDS.includes(component_id)) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (component_card.classList.contains('c-servo-disabled')) {
+          return;
+        }
+
+        const level_element = component_card.querySelector('.c-card__level');
+        if (level_element) {
+          const current_text = level_element.textContent.trim();
+          const is_unlocked = current_text.toLowerCase() === 'unlocked';
+          const action = is_unlocked ? 'lock' : 'unlock';
+
+          addServoLoadingState(component_card);
+          toggleDoorLock(component_id, action, component_card);
+        }
+      }
+    }
+  });
+};
+
+const addLoadingState = (card_element) => {
+  card_element.classList.add('c-light-disabled');
+  card_element.style.pointerEvents = 'none';
+
+  setTimeout(() => {
+    removeLoadingState(card_element);
+  }, 2000);
+};
+
+const removeLoadingState = (card_element) => {
+  card_element.classList.remove('c-light-disabled');
+  card_element.style.pointerEvents = '';
+};
+
+const addToggleAnimation = (card_element) => {
+  card_element.classList.add('toggling');
+  setTimeout(() => {
+    card_element.classList.remove('toggling');
+  }, 300);
+};
+
+const addServoLoadingState = (card_element) => {
+  card_element.classList.add('c-servo-disabled');
+  card_element.style.pointerEvents = 'none';
+
+  setTimeout(() => {
+    removeServoLoadingState(card_element);
+  }, 3000);
+};
+
+const removeServoLoadingState = (card_element) => {
+  card_element.classList.remove('c-servo-disabled');
+  card_element.style.pointerEvents = '';
+};
+
+const addServoToggleAnimation = (card_element) => {
+  card_element.classList.add('servo-toggling');
+  setTimeout(() => {
+    card_element.classList.remove('servo-toggling');
+  }, 500);
+};
+
+const toggleLight = (component_id, new_value, card_element) => {
+  try {
+    socket_connection.emit('BF2_manual_light_control', {
+      component_id: component_id,
+      value: new_value,
+      manual_override: true,
+      timestamp: Date.now(),
+    });
+
+    console.log(`Toggling light ${component_id} to ${new_value}`);
+
+    if (!window.pendingLightToggles) {
+      window.pendingLightToggles = new Map();
+    }
+    window.pendingLightToggles.set(component_id, card_element);
+  } catch (error) {
+    console.error('Error toggling light:', error);
+    removeLoadingState(card_element);
+  }
+};
+
+const toggleDoorLock = (component_id, action, card_element) => {
+  try {
+    socket_connection.emit('BF2_manual_door_control', {
+      component_id: component_id,
+      action: action,
+      manual_override: true,
+      timestamp: Date.now(),
+    });
+
+    console.log(`Toggling door lock ${component_id} to ${action}`);
+
+    if (!window.pendingServoToggles) {
+      window.pendingServoToggles = new Map();
+    }
+    window.pendingServoToggles.set(component_id, card_element);
+  } catch (error) {
+    console.error('Error toggling door lock:', error);
+    removeServoLoadingState(card_element);
+  }
+};
+
+const listenToLightControlFeedback = () => {
+  socket_connection.on('B2F_light_control_success', (data) => {
+    const component_id = data.component_id;
+    const new_value = data.new_value;
+
+    if (window.pendingLightToggles && window.pendingLightToggles.has(component_id)) {
+      const card_element = window.pendingLightToggles.get(component_id);
+      removeLoadingState(card_element);
+      addToggleAnimation(card_element);
+      window.pendingLightToggles.delete(component_id);
+
+      console.log(`Light ${component_id} successfully toggled to ${new_value}`);
+    }
+  });
+
+  socket_connection.on('B2F_light_control_error', (data) => {
+    const component_id = data.component_id;
+    const error_message = data.error || 'Unknown error';
+
+    if (window.pendingLightToggles && window.pendingLightToggles.has(component_id)) {
+      const card_element = window.pendingLightToggles.get(component_id);
+      removeLoadingState(card_element);
+      window.pendingLightToggles.delete(component_id);
+
+      console.error(`Light ${component_id} toggle failed:`, error_message);
+    }
+  });
+};
+
+const listenToDoorControlFeedback = () => {
+  socket_connection.on('B2F_door_control_success', (data) => {
+    const component_id = data.component_id;
+    const action = data.action;
+    const new_state = data.new_state;
+
+    if (window.pendingServoToggles && window.pendingServoToggles.has(component_id)) {
+      const card_element = window.pendingServoToggles.get(component_id);
+      removeServoLoadingState(card_element);
+      addServoToggleAnimation(card_element);
+      window.pendingServoToggles.delete(component_id);
+
+      const level_element = card_element.querySelector('.c-card__level');
+      if (level_element) {
+        level_element.textContent = new_state > 0 ? 'Unlocked' : 'Locked';
+      }
+
+      card_element.setAttribute('aria-pressed', (new_state > 0).toString());
+
+      console.log(`Door lock ${component_id} successfully ${action}ed`);
+    }
+  });
+
+  socket_connection.on('B2F_door_control_error', (data) => {
+    const component_id = data.component_id;
+    const error_message = data.error || 'Unknown error';
+
+    if (window.pendingServoToggles && window.pendingServoToggles.has(component_id)) {
+      const card_element = window.pendingServoToggles.get(component_id);
+      removeServoLoadingState(card_element);
+      window.pendingServoToggles.delete(component_id);
+
+      console.error(`Door lock ${component_id} toggle failed:`, error_message);
+      alert(`Failed to control door lock: ${error_message}`);
+    }
+  });
+};
+// #endregion
+
+// #region ***  Callback-Visualisation - show___         ***********
 const showDropdown = () => {
   const hamburger_button = document.querySelector('.c-hamburger');
   const navigation_popup = document.querySelector('.c-nav-popup');
@@ -650,6 +770,70 @@ const updateAllDropdownLabels = () => {
   }
 };
 
+const showAllLastLogs = (json_data) => {
+  let rooms_html = '';
+  const main_container = document.querySelector('.js-main');
+
+  const room_components = {};
+  for (let i = 0; i < json_data.length; i++) {
+    const schedule_item = json_data[i];
+    const room_id = schedule_item.room_id;
+    if (!room_components[room_id]) {
+      room_components[room_id] = [];
+    }
+    room_components[room_id].push(schedule_item);
+  }
+
+  let room_display_number = 0;
+
+  const room_ids = [];
+  for (let room_id in room_components) {
+    room_ids.push(room_id);
+  }
+
+  for (let i = 0; i < room_ids.length; i++) {
+    const room_id = room_ids[i];
+    const room_data = room_components[room_id];
+    const room_name = room_data[0].room_name;
+
+    let components_html = '';
+
+    for (let j = 0; j < room_data.length; j++) {
+      const item = room_data[j];
+      components_html += generateSmartComponentCardHtml(item.component_id, item.component_name, item.value, item.value_unit, item.datetime, item.log_id, item.room_id);
+    }
+
+    const dropdown_html = createComponentDropdown(room_id, room_data, []);
+
+    rooms_html += generateRoomContainerHtml(room_id, room_name, room_display_number, components_html, dropdown_html);
+
+    room_display_number++;
+  }
+
+  main_container.innerHTML = rooms_html;
+
+  const all_room_containers = document.querySelectorAll('.js-room__container');
+  for (let i = 0; i < all_room_containers.length; i++) {
+    const room_container = all_room_containers[i];
+    const room_number = parseInt(room_container.dataset.room_number);
+    const component_containers = room_container.querySelectorAll('.js-component__container');
+
+    if (room_number % 2 === 0) {
+      room_container.classList.add('c-grey-background');
+      for (let j = 0; j < component_containers.length; j++) {
+        component_containers[j].classList.add('c-white-background');
+      }
+    } else {
+      room_container.classList.add('c-white-background');
+      for (let j = 0; j < component_containers.length; j++) {
+        component_containers[j].classList.add('c-grey-background');
+      }
+    }
+  }
+
+  initDropdownEvents();
+};
+
 const showLastLog = (log_data) => {
   const component_id = log_data.component_id;
   const room_id = log_data.room_id;
@@ -671,6 +855,8 @@ const showLastLog = (log_data) => {
       if (level_element) {
         level_element.textContent = brightness_text;
       }
+
+      existing_log_container.setAttribute('aria-pressed', is_on.toString());
     } else if (SERVO_COMPONENT_IDS.includes(parseInt(component_id))) {
       const is_unlocked = parseInt(value) > 0;
       const servo_text = is_unlocked ? 'Unlocked' : 'Locked';
@@ -678,6 +864,8 @@ const showLastLog = (log_data) => {
       if (level_element) {
         level_element.textContent = servo_text;
       }
+
+      existing_log_container.setAttribute('aria-pressed', is_unlocked.toString());
     } else {
       const capacity_element = existing_log_container.querySelector('.c-card__capacity');
       const formatted_date = new Date(datetime);
@@ -727,7 +915,7 @@ const showLastLog = (log_data) => {
 };
 // #endregion
 
-// #region ***  Helper Functions                        ***********
+// #region ***  Callback-No Visualisation - callback___  ***********
 const formatDateTime = (iso_string) => {
   const date_object = new Date(iso_string);
   return date_object.toLocaleDateString('en-GB', {
@@ -739,7 +927,7 @@ const formatDateTime = (iso_string) => {
 };
 // #endregion
 
-// #region ***  Data Access Functions                   ***********
+// #region ***  Data Access - get___                     ***********
 const getLastComponentLogs = async () => {
   const url_parameters = new URLSearchParams(window.location.search);
   const page_url_param = parseInt(url_parameters.get('page'));
@@ -813,7 +1001,7 @@ const updateComponentInPage = async (component_id, is_component_selected) => {
 };
 // #endregion
 
-// #region ***  Socket Event Listeners                  ***********
+// #region ***  Event Listeners - listenTo___            ***********
 const listenToSocket = () => {
   socket_connection.on('connect', () => {
     console.log('Socket connected');
@@ -831,17 +1019,18 @@ const listenToSocket = () => {
     showLastLog(data);
   });
 
-  listenToSimpleSocketEvents();
+  listenToLightControlFeedback();
+  listenToDoorControlFeedback();
 };
 // #endregion
 
-// #region ***  Initialize Application                  ***********
+// #region ***  Init / DOMContentLoaded                  ***********
 const init = () => {
   console.log('DOM loaded');
   showDropdown();
   showAllRoomsAndComponents();
   listenToSocket();
-  initSimpleControlEvents();
+  initComponentCardEvents();
 };
 
 document.addEventListener('DOMContentLoaded', init);

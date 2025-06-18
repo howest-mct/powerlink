@@ -418,6 +418,14 @@ a {
     font-size: 1rem;
     line-height: 1.5rem;
 }
+.c-card__status--toggle{
+    font-size: 1rem;
+    line-height: 1.5rem;
+    display: flex;
+    padding: 0.5rem;
+    color: var(--text_main-color);
+    background-color: var(--main_light_color);
+}
 
 .c-card__capacity {
     font-size: 0.875rem;
