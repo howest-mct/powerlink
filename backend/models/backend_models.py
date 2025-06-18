@@ -101,6 +101,29 @@ class LastEntered(P1BaseModel):
     first_name: str
 
 
+class Inhabitant(P1BaseModel):
+    inhabitant_id: int
+    first_name: str
+    last_name: str
+    card_id: str
+
+
+class DTOInhabitant(P1BaseModel):
+    first_name: str
+    last_name: str
+    card_id: str
+
+
+class PasswordVerificationRequest(BaseModel):
+    password: str
+    component_id: str
+
+
+class PasswordVerificationResponse(BaseModel):
+    valid: bool
+    message: str
+
+
 # endregion Models ********************************
 
 

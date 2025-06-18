@@ -37,15 +37,14 @@ const USAGE_IDS = [1, 2];
 
 // Global variables to store energy data
 let energy_data = {
-  1: 0, // Component ID 1 energy
-  2: 0, // Component ID 2 energy
+  1: 0,
+  2: 0,
 };
 // #endregion
 
 // #region ***  Energy Data Functions                   ***********
 const load_energy_data = async () => {
   try {
-    // Fetch energy data for both usage components
     const energy_promises = USAGE_IDS.map(async (component_id) => {
       try {
         const energy_value = await get_energy_24h(component_id);
@@ -58,7 +57,6 @@ const load_energy_data = async () => {
 
     const energy_results = await Promise.all(energy_promises);
 
-    // Store results in global variable
     energy_results.forEach(({ component_id, energy_value }) => {
       energy_data[component_id] = energy_value;
     });
@@ -226,7 +224,6 @@ const generate_power_switch_html = (component_id, component_name, datetime, log_
 
 const generate_usage_card_html = (component_id, component_name, value, value_unit, log_id, room_id) => {
   const icon_path = component_icons[component_id];
-  // Use the pre-loaded global energy data
   const today_value = energy_data[component_id] || 0;
   const color_class = get_energy_color_class(today_value);
 
@@ -660,7 +657,7 @@ const toggle_light = (component_id, new_value, card_element) => {
   }
 };
 
-const handle_powerlink_toggle = (event, component_card, component_id) => {
+const handle_powerlink_toggle = async (event, component_card, component_id) => {
   event.preventDefault();
   event.stopPropagation();
 
@@ -668,11 +665,33 @@ const handle_powerlink_toggle = (event, component_card, component_id) => {
     return;
   }
 
-  const user_confirmed = confirm('Are you sure you want to turn off PowerLink?');
+  const entered_password = prompt('Enter password to turn off PowerLink:');
 
-  if (user_confirmed) {
-    add_powerlink_loading_state(component_card);
-    toggle_powerlink(component_id, 'off', component_card);
+  if (entered_password === null) return;
+
+  try {
+    const response = await fetch(api_endpoint + `/verify-powerlink-password/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        password: entered_password,
+        component_id: component_id,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.valid) {
+      add_powerlink_loading_state(component_card);
+      toggle_powerlink(component_id, 'off', component_card);
+    } else {
+      alert('Incorrect password.');
+    }
+  } catch (error) {
+    console.error('Password verification failed:', error);
+    alert('Unable to verify password. Please try again.');
   }
 };
 
@@ -829,7 +848,6 @@ const show_all_rooms_and_components = async () => {
       const room = all_rooms[room_index];
       const room_components = components_grouped_by_room[room.room_id] || [];
 
-      // Use Promise.all to handle multiple async calls efficiently
       const component_html_promises = room_components
         .filter((component) => {
           const component_is_in_page = page_component_ids.includes(component.component_id);
@@ -907,7 +925,6 @@ const show_all_last_logs = async (json_data) => {
     const room_data = room_components[room_id];
     const room_name = room_data[0].room_name;
 
-    // Use Promise.all to handle multiple async calls efficiently
     const component_html_promises = room_data.map(async (item) => {
       return await generate_smart_component_card_html(item.component_id, item.component_name, item.value, item.value_unit, item.datetime, item.log_id, item.room_id);
     });
@@ -972,7 +989,6 @@ const update_existing_component = async (container, component_id, value, value_u
     }
     container.setAttribute('aria-pressed', is_active.toString());
   } else if (USAGE_IDS.includes(parseInt(component_id))) {
-    // For usage components, update energy data and refresh the display
     try {
       const new_energy_value = await get_energy_24h(component_id);
       energy_data[component_id] = new_energy_value;
@@ -989,7 +1005,6 @@ const update_existing_component = async (container, component_id, value, value_u
       }
     } catch (error) {
       console.error('Error updating energy data:', error);
-      // Fallback to current stored value
       const capacity_element = container.querySelector('.c-card__capacity');
       const today_value = energy_data[component_id] || 0;
       const color_class = get_energy_color_class(today_value);

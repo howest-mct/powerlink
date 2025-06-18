@@ -64,7 +64,6 @@
     color: var(--white-color);
     border: none;
     font-size: 1rem;
-    font-weight: 500;
     cursor: pointer;
     margin-top: 0.5rem;
 }
@@ -73,10 +72,11 @@
     background-color: var(--white-color);
     box-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.1);
     overflow: hidden;
+    overflow-x: auto;
 }
 
 .c-table__header {
-    padding: 1rem 2rem 1rem 2rem;
+    padding: 1rem;
     border-bottom: 0.0625rem solid var(--border-color);
 }
 
@@ -89,10 +89,11 @@
 .c-table {
     width: 100%;
     border-collapse: collapse;
+    min-width: 30rem;
 }
 
 .c-table__header-cell {
-    padding: 1rem 2rem;
+    padding: 0.75rem 1rem;
     text-align: left;
     font-size: 0.875rem;
     color: var(--text_main-color);
@@ -100,21 +101,21 @@
 }
 
 .c-table__cell {
-    padding: 1rem 2rem;
+    padding: 0.75rem 1rem;
     border-bottom: 0.0625rem solid var(--border-color);
     color: var(--text_main-color);
     font-size: 0.875rem;
 }
 
 .c-table__cell--actions {
-    text-align: right;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .c-table__button {
     padding: 0.375rem 0.75rem;
     font-size: 0.875rem;
-    border: none;
-    cursor: pointer;
     margin-left: 0.5rem;
 }
 
@@ -150,7 +151,7 @@
     font-size: 0.875rem;
 }
 
-.c-white-background{
+.c-white-background {
     background-color: var(--white-color);
 }
 
@@ -189,26 +190,19 @@
         font-family: "Manrope", sans-serif;
         font-size: 1.125rem;
         line-height: 1.5rem;
-        font-weight: 500;   }
-}
+        font-weight: 500;
+    }
 
-@media (max-width: 48rem) {
     .c-table__container {
-        overflow-x: auto;
+        overflow-x: visible;
     }
 
     .c-table {
-        min-width: 30rem;
+        min-width: auto;
     }
 
     .c-table__header-cell,
     .c-table__cell {
-        padding: 0.75rem 1rem;
-    }
-
-    .c-table__button {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-        margin-left: 0.25rem;
+        padding: 1rem 2rem;
     }
 }

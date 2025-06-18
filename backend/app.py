@@ -29,6 +29,10 @@ from models.backend_models import (
     LogAmount,
     LogCountHistory,
     LastEntered,
+    DTOInhabitant,
+    Inhabitant,
+    PasswordVerificationRequest,
+    PasswordVerificationResponse,
 )
 
 from models.device_models import (
@@ -177,6 +181,7 @@ battery_efficiency = 0.85
 total_energy_in = 0.0
 total_energy_out = 0.0
 last_time = None
+powerlink_password = "powerlink"
 
 try:
     all_schedules = DataRepository.read_all_schedules()
@@ -1170,13 +1175,52 @@ async def update_schedule(id: str, schedule: DTOSchedule):
     response_description="The inhabitant with the specified ID",
     tags=["inhabitants"],
 )
-async def get_inhabitant_by_id(card_id: str):
+async def get_inhabitant_by_id_card(card_id: str):
     data = DataRepository.read_inhabitant_by_card_id(card_id)
     if data is None:
         raise HTTPException(
             status_code=404, detail=f"inhabitant with ID {card_id} not found"
         )
     return data
+
+
+@app.get(ENDPOINT + "/inhabitants/")
+async def get_all_inhabitants():
+    data = DataRepository.read_all_inhabitants()
+    return data if data else []
+
+
+@app.get(ENDPOINT + "/inhabitants/{inhabitant_id}/")
+async def get_inhabitant_by_id(inhabitant_id: int):
+    data = DataRepository.read_inhabitant_by_id(inhabitant_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Inhabitant not found")
+    return data
+
+
+@app.post(ENDPOINT + "/inhabitants/")
+async def create_inhabitant(inhabitant_data: DTOInhabitant):
+    inhabitant_id = DataRepository.create_inhabitant(
+        inhabitant_data.first_name, inhabitant_data.last_name, inhabitant_data.card_id
+    )
+    return DataRepository.read_inhabitant_by_id(inhabitant_id)
+
+
+@app.put(ENDPOINT + "/inhabitants/{inhabitant_id}/")
+async def update_inhabitant(inhabitant_id: int, inhabitant_data: DTOInhabitant):
+    DataRepository.update_inhabitant(
+        inhabitant_id,
+        inhabitant_data.first_name,
+        inhabitant_data.last_name,
+        inhabitant_data.card_id,
+    )
+    return DataRepository.read_inhabitant_by_id(inhabitant_id)
+
+
+@app.delete(ENDPOINT + "/inhabitants/{inhabitant_id}/")
+async def delete_inhabitant(inhabitant_id: int):
+    DataRepository.delete_inhabitant(inhabitant_id)
+    return {"message": "Inhabitant deleted"}
 
 
 @app.get(
@@ -1338,6 +1382,21 @@ async def get_energy_log_24h(component_id: int):
 async def get_last_entered_by_card_id(card_id: str):
     data = DataRepository.read_last_entered(card_id)
     return data
+
+
+@app.post(
+    ENDPOINT + "/verify-powerlink-password/",
+    response_model=PasswordVerificationResponse,
+    summary="Verify PowerLink password",
+    response_description="Result of the password verification",
+    tags=["powerlink"],
+)
+async def verify_powerlink_password(password: PasswordVerificationRequest):
+    print(password)
+    if password.password == powerlink_password:
+        return {"valid": True, "message": "Password verified."}
+    else:
+        raise HTTPException(status_code=401, detail="Incorrect password")
 
 
 @app.get(

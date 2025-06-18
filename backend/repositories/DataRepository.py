@@ -127,6 +127,17 @@ class DataRepository:
         return Database.get_one_row(sql, params)
 
     @staticmethod
+    def read_all_inhabitants():
+        sql = "SELECT * FROM inhabitants ORDER BY first_name"
+        return Database.get_rows(sql)
+
+    @staticmethod
+    def read_inhabitant_by_id(inhabitant_id):
+        sql = "SELECT * FROM inhabitants WHERE inhabitant_id = %s"
+        params = [inhabitant_id]
+        return Database.get_one_row(sql, params)
+
+    @staticmethod
     def read_energy_24h(component_id):
         sql = """
             WITH ordered_logs AS (
@@ -566,4 +577,22 @@ class DataRepository:
     def update_inverse_schedule(schedule_id, start_time, end_time, enabled):
         sql = "UPDATE schedules SET start_time = %s, end_time = %s, enabled = %s WHERE schedule_id = %s"
         params = [start_time, end_time, enabled, schedule_id]
+        return Database.execute_sql(sql, params)
+
+    @staticmethod
+    def create_inhabitant(first_name, last_name, card_id):
+        sql = "INSERT INTO inhabitants (first_name, last_name, card_id) VALUES (%s, %s, %s)"
+        params = [first_name, last_name, card_id]
+        return Database.execute_sql(sql, params)
+
+    @staticmethod
+    def update_inhabitant(inhabitant_id, first_name, last_name, card_id):
+        sql = "UPDATE inhabitants SET first_name = %s, last_name = %s, card_id = %s WHERE inhabitant_id = %s"
+        params = [first_name, last_name, card_id, inhabitant_id]
+        return Database.execute_sql(sql, params)
+
+    @staticmethod
+    def delete_inhabitant(inhabitant_id):
+        sql = "DELETE FROM inhabitants WHERE inhabitant_id = %s"
+        params = [inhabitant_id]
         return Database.execute_sql(sql, params)
