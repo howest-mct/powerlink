@@ -8,7 +8,6 @@ import time
 import re
 import subprocess
 from datetime import datetime
-import threading
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
@@ -1311,13 +1310,6 @@ async def manual_door_control_handler(sid, data):
             await sio.emit(
                 "B2F_door_control_error",
                 {"error": "Door lock not available", "component_id": component_id},
-            )
-            return
-
-        if component_id != servo_lock_id:
-            await sio.emit(
-                "B2F_door_control_error",
-                {"error": "Invalid component ID", "component_id": component_id},
             )
             return
 

@@ -560,19 +560,25 @@ a {
 }
 
 .c-light-disabled {
-    background-color: #f5f5f5 !important;
+    background-color: #f5f5f5;
     opacity: 0.7;
-    cursor: not-allowed !important;
+    cursor: not-allowed;
     transition: all 0.2s ease;
 }
 
 .c-grey-background .c-light-disabled {
-    background-color: #e8e8e8 !important;
+    background-color: #e8e8e8;
 }
 
 .c-white-background .c-light-disabled {
-    background-color: #f5f5f5 !important;
+    background-color: #f5f5f5;
 }
+
+.c-card--blue{
+    font-size: .75rem;
+}
+
+
 
 @media (min-width: 30rem) {
     .c-room__components {
@@ -651,4 +657,19 @@ a {
         grid-template-columns: repeat(2, 1fr);
         gap: 16rem;
     }
+}
+
+.c-card__meta--light {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.c-card--light{
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    flex: 1;
+    width: 100%;
 }
