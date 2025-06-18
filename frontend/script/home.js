@@ -175,9 +175,9 @@ const generate_power_switch_html = (component_id, component_name, datetime, log_
   `;
 };
 
-const generate_usage_card_html = (component_id, component_name, value, value_unit, log_id, room_id) => {
+const generate_usage_card_html = async (component_id, component_name, value, value_unit, log_id, room_id) => {
   const icon_path = component_icons[component_id];
-  const today_value = get_energy_24h_value(component_id);
+  const today_value = await get_energy_24h(component_id);
 
   let color_class = '';
   if (today_value > 7) {
@@ -234,19 +234,19 @@ const generate_temp_control_component_card_html = (component_id, component_name,
   `;
 };
 
-const generate_smart_component_card_html = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
+const generate_smart_component_card_html = async (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
   if (USAGE_IDS.includes(parseInt(component_id))) {
-    return generate_usage_card_html(component_id, component_name, value, value_unit, datetime, log_id, room_id);
+    return await generate_usage_card_html(component_id, component_name, value, value_unit, log_id, room_id);
   } else if (LIGHT_COMPONENT_IDS.includes(parseInt(component_id))) {
-    return generate_light_component_card_html(component_id, component_name, value, value_unit, room_id, log_id);
+    return generate_light_component_card_html(component_id, component_name, value, room_id, log_id);
   } else if (component_id === 4) {
-    return generate_temp_control_component_card_html(component_id, component_name, value, value_unit, datetime, log_id, room_id);
+    return generate_temp_control_component_card_html(component_id, component_name, value, value_unit, log_id, room_id);
   } else if (component_id === 18) {
-    return generate_servo_component_card_html(component_id, component_name, value, value_unit, room_id, log_id);
+    return generate_servo_component_card_html(component_id, component_name, value, room_id, log_id);
   } else if (component_id === 16) {
-    return generate_rfid_card_html(component_id, component_name, value, value_unit, datetime, log_id, room_id);
+    return await generate_rfid_card_html(component_id, component_name, value, log_id, room_id);
   } else if (component_id === 21) {
-    return generate_power_switch_html(component_id, component_name, value, value_unit, datetime, log_id, room_id);
+    return generate_power_switch_html(component_id, component_name, datetime, log_id, room_id);
   } else {
     return generate_regular_component_card_html(component_id, component_name, value, value_unit, datetime, log_id, room_id);
   }
@@ -461,7 +461,7 @@ const create_component_card = async (component_id, room_id) => {
       return;
     }
 
-    const component_card_html = generate_smart_component_card_html(component_id, component_details.component_name, component_log.value, component_details.value_unit, component_log.datetime, component_log.log_id, room_id);
+    const component_card_html = await generate_smart_component_card_html(component_id, component_details.component_name, component_log.value, component_details.value_unit, component_log.datetime, component_log.log_id, room_id);
 
     const room_container = document.querySelector(`.js-room__container[data-room_id="${room_id}"]`);
     if (room_container) {
@@ -793,16 +793,19 @@ const show_all_rooms_and_components = async () => {
       const room = all_rooms[room_index];
       const room_components = components_grouped_by_room[room.room_id] || [];
 
-      let components_html = '';
+      const component_html_promises = room_components
+        .filter((component) => {
+          const component_is_in_page = page_component_ids.includes(component.component_id);
+          const component_log = logs_by_component_id[component.component_id];
+          return component_is_in_page && component_log;
+        })
+        .map(async (component) => {
+          const component_log = logs_by_component_id[component.component_id];
+          return await generate_smart_component_card_html(component.component_id, component.component_name, component_log.value, component.value_unit, component_log.datetime, component_log.log_id, room.room_id);
+        });
 
-      room_components.forEach((component) => {
-        const component_is_in_page = page_component_ids.includes(component.component_id);
-        const component_log = logs_by_component_id[component.component_id];
-
-        if (component_is_in_page && component_log) {
-          components_html += generate_smart_component_card_html(component.component_id, component.component_name, component_log.value, component.value_unit, component_log.datetime, component_log.log_id, room.room_id);
-        }
-      });
+      const component_html_array = await Promise.all(component_html_promises);
+      const components_html = component_html_array.join('');
 
       const dropdown_html = create_component_dropdown(room.room_id, room_components, components_in_page);
       rooms_html += generate_room_container_html(room.room_id, room.room_name, room_index, components_html, dropdown_html);
@@ -848,7 +851,7 @@ const update_all_dropdown_labels = () => {
   });
 };
 
-const show_all_last_logs = (json_data) => {
+const show_all_last_logs = async (json_data) => {
   let rooms_html = '';
   const main_container = document.querySelector('.js-main');
 
@@ -863,27 +866,29 @@ const show_all_last_logs = (json_data) => {
 
   let room_display_number = 0;
 
-  Object.keys(room_components).forEach((room_id) => {
+  for (const room_id of Object.keys(room_components)) {
     const room_data = room_components[room_id];
     const room_name = room_data[0].room_name;
 
-    let components_html = '';
-    room_data.forEach((item) => {
-      components_html += generate_smart_component_card_html(item.component_id, item.component_name, item.value, item.value_unit, item.datetime, item.log_id, item.room_id);
+    const component_html_promises = room_data.map(async (item) => {
+      return await generate_smart_component_card_html(item.component_id, item.component_name, item.value, item.value_unit, item.datetime, item.log_id, item.room_id);
     });
+
+    const component_html_array = await Promise.all(component_html_promises);
+    const components_html = component_html_array.join('');
 
     const dropdown_html = create_component_dropdown(room_id, room_data, []);
     rooms_html += generate_room_container_html(room_id, room_name, room_display_number, components_html, dropdown_html);
 
     room_display_number++;
-  });
+  }
 
   main_container.innerHTML = rooms_html;
   apply_room_background_colors();
   init_dropdown_events();
 };
 
-const show_last_log = (log_data) => {
+const show_last_log = async (log_data) => {
   const component_id = log_data.component_id;
   const room_id = log_data.room_id;
   const value = log_data.value;
@@ -895,13 +900,13 @@ const show_last_log = (log_data) => {
   const existing_log_container = document.querySelector(`.js-component__container[data-component_id="${component_id}"]`);
 
   if (existing_log_container) {
-    update_existing_component(existing_log_container, component_id, value, value_unit, datetime, log_id);
+    await update_existing_component(existing_log_container, component_id, value, value_unit, datetime, log_id);
   } else {
-    create_new_component_in_room(component_id, component_name, value, value_unit, datetime, log_id, room_id);
+    await create_new_component_in_room(component_id, component_name, value, value_unit, datetime, log_id, room_id);
   }
 };
 
-const update_existing_component = (container, component_id, value, value_unit, datetime, log_id) => {
+const update_existing_component = async (container, component_id, value, value_unit, datetime, log_id) => {
   const level_element = container.querySelector('.c-card__level');
 
   if (LIGHT_COMPONENT_IDS.includes(parseInt(component_id))) {
@@ -928,6 +933,26 @@ const update_existing_component = (container, component_id, value, value_unit, d
       level_element.textContent = powerlink_text;
     }
     container.setAttribute('aria-pressed', is_active.toString());
+  } else if (USAGE_IDS.includes(parseInt(component_id))) {
+    const capacity_element = container.querySelector('.c-card__capacity');
+    const today_value = await get_energy_24h(component_id);
+
+    let color_class = '';
+    if (today_value > 7) {
+      color_class = 'c-card--red';
+    } else if (today_value > 3) {
+      color_class = 'c-card--mainblue';
+    } else {
+      color_class = 'c-card--green';
+    }
+
+    if (level_element) {
+      level_element.textContent = `${value} ${value_unit}`;
+    }
+    if (capacity_element) {
+      capacity_element.className = `c-card__capacity ${color_class}`;
+      capacity_element.textContent = `${today_value} Wh`;
+    }
   } else {
     const capacity_element = container.querySelector('.c-card__capacity');
     const formatted_date = new Date(datetime);
@@ -943,7 +968,7 @@ const update_existing_component = (container, component_id, value, value_unit, d
   container.setAttribute('data-log_id', log_id);
 };
 
-const create_new_component_in_room = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
+const create_new_component_in_room = async (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
   const room_container = document.querySelector(`.js-room__container[data-room_id="${room_id}"]`);
   if (!room_container) return;
 
@@ -951,7 +976,7 @@ const create_new_component_in_room = (component_id, component_name, value, value
   const dropdown_element = room_container.querySelector('.c-component-dropdown');
 
   if (components_container) {
-    const component_card_html = generate_smart_component_card_html(component_id, component_name, value, value_unit, datetime, log_id, room_id);
+    const component_card_html = await generate_smart_component_card_html(component_id, component_name, value, value_unit, datetime, log_id, room_id);
 
     components_container.insertAdjacentHTML('beforeend', component_card_html);
 
@@ -1082,18 +1107,28 @@ const update_component_in_page = async (component_id, is_component_selected) => 
 };
 
 const get_inhabitant_name_by_card_id = async (card_id) => {
-  const request_url = api_endpoint + `/entered/${card_id}/last/`;
-  const server_response = await fetch(request_url);
-  const json_data = await server_response.json();
-  console.log('Inhabitant name by card ID:', json_data);
-  return json_data;
+  try {
+    const request_url = api_endpoint + `/entered/${card_id}/last/`;
+    const server_response = await fetch(request_url);
+    const json_data = await server_response.json();
+    console.log('Inhabitant name by card ID:', json_data);
+    return json_data;
+  } catch (error) {
+    console.error('Error fetching inhabitant name:', error);
+    return 'Unknown';
+  }
 };
 
 const get_energy_24h = async (component_id) => {
-  const url = api_endpoint + `/energy/${component_id}/24h/`;
-  const response = await fetch(url).catch((err) => console.error('Fetch-error:', err));
-  const json = await response.json().catch((err) => console.error('JSON-error:', err));
-  return json;
+  try {
+    const url = api_endpoint + `/energy/${component_id}/24h/`;
+    const response = await fetch(url);
+    const json = await response.json();
+    return json;
+  } catch (error) {
+    console.error('Error fetching 24h energy data:', error);
+    return 0;
+  }
 };
 
 // #endregion
