@@ -52,7 +52,7 @@ const generateServoComponentCardHtml = (component_id, component_name, value, val
       <div class="c-card">
         <h3 class="c-card__level">${servo_text}</h3>
         <div class="c-card__meta">
-          <p class="c-card__capacity">Tap to toggle</p>
+          <p class="c-card__status">Tap to toggle</p>
         </div>
       </div>
     </article>
@@ -441,19 +441,6 @@ const initComponentCardEvents = () => {
 
           addServoLoadingState(component_card);
           toggleDoorLock(component_id, action, component_card);
-        }
-      }
-    }
-  });
-
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      const component_card = event.target.closest('.js-component__container');
-      if (component_card && component_card === document.activeElement) {
-        const component_id = parseInt(component_card.dataset.component_id);
-        if (LIGHT_COMPONENT_IDS.includes(component_id) || SERVO_COMPONENT_IDS.includes(component_id)) {
-          event.preventDefault();
-          component_card.click();
         }
       }
     }
