@@ -1,10 +1,10 @@
 'use strict';
 
+// #region ***  Configuration and Constants              ***********
 const lan_ip = `http://${window.location.hostname}:8000`;
 const socket_connection = io(lan_ip);
 const api_endpoint = `http://${window.location.hostname}:8000/api/v1`;
 
-// #region ***  DOM references                           ***********
 const component_icons = {
   1: `img/svg/lightning.svg`,
   2: `img/svg/lightning.svg`,
@@ -31,17 +31,25 @@ const component_icons = {
 };
 
 const LIGHT_COMPONENT_IDS = [11, 14, 20];
+const SERVO_COMPONENT_IDS = [18];
 const USAGE_IDS = [1, 2];
 // #endregion
 
-// #region ***  Enhanced HTML Generation Functions      ***********
-const generateServoComponentCardHtml = (component_id, component_name, value, value_unit, room_id, log_id) => {
+// #region ***  HTML Generation Functions               ***********
+const generate_servo_component_card_html = (component_id, component_name, value, value_unit, room_id, log_id) => {
   const icon_path = component_icons[component_id];
   const is_unlocked = parseInt(value) > 0;
   const servo_text = is_unlocked ? 'Unlocked' : 'Locked';
 
   return `
-    <article class="c-article c-hover--shadow c-light-card js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}" role="button" tabindex="0" aria-label="Toggle ${component_name}" aria-pressed="${is_unlocked}">
+    <article class="c-article c-hover--shadow c-light-card js-component__container" 
+             data-component_id="${component_id}" 
+             data-room_id="${room_id}" 
+             data-log_id="${log_id}" 
+             role="button" 
+             tabindex="0" 
+             aria-label="Toggle ${component_name}" 
+             aria-pressed="${is_unlocked}">
       <div class="c-article__header">
         <a href="#" class="c-article__link">
           <img src="${icon_path}" alt="Servo icon" class="c-article__icon">
@@ -51,19 +59,22 @@ const generateServoComponentCardHtml = (component_id, component_name, value, val
       <div class="c-card c-card--light">
         <h3 class="c-card__level">${servo_text}</h3>
         <div class="c-card__meta c-card__meta--light">
-          <button class="c-card__status c-card__status--toggle" type="button" role="button" tabindex="0">Tap to toggle</button>
+          <button class="c-card__status c-card__status--toggle" type="button">Tap to toggle</button>
         </div>
       </div>
     </article>
   `;
 };
 
-const generateRfidCardHtml = async (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
+const generate_rfid_card_html = async (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
   const icon_path = component_icons[component_id];
-  const inhabitant_name = await getInhabitantNameByCardId(String(value));
+  const inhabitant_name = await get_inhabitant_name_by_card_id(String(value));
 
   return `
-    <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}">
+    <article class="c-article c-hover--shadow js-component__container" 
+             data-component_id="${component_id}" 
+             data-room_id="${room_id}" 
+             data-log_id="${log_id}">
       <div class="c-article__header">
         <a href="#" class="c-article__link">
           <img src="${icon_path}" alt="Component icon" class="c-article__icon">
@@ -73,20 +84,27 @@ const generateRfidCardHtml = async (component_id, component_name, value, value_u
       <div class="c-card c-card--light">
         <h3 class="c-card__level">${inhabitant_name}</h3>
         <div class="c-card__meta c-card__meta--light">
-          <button class="c-card__status c-card__status--toggle" type="button" role="button" tabindex="0">Edit Family</button>
+          <button class="c-card__status c-card__status--toggle" type="button">Edit Family</button>
         </div>
       </div>
     </article>
   `;
 };
 
-const generateLightComponentCardHtml = (component_id, component_name, value, value_unit, room_id, log_id) => {
+const generate_light_component_card_html = (component_id, component_name, value, value_unit, room_id, log_id) => {
   const icon_path = component_icons[component_id];
   const is_on = parseInt(value) > 0;
   const brightness_text = is_on ? `${value} ${value_unit}` : 'Off';
 
   return `
-    <article class="c-article c-hover--shadow c-light-card js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}" role="button" tabindex="0" aria-label="Toggle ${component_name}" aria-pressed="${is_on}">
+    <article class="c-article c-hover--shadow c-light-card js-component__container" 
+             data-component_id="${component_id}" 
+             data-room_id="${room_id}" 
+             data-log_id="${log_id}" 
+             role="button" 
+             tabindex="0" 
+             aria-label="Toggle ${component_name}" 
+             aria-pressed="${is_on}">
       <div class="c-article__header">
         <a href="#" class="c-article__link">
           <img src="${icon_path}" alt="Light icon" class="c-article__icon">
@@ -96,19 +114,22 @@ const generateLightComponentCardHtml = (component_id, component_name, value, val
       <div class="c-card c-card--light">
         <h3 class="c-card__level">${brightness_text}</h3>
         <div class="c-card__meta c-card__meta--light">
-          <button class="c-card__status c-card__status--toggle" type="button" role="button" tabindex="0">Tap to toggle</button>
+          <button class="c-card__status c-card__status--toggle" type="button">Tap to toggle</button>
         </div>
       </div>
     </article>
   `;
 };
 
-const generateRegularComponentCardHtml = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
+const generate_regular_component_card_html = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
   const formatted_date = new Date(datetime);
   const icon_path = component_icons[component_id];
 
   return `
-    <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}">
+    <article class="c-article c-hover--shadow js-component__container" 
+             data-component_id="${component_id}" 
+             data-room_id="${room_id}" 
+             data-log_id="${log_id}">
       <div class="c-article__header">
         <a href="#" class="c-article__link">
           <img src="${icon_path}" alt="Component icon" class="c-article__icon">
@@ -119,17 +140,46 @@ const generateRegularComponentCardHtml = (component_id, component_name, value, v
         <h3 class="c-card__level">${value} ${value_unit}</h3>
         <div class="c-card__meta">
           <p class="c-card__status">Last log</p>
-          <p class="c-card__capacity">${formatDateTime(formatted_date)}</p>
+          <p class="c-card__capacity">${format_date_time(formatted_date)}</p>
         </div>
       </div>
     </article>
   `;
 };
 
-const generateUsageCardHtml = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
+const generate_power_switch_html = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
   const formatted_date = new Date(datetime);
   const icon_path = component_icons[component_id];
-  const today_value = 0;
+
+  return `
+    <article class="c-article c-hover--shadow c-light-card js-component__container" 
+             data-component_id="${component_id}" 
+             data-room_id="${room_id}" 
+             data-log_id="${log_id}" 
+             role="button" 
+             tabindex="0" 
+             aria-label="Toggle ${component_name}">
+      <div class="c-article__header">
+        <a href="#" class="c-article__link">
+          <img src="${icon_path}" alt="Power icon" class="c-article__icon">
+        </a>
+        <h2 class="c-article__title">${component_name}</h2>
+      </div>
+      <div class="c-card c-card--light">
+        <h3 class="c-card__level">Active</h3>
+        <div class="c-card__meta c-card__meta--light">
+          <button class="c-card__status c-card__status--toggle" type="button">Tap to turn off PowerLink</button>
+        </div>
+      </div>
+    </article>
+  `;
+};
+
+const generate_usage_card_html = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
+  const formatted_date = new Date(datetime);
+  const icon_path = component_icons[component_id];
+  const today_value = 0; // This should probably come from data
+
   let color_class = '';
   if (today_value > 7) {
     color_class = 'c-card--warning';
@@ -140,7 +190,10 @@ const generateUsageCardHtml = (component_id, component_name, value, value_unit, 
   }
 
   return `
-    <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}">
+    <article class="c-article c-hover--shadow js-component__container" 
+             data-component_id="${component_id}" 
+             data-room_id="${room_id}" 
+             data-log_id="${log_id}">
       <div class="c-article__header">
         <a href="#" class="c-article__link">
           <img src="${icon_path}" alt="Component icon" class="c-article__icon">
@@ -158,11 +211,14 @@ const generateUsageCardHtml = (component_id, component_name, value, value_unit, 
   `;
 };
 
-const generateTempControlComponentCardHtml = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
+const generate_temp_control_component_card_html = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
   const icon_path = component_icons[component_id];
 
   return `
-    <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}">
+    <article class="c-article c-hover--shadow js-component__container" 
+             data-component_id="${component_id}" 
+             data-room_id="${room_id}" 
+             data-log_id="${log_id}">
       <div class="c-article__header">
         <a href="#" class="c-article__link">
           <img src="${icon_path}" alt="Component icon" class="c-article__icon">
@@ -179,25 +235,30 @@ const generateTempControlComponentCardHtml = (component_id, component_name, valu
   `;
 };
 
-const generateSmartComponentCardHtml = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
+const generate_smart_component_card_html = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
   if (USAGE_IDS.includes(parseInt(component_id))) {
-    return generateUsageCardHtml(component_id, component_name, value, value_unit, room_id, log_id);
+    return generate_usage_card_html(component_id, component_name, value, value_unit, datetime, log_id, room_id);
   } else if (LIGHT_COMPONENT_IDS.includes(parseInt(component_id))) {
-    return generateLightComponentCardHtml(component_id, component_name, value, value_unit, room_id, log_id);
+    return generate_light_component_card_html(component_id, component_name, value, value_unit, room_id, log_id);
   } else if (component_id === 4) {
-    return generateTempControlComponentCardHtml(component_id, component_name, value, value_unit, datetime, log_id, room_id);
+    return generate_temp_control_component_card_html(component_id, component_name, value, value_unit, datetime, log_id, room_id);
   } else if (component_id === 18) {
-    return generateServoComponentCardHtml(component_id, component_name, value, value_unit, room_id, log_id);
+    return generate_servo_component_card_html(component_id, component_name, value, value_unit, room_id, log_id);
   } else if (component_id === 16) {
-    return generateRfidCardHtml(component_id, component_name, value, value_unit, datetime, log_id, room_id);
+    return generate_rfid_card_html(component_id, component_name, value, value_unit, datetime, log_id, room_id);
+  } else if (component_id === 21) {
+    return generate_power_switch_html(component_id, component_name, value, value_unit, datetime, log_id, room_id);
   } else {
-    return generateRegularComponentCardHtml(component_id, component_name, value, value_unit, datetime, log_id, room_id);
+    return generate_regular_component_card_html(component_id, component_name, value, value_unit, datetime, log_id, room_id);
   }
 };
 
-const generateRoomContainerHtml = (room_id, room_name, room_number, components_html, dropdown_html) => {
+const generate_room_container_html = (room_id, room_name, room_number, components_html, dropdown_html) => {
   return `
-    <div class="c-room__container js-room__container" data-room_id="${room_id}" data-room_name="${room_name}" data-room_number="${room_number}">
+    <div class="c-room__container js-room__container" 
+         data-room_id="${room_id}" 
+         data-room_name="${room_name}" 
+         data-room_number="${room_number}">
       <section class="c-room">
         <div class="c-room__header">
           <h2 class="c-section__title">${room_name}</h2>
@@ -211,16 +272,17 @@ const generateRoomContainerHtml = (room_id, room_name, room_number, components_h
   `;
 };
 
-const generateDropdownOptionHtml = (component_id, component_name, room_id, is_checked) => {
-  let checked_attribute = '';
-  if (is_checked === true) {
-    checked_attribute = 'checked';
-  }
+const generate_dropdown_option_html = (component_id, component_name, room_id, is_checked) => {
+  const checked_attribute = is_checked ? 'checked' : '';
 
   return `
     <div class="c-dropdown-option c-checkbox-option">
       <label class="c-checkbox">
-        <input type="checkbox" value="${component_id}" data-room="${room_id}" data-name="${component_name}" ${checked_attribute}>
+        <input type="checkbox" 
+               value="${component_id}" 
+               data-room="${room_id}" 
+               data-name="${component_name}" 
+               ${checked_attribute}>
         ${component_name}
       </label>
     </div>
@@ -229,26 +291,15 @@ const generateDropdownOptionHtml = (component_id, component_name, room_id, is_ch
 // #endregion
 
 // #region ***  Dropdown Functions                      ***********
-const createComponentDropdown = (room_id, all_components, components_in_current_page) => {
+const create_component_dropdown = (room_id, all_components, components_in_current_page) => {
   let dropdown_options_html = `<div class="c-dropdown-option c-check-all-option" data-room="${room_id}">Check All</div>`;
 
-  const page_component_ids = [];
-  for (let i = 0; i < components_in_current_page.length; i++) {
-    page_component_ids.push(components_in_current_page[i].component_id);
-  }
+  const page_component_ids = components_in_current_page.map((component) => component.component_id);
 
   for (let i = 0; i < all_components.length; i++) {
     const component = all_components[i];
-    let is_component_checked = false;
-
-    for (let j = 0; j < page_component_ids.length; j++) {
-      if (page_component_ids[j] === component.component_id) {
-        is_component_checked = true;
-        break;
-      }
-    }
-
-    dropdown_options_html += generateDropdownOptionHtml(component.component_id, component.component_name, room_id, is_component_checked);
+    const is_component_checked = page_component_ids.includes(component.component_id);
+    dropdown_options_html += generate_dropdown_option_html(component.component_id, component.component_name, room_id, is_component_checked);
   }
 
   return `
@@ -261,78 +312,79 @@ const createComponentDropdown = (room_id, all_components, components_in_current_
   `;
 };
 
-const initDropdownEvents = () => {
+const init_dropdown_events = () => {
   document.addEventListener('click', (event) => {
+    // Handle dropdown trigger clicks
     if (event.target.classList.contains('c-dropdown-trigger')) {
-      event.stopPropagation();
-      const clicked_dropdown = event.target.closest('.c-component-dropdown');
-      const dropdown_menu = clicked_dropdown.querySelector('.c-dropdown-menu');
-
-      const all_menus = document.querySelectorAll('.c-dropdown-menu');
-      for (let i = 0; i < all_menus.length; i++) {
-        const menu = all_menus[i];
-        if (menu !== dropdown_menu) {
-          menu.style.display = 'none';
-        }
-      }
-
-      if (dropdown_menu.style.display === 'block') {
-        dropdown_menu.style.display = 'none';
-      } else {
-        dropdown_menu.style.display = 'block';
-      }
+      handle_dropdown_trigger_click(event);
     }
 
+    // Handle check all button clicks
     if (event.target.classList.contains('c-check-all-option')) {
-      event.stopPropagation();
-      const room_id = event.target.dataset.room;
-      const clicked_dropdown = event.target.closest('.c-component-dropdown');
-      const all_checkboxes = clicked_dropdown.querySelectorAll('input[type="checkbox"]');
-
-      let all_boxes_checked = true;
-      for (let i = 0; i < all_checkboxes.length; i++) {
-        if (all_checkboxes[i].checked === false) {
-          all_boxes_checked = false;
-          break;
-        }
-      }
-
-      for (let i = 0; i < all_checkboxes.length; i++) {
-        const checkbox = all_checkboxes[i];
-        if (all_boxes_checked === true) {
-          checkbox.checked = false;
-        } else {
-          checkbox.checked = true;
-        }
-        sendComponentSelection(checkbox);
-      }
-
-      updateDropdownLabel(clicked_dropdown);
-
-      if (all_boxes_checked === true) {
-        event.target.textContent = 'Check All';
-      } else {
-        event.target.textContent = 'Uncheck All';
-      }
+      handle_check_all_click(event);
     }
 
+    // Handle individual checkbox clicks
     if (event.target.type === 'checkbox' && event.target.dataset.room) {
-      sendComponentSelection(event.target);
-      const parent_dropdown = event.target.closest('.c-component-dropdown');
-      updateDropdownLabel(parent_dropdown);
-      updateCheckAllButton(parent_dropdown);
+      handle_checkbox_click(event);
     }
 
+    // Close dropdowns when clicking outside
     if (!event.target.closest('.c-component-dropdown')) {
-      const all_menus = document.querySelectorAll('.c-dropdown-menu');
-      for (let i = 0; i < all_menus.length; i++) {
-        all_menus[i].style.display = 'none';
-      }
+      close_all_dropdowns();
     }
   });
 };
 
-const updateDropdownLabel = (dropdown_element) => {
+const handle_dropdown_trigger_click = (event) => {
+  event.stopPropagation();
+  const clicked_dropdown = event.target.closest('.c-component-dropdown');
+  const dropdown_menu = clicked_dropdown.querySelector('.c-dropdown-menu');
+
+  // Close other dropdowns
+  const all_menus = document.querySelectorAll('.c-dropdown-menu');
+  all_menus.forEach((menu) => {
+    if (menu !== dropdown_menu) {
+      menu.style.display = 'none';
+    }
+  });
+
+  // Toggle current dropdown
+  dropdown_menu.style.display = dropdown_menu.style.display === 'block' ? 'none' : 'block';
+};
+
+const handle_check_all_click = (event) => {
+  event.stopPropagation();
+  const room_id = event.target.dataset.room;
+  const clicked_dropdown = event.target.closest('.c-component-dropdown');
+  const all_checkboxes = clicked_dropdown.querySelectorAll('input[type="checkbox"]');
+
+  const all_boxes_checked = Array.from(all_checkboxes).every((checkbox) => checkbox.checked);
+
+  all_checkboxes.forEach((checkbox) => {
+    checkbox.checked = !all_boxes_checked;
+    send_component_selection(checkbox);
+  });
+
+  update_dropdown_label(clicked_dropdown);
+  event.target.textContent = all_boxes_checked ? 'Check All' : 'Uncheck All';
+};
+
+const handle_checkbox_click = (event) => {
+  send_component_selection(event.target);
+  const parent_dropdown = event.target.closest('.c-component-dropdown');
+  update_dropdown_label(parent_dropdown);
+  update_check_all_button(parent_dropdown);
+};
+
+const close_all_dropdowns = () => {
+  const all_menus = document.querySelectorAll('.c-dropdown-menu');
+  all_menus.forEach((menu) => {
+    menu.style.display = 'none';
+  });
+};
+
+const update_dropdown_label = (dropdown_element) => {
   const trigger_button = dropdown_element.querySelector('.c-dropdown-trigger');
   const all_checkboxes = dropdown_element.querySelectorAll('input[type="checkbox"]');
   const checked_checkboxes = dropdown_element.querySelectorAll('input[type="checkbox"]:checked');
@@ -348,7 +400,7 @@ const updateDropdownLabel = (dropdown_element) => {
   }
 };
 
-const updateCheckAllButton = (dropdown_element) => {
+const update_check_all_button = (dropdown_element) => {
   const check_all_button = dropdown_element.querySelector('.c-check-all-option');
   const all_checkboxes = dropdown_element.querySelectorAll('input[type="checkbox"]');
   const checked_checkboxes = dropdown_element.querySelectorAll('input[type="checkbox"]:checked');
@@ -360,66 +412,65 @@ const updateCheckAllButton = (dropdown_element) => {
   }
 };
 
-const sendComponentSelection = async (checkbox_element) => {
+const send_component_selection = async (checkbox_element) => {
   const component_id = parseInt(checkbox_element.value);
   const room_id = parseInt(checkbox_element.dataset.room);
   const is_checkbox_checked = checkbox_element.checked;
 
-  const update_was_successful = await updateComponentInPage(component_id, is_checkbox_checked);
+  try {
+    const update_was_successful = await update_component_in_page(component_id, is_checkbox_checked);
 
-  if (update_was_successful === true) {
-    socket_connection.emit('BF2_component_selection', {
-      component_id: component_id,
-      room_id: room_id,
-      selected: is_checkbox_checked,
-    });
+    if (update_was_successful) {
+      socket_connection.emit('BF2_component_selection', {
+        component_id: component_id,
+        room_id: room_id,
+        selected: is_checkbox_checked,
+      });
 
-    let component_card = document.querySelector(`.js-component__container[data-component_id="${component_id}"]`);
+      const component_card = document.querySelector(`.js-component__container[data-component_id="${component_id}"]`);
 
-    if (is_checkbox_checked === true) {
-      if (component_card) {
-        component_card.style.display = 'block';
+      if (is_checkbox_checked) {
+        if (component_card) {
+          component_card.style.display = 'block';
+        } else {
+          await create_component_card(component_id, room_id);
+        }
       } else {
-        await createComponentCard(component_id, room_id);
-      }
-    } else {
-      if (component_card) {
-        component_card.style.display = 'none';
+        if (component_card) {
+          component_card.style.display = 'none';
+        }
       }
     }
+  } catch (error) {
+    console.error('Error in send_component_selection:', error);
   }
 };
 
-const createComponentCard = async (component_id, room_id) => {
+const create_component_card = async (component_id, room_id) => {
   try {
     const url_parameters = new URLSearchParams(window.location.search);
     const page_parameter = parseInt(url_parameters.get('page'));
 
+    // Get component log
     const log_url = `${api_endpoint}/components/last/${page_parameter}/`;
     const log_response = await fetch(log_url);
     const all_component_logs = await log_response.json();
 
-    let component_log = null;
-    for (let i = 0; i < all_component_logs.length; i++) {
-      if (all_component_logs[i].component_id === component_id) {
-        component_log = all_component_logs[i];
-        break;
-      }
-    }
+    const component_log = all_component_logs.find((log) => log.component_id === component_id);
 
+    // Get component details
     const components_url = `${api_endpoint}/components/`;
     const components_response = await fetch(components_url);
     const all_components = await components_response.json();
 
-    let component_details = null;
-    for (let i = 0; i < all_components.length; i++) {
-      if (all_components[i].component_id === component_id) {
-        component_details = all_components[i];
-        break;
-      }
+    const component_details = all_components.find((component) => component.component_id === component_id);
+
+    if (!component_log || !component_details) {
+      console.error('Component log or details not found');
+      return;
     }
 
-    const component_card_html = generateSmartComponentCardHtml(component_id, component_details.component_name, component_log.value, component_details.value_unit, component_log.datetime, component_log.log_id, room_id);
+    const component_card_html = generate_smart_component_card_html(component_id, component_details.component_name, component_log.value, component_details.value_unit, component_log.datetime, component_log.log_id, room_id);
 
     const room_container = document.querySelector(`.js-room__container[data-room_id="${room_id}"]`);
     if (room_container) {
@@ -445,7 +496,7 @@ const createComponentCard = async (component_id, room_id) => {
 // #endregion
 
 // #region ***  Component Control Functions             ***********
-const initComponentCardEvents = () => {
+const init_component_card_events = () => {
   document.addEventListener('click', (event) => {
     const toggle_button = event.target.closest('.c-card__status--toggle');
 
@@ -456,96 +507,104 @@ const initComponentCardEvents = () => {
         const component_id = parseInt(component_card.dataset.component_id);
 
         if (LIGHT_COMPONENT_IDS.includes(component_id)) {
-          event.preventDefault();
-          event.stopPropagation();
-
-          if (component_card.classList.contains('c-light-disabled')) {
-            return;
-          }
-
-          const level_element = component_card.querySelector('.c-card__level');
-          if (level_element) {
-            const current_text = level_element.textContent.trim();
-            let current_value = 0;
-
-            if (current_text.toLowerCase() === 'off') {
-              current_value = 0;
-            } else {
-              current_value = parseInt(current_text.split(' ')[0]) || 0;
-            }
-
-            const new_value = current_value > 0 ? 0 : 100;
-            addLoadingState(component_card);
-            toggleLight(component_id, new_value, component_card);
-          }
+          handle_light_toggle(event, component_card, component_id);
         }
 
         if (SERVO_COMPONENT_IDS.includes(component_id)) {
-          event.preventDefault();
-          event.stopPropagation();
-
-          if (component_card.classList.contains('c-servo-disabled')) {
-            return;
-          }
-
-          const level_element = component_card.querySelector('.c-card__level');
-          if (level_element) {
-            const current_text = level_element.textContent.trim();
-            const is_unlocked = current_text.toLowerCase() === 'unlocked';
-            const action = is_unlocked ? 'lock' : 'unlock';
-
-            addServoLoadingState(component_card);
-            toggleDoorLock(component_id, action, component_card);
-          }
+          handle_servo_toggle(event, component_card, component_id);
         }
       }
     }
   });
 };
 
-const addLoadingState = (card_element) => {
+const handle_light_toggle = (event, component_card, component_id) => {
+  event.preventDefault();
+  event.stopPropagation();
+
+  if (component_card.classList.contains('c-light-disabled')) {
+    return;
+  }
+
+  const level_element = component_card.querySelector('.c-card__level');
+  if (level_element) {
+    const current_text = level_element.textContent.trim();
+    let current_value = 0;
+
+    if (current_text.toLowerCase() === 'off') {
+      current_value = 0;
+    } else {
+      current_value = parseInt(current_text.split(' ')[0]) || 0;
+    }
+
+    const new_value = current_value > 0 ? 0 : 100;
+    add_loading_state(component_card);
+    toggle_light(component_id, new_value, component_card);
+  }
+};
+
+const handle_servo_toggle = (event, component_card, component_id) => {
+  event.preventDefault();
+  event.stopPropagation();
+
+  if (component_card.classList.contains('c-servo-disabled')) {
+    return;
+  }
+
+  const level_element = component_card.querySelector('.c-card__level');
+  if (level_element) {
+    const current_text = level_element.textContent.trim();
+    const is_unlocked = current_text.toLowerCase() === 'unlocked';
+    const action = is_unlocked ? 'lock' : 'unlock';
+
+    add_servo_loading_state(component_card);
+    toggle_door_lock(component_id, action, component_card);
+  }
+};
+
+const add_loading_state = (card_element) => {
   card_element.classList.add('c-light-disabled');
   card_element.style.pointerEvents = 'none';
 
   setTimeout(() => {
-    removeLoadingState(card_element);
+    remove_loading_state(card_element);
   }, 2000);
 };
 
-const removeLoadingState = (card_element) => {
+const remove_loading_state = (card_element) => {
   card_element.classList.remove('c-light-disabled');
   card_element.style.pointerEvents = '';
 };
 
-const addToggleAnimation = (card_element) => {
+const add_toggle_animation = (card_element) => {
   card_element.classList.add('toggling');
   setTimeout(() => {
     card_element.classList.remove('toggling');
   }, 300);
 };
 
-const addServoLoadingState = (card_element) => {
+const add_servo_loading_state = (card_element) => {
   card_element.classList.add('c-servo-disabled');
   card_element.style.pointerEvents = 'none';
 
   setTimeout(() => {
-    removeServoLoadingState(card_element);
+    remove_servo_loading_state(card_element);
   }, 3000);
 };
 
-const removeServoLoadingState = (card_element) => {
+const remove_servo_loading_state = (card_element) => {
   card_element.classList.remove('c-servo-disabled');
   card_element.style.pointerEvents = '';
 };
 
-const addServoToggleAnimation = (card_element) => {
+const add_servo_toggle_animation = (card_element) => {
   card_element.classList.add('servo-toggling');
   setTimeout(() => {
     card_element.classList.remove('servo-toggling');
   }, 500);
 };
 
-const toggleLight = (component_id, new_value, card_element) => {
+const toggle_light = (component_id, new_value, card_element) => {
   try {
     socket_connection.emit('BF2_manual_light_control', {
       component_id: component_id,
@@ -556,17 +615,17 @@ const toggleLight = (component_id, new_value, card_element) => {
 
     console.log(`Toggling light ${component_id} to ${new_value}`);
 
-    if (!window.pendingLightToggles) {
-      window.pendingLightToggles = new Map();
+    if (!window.pending_light_toggles) {
+      window.pending_light_toggles = new Map();
     }
-    window.pendingLightToggles.set(component_id, card_element);
+    window.pending_light_toggles.set(component_id, card_element);
   } catch (error) {
     console.error('Error toggling light:', error);
-    removeLoadingState(card_element);
+    remove_loading_state(card_element);
   }
 };
 
-const toggleDoorLock = (component_id, action, card_element) => {
+const toggle_door_lock = (component_id, action, card_element) => {
   try {
     socket_connection.emit('BF2_manual_door_control', {
       component_id: component_id,
@@ -577,26 +636,26 @@ const toggleDoorLock = (component_id, action, card_element) => {
 
     console.log(`Toggling door lock ${component_id} to ${action}`);
 
-    if (!window.pendingServoToggles) {
-      window.pendingServoToggles = new Map();
+    if (!window.pending_servo_toggles) {
+      window.pending_servo_toggles = new Map();
     }
-    window.pendingServoToggles.set(component_id, card_element);
+    window.pending_servo_toggles.set(component_id, card_element);
   } catch (error) {
     console.error('Error toggling door lock:', error);
-    removeServoLoadingState(card_element);
+    remove_servo_loading_state(card_element);
   }
 };
 
-const listenToLightControlFeedback = () => {
+const listen_to_light_control_feedback = () => {
   socket_connection.on('B2F_light_control_success', (data) => {
     const component_id = data.component_id;
     const new_value = data.new_value;
 
-    if (window.pendingLightToggles && window.pendingLightToggles.has(component_id)) {
-      const card_element = window.pendingLightToggles.get(component_id);
-      removeLoadingState(card_element);
-      addToggleAnimation(card_element);
-      window.pendingLightToggles.delete(component_id);
+    if (window.pending_light_toggles && window.pending_light_toggles.has(component_id)) {
+      const card_element = window.pending_light_toggles.get(component_id);
+      remove_loading_state(card_element);
+      add_toggle_animation(card_element);
+      window.pending_light_toggles.delete(component_id);
 
       console.log(`Light ${component_id} successfully toggled to ${new_value}`);
     }
@@ -606,27 +665,27 @@ const listenToLightControlFeedback = () => {
     const component_id = data.component_id;
     const error_message = data.error || 'Unknown error';
 
-    if (window.pendingLightToggles && window.pendingLightToggles.has(component_id)) {
-      const card_element = window.pendingLightToggles.get(component_id);
-      removeLoadingState(card_element);
-      window.pendingLightToggles.delete(component_id);
+    if (window.pending_light_toggles && window.pending_light_toggles.has(component_id)) {
+      const card_element = window.pending_light_toggles.get(component_id);
+      remove_loading_state(card_element);
+      window.pending_light_toggles.delete(component_id);
 
       console.error(`Light ${component_id} toggle failed:`, error_message);
     }
   });
 };
 
-const listenToDoorControlFeedback = () => {
+const listen_to_door_control_feedback = () => {
   socket_connection.on('B2F_door_control_success', (data) => {
     const component_id = data.component_id;
     const action = data.action;
     const new_state = data.new_state;
 
-    if (window.pendingServoToggles && window.pendingServoToggles.has(component_id)) {
-      const card_element = window.pendingServoToggles.get(component_id);
-      removeServoLoadingState(card_element);
-      addServoToggleAnimation(card_element);
-      window.pendingServoToggles.delete(component_id);
+    if (window.pending_servo_toggles && window.pending_servo_toggles.has(component_id)) {
+      const card_element = window.pending_servo_toggles.get(component_id);
+      remove_servo_loading_state(card_element);
+      add_servo_toggle_animation(card_element);
+      window.pending_servo_toggles.delete(component_id);
 
       const level_element = card_element.querySelector('.c-card__level');
       if (level_element) {
@@ -643,10 +702,10 @@ const listenToDoorControlFeedback = () => {
     const component_id = data.component_id;
     const error_message = data.error || 'Unknown error';
 
-    if (window.pendingServoToggles && window.pendingServoToggles.has(component_id)) {
-      const card_element = window.pendingServoToggles.get(component_id);
-      removeServoLoadingState(card_element);
-      window.pendingServoToggles.delete(component_id);
+    if (window.pending_servo_toggles && window.pending_servo_toggles.has(component_id)) {
+      const card_element = window.pending_servo_toggles.get(component_id);
+      remove_servo_loading_state(card_element);
+      window.pending_servo_toggles.delete(component_id);
 
       console.error(`Door lock ${component_id} toggle failed:`, error_message);
       alert(`Failed to control door lock: ${error_message}`);
@@ -655,14 +714,14 @@ const listenToDoorControlFeedback = () => {
 };
 // #endregion
 
-// #region ***  Callback-Visualisation - show___         ***********
-const showDropdown = () => {
+// #region ***  Mobile Navigation Functions             ***********
+const show_dropdown = () => {
   const hamburger_button = document.querySelector('.c-hamburger');
   const navigation_popup = document.querySelector('.c-nav-popup');
   const page_overlay = document.querySelector('.c-overlay');
   const close_button = document.querySelector('.c-nav-popup__close');
 
-  const toggleMobileMenu = () => {
+  const toggle_mobile_menu = () => {
     const menu_is_active = navigation_popup.classList.toggle('c-nav-popup--active');
     page_overlay.classList.toggle('c-overlay--active');
     hamburger_button.setAttribute('aria-expanded', menu_is_active);
@@ -670,94 +729,80 @@ const showDropdown = () => {
     page_overlay.setAttribute('aria-hidden', !menu_is_active);
   };
 
+  const close_mobile_menu = () => {
+    navigation_popup.classList.remove('c-nav-popup--active');
+    page_overlay.classList.remove('c-overlay--active');
+    hamburger_button.setAttribute('aria-expanded', 'false');
+    navigation_popup.setAttribute('aria-hidden', 'true');
+    page_overlay.setAttribute('aria-hidden', 'true');
+  };
+
+  // Only set up mobile menu if we're on mobile
   if (window.matchMedia('(max-width: 767px)').matches) {
     if (hamburger_button) {
       hamburger_button.addEventListener('click', (event) => {
         event.stopPropagation();
-        toggleMobileMenu();
+        toggle_mobile_menu();
       });
     }
 
     if (close_button) {
       close_button.addEventListener('click', (event) => {
         event.stopPropagation();
-        navigation_popup.classList.remove('c-nav-popup--active');
-        page_overlay.classList.remove('c-overlay--active');
-        hamburger_button.setAttribute('aria-expanded', 'false');
-        navigation_popup.setAttribute('aria-hidden', 'true');
-        page_overlay.setAttribute('aria-hidden', 'true');
+        close_mobile_menu();
       });
     }
 
     if (page_overlay) {
-      page_overlay.addEventListener('click', () => {
-        navigation_popup.classList.remove('c-nav-popup--active');
-        page_overlay.classList.remove('c-overlay--active');
-        hamburger_button.setAttribute('aria-expanded', 'false');
-        navigation_popup.setAttribute('aria-hidden', 'true');
-        page_overlay.setAttribute('aria-hidden', 'true');
-      });
+      page_overlay.addEventListener('click', close_mobile_menu);
     }
 
     const navigation_links = document.querySelectorAll('.c-nav-popup__link');
-    for (let i = 0; i < navigation_links.length; i++) {
-      navigation_links[i].addEventListener('click', () => {
-        navigation_popup.classList.remove('c-nav-popup--active');
-        page_overlay.classList.remove('c-overlay--active');
-        hamburger_button.setAttribute('aria-expanded', 'false');
-        navigation_popup.setAttribute('aria-hidden', 'true');
-        page_overlay.setAttribute('aria-hidden', 'true');
-      });
-    }
+    navigation_links.forEach((link) => {
+      link.addEventListener('click', close_mobile_menu);
+    });
 
     document.addEventListener('click', (event) => {
       if (!navigation_popup.contains(event.target) && !hamburger_button.contains(event.target)) {
-        navigation_popup.classList.remove('c-nav-popup--active');
-        page_overlay.classList.remove('c-overlay--active');
-        hamburger_button.setAttribute('aria-expanded', 'false');
-        navigation_popup.setAttribute('aria-hidden', 'true');
-        page_overlay.setAttribute('aria-hidden', 'true');
+        close_mobile_menu();
       }
     });
   }
 
+  // Handle window resize
   window.addEventListener('resize', () => {
     if (window.matchMedia('(min-width: 768px)').matches) {
-      navigation_popup.classList.remove('c-nav-popup--active');
-      page_overlay.classList.remove('c-overlay--active');
-      hamburger_button.setAttribute('aria-expanded', 'false');
-      navigation_popup.setAttribute('aria-hidden', 'true');
-      page_overlay.setAttribute('aria-hidden', 'true');
+      close_mobile_menu();
     }
   });
 };
+// #endregion
 
-const showAllRoomsAndComponents = async () => {
+// #region ***  Display Functions                       ***********
+const show_all_rooms_and_components = async () => {
   try {
-    const all_rooms = await getAllRooms();
-    const all_components = await getAllComponents();
-    const all_component_logs = await getLastComponentLogs();
-    const components_in_page = await getComponentsInPage();
+    const all_rooms = await get_all_rooms();
+    const all_components = await get_all_components();
+    const all_component_logs = await get_last_component_logs();
+    const components_in_page = await get_components_in_page();
 
+    // Group components by room
     const components_grouped_by_room = {};
-    for (let i = 0; i < all_components.length; i++) {
-      const component = all_components[i];
+    all_components.forEach((component) => {
       if (!components_grouped_by_room[component.room_id]) {
         components_grouped_by_room[component.room_id] = [];
       }
       components_grouped_by_room[component.room_id].push(component);
-    }
+    });
 
+    // Index logs by component ID
     const logs_by_component_id = {};
-    for (let i = 0; i < all_component_logs.length; i++) {
-      const log = all_component_logs[i];
+    all_component_logs.forEach((log) => {
       logs_by_component_id[log.component_id] = log;
-    }
+    });
 
-    const page_component_ids = [];
-    for (let i = 0; i < components_in_page.length; i++) {
-      page_component_ids.push(components_in_page[i].component_id);
-    }
+    // Get list of component IDs that should be displayed on this page
+    const page_component_ids = components_in_page.map((component) => component.component_id);
 
     let rooms_html = '';
     const main_container = document.querySelector('.js-main');
@@ -768,129 +813,99 @@ const showAllRoomsAndComponents = async () => {
 
       let components_html = '';
 
-      for (let comp_index = 0; comp_index < room_components.length; comp_index++) {
-        const component = room_components[comp_index];
-        let component_is_in_page = false;
-
-        for (let page_index = 0; page_index < page_component_ids.length; page_index++) {
-          if (page_component_ids[page_index] === component.component_id) {
-            component_is_in_page = true;
-            break;
-          }
-        }
-
+      // Generate HTML for components that should be shown on this page
+      room_components.forEach((component) => {
+        const component_is_in_page = page_component_ids.includes(component.component_id);
         const component_log = logs_by_component_id[component.component_id];
 
-        if (component_is_in_page === true && component_log) {
-          components_html += generateSmartComponentCardHtml(component.component_id, component.component_name, component_log.value, component.value_unit, component_log.datetime, component_log.log_id, room.room_id);
+        if (component_is_in_page && component_log) {
+          components_html += generate_smart_component_card_html(component.component_id, component.component_name, component_log.value, component.value_unit, component_log.datetime, component_log.log_id, room.room_id);
         }
-      }
+      });
 
-      const dropdown_html = createComponentDropdown(room.room_id, room_components, components_in_page);
-      rooms_html += generateRoomContainerHtml(room.room_id, room.room_name, room_index, components_html, dropdown_html);
+      const dropdown_html = create_component_dropdown(room.room_id, room_components, components_in_page);
+      rooms_html += generate_room_container_html(room.room_id, room.room_name, room_index, components_html, dropdown_html);
     }
 
     main_container.innerHTML = rooms_html;
 
-    const all_room_containers = document.querySelectorAll('.js-room__container');
-    for (let i = 0; i < all_room_containers.length; i++) {
-      const room_container = all_room_containers[i];
-      const room_number = parseInt(room_container.dataset.room_number);
-      const component_containers = room_container.querySelectorAll('.js-component__container');
+    // Apply alternating background colors
+    apply_room_background_colors();
 
-      if (room_number % 2 === 0) {
-        room_container.classList.add('c-grey-background');
-        for (let j = 0; j < component_containers.length; j++) {
-          component_containers[j].classList.add('c-white-background');
-        }
-      } else {
-        room_container.classList.add('c-white-background');
-        for (let j = 0; j < component_containers.length; j++) {
-          component_containers[j].classList.add('c-grey-background');
-        }
-      }
-    }
-
-    initDropdownEvents();
-    updateAllDropdownLabels();
+    init_dropdown_events();
+    update_all_dropdown_labels();
   } catch (error) {
     console.error('Error loading rooms and components:', error);
   }
 };
 
-const updateAllDropdownLabels = () => {
-  const dropdowns = document.querySelectorAll('.c-component-dropdown');
-  for (let i = 0; i < dropdowns.length; i++) {
-    updateDropdownLabel(dropdowns[i]);
-    updateCheckAllButton(dropdowns[i]);
-  }
-};
-
-const showAllLastLogs = (json_data) => {
-  let rooms_html = '';
-  const main_container = document.querySelector('.js-main');
-
-  const room_components = {};
-  for (let i = 0; i < json_data.length; i++) {
-    const schedule_item = json_data[i];
-    const room_id = schedule_item.room_id;
-    if (!room_components[room_id]) {
-      room_components[room_id] = [];
-    }
-    room_components[room_id].push(schedule_item);
-  }
-
-  let room_display_number = 0;
-
-  const room_ids = [];
-  for (let room_id in room_components) {
-    room_ids.push(room_id);
-  }
-
-  for (let i = 0; i < room_ids.length; i++) {
-    const room_id = room_ids[i];
-    const room_data = room_components[room_id];
-    const room_name = room_data[0].room_name;
-
-    let components_html = '';
-
-    for (let j = 0; j < room_data.length; j++) {
-      const item = room_data[j];
-      components_html += generateSmartComponentCardHtml(item.component_id, item.component_name, item.value, item.value_unit, item.datetime, item.log_id, item.room_id);
-    }
-
-    const dropdown_html = createComponentDropdown(room_id, room_data, []);
-
-    rooms_html += generateRoomContainerHtml(room_id, room_name, room_display_number, components_html, dropdown_html);
-
-    room_display_number++;
-  }
-
-  main_container.innerHTML = rooms_html;
-
+const apply_room_background_colors = () => {
   const all_room_containers = document.querySelectorAll('.js-room__container');
-  for (let i = 0; i < all_room_containers.length; i++) {
-    const room_container = all_room_containers[i];
+
+  all_room_containers.forEach((room_container, index) => {
     const room_number = parseInt(room_container.dataset.room_number);
     const component_containers = room_container.querySelectorAll('.js-component__container');
 
     if (room_number % 2 === 0) {
       room_container.classList.add('c-grey-background');
-      for (let j = 0; j < component_containers.length; j++) {
-        component_containers[j].classList.add('c-white-background');
-      }
+      component_containers.forEach((component) => {
+        component.classList.add('c-white-background');
+      });
     } else {
       room_container.classList.add('c-white-background');
-      for (let j = 0; j < component_containers.length; j++) {
-        component_containers[j].classList.add('c-grey-background');
-      }
+      component_containers.forEach((component) => {
+        component.classList.add('c-grey-background');
+      });
     }
-  }
-
-  initDropdownEvents();
+  });
 };
 
-const showLastLog = (log_data) => {
+const update_all_dropdown_labels = () => {
+  const dropdowns = document.querySelectorAll('.c-component-dropdown');
+  dropdowns.forEach((dropdown) => {
+    update_dropdown_label(dropdown);
+    update_check_all_button(dropdown);
+  });
+};
+
+const show_all_last_logs = (json_data) => {
+  let rooms_html = '';
+  const main_container = document.querySelector('.js-main');
+
+  // Group data by room
+  const room_components = {};
+  json_data.forEach((schedule_item) => {
+    const room_id = schedule_item.room_id;
+    if (!room_components[room_id]) {
+      room_components[room_id] = [];
+    }
+    room_components[room_id].push(schedule_item);
+  });
+
+  let room_display_number = 0;
+
+  // Generate HTML for each room
+  Object.keys(room_components).forEach((room_id) => {
+    const room_data = room_components[room_id];
+    const room_name = room_data[0].room_name;
+
+    let components_html = '';
+    room_data.forEach((item) => {
+      components_html += generate_smart_component_card_html(item.component_id, item.component_name, item.value, item.value_unit, item.datetime, item.log_id, item.room_id);
+    });
+
+    const dropdown_html = create_component_dropdown(room_id, room_data, []);
+    rooms_html += generate_room_container_html(room_id, room_name, room_display_number, components_html, dropdown_html);
+
+    room_display_number++;
+  });
+
+  main_container.innerHTML = rooms_html;
+  apply_room_background_colors();
+  init_dropdown_events();
+};
+
+const show_last_log = (log_data) => {
   const component_id = log_data.component_id;
   const room_id = log_data.room_id;
   const value = log_data.value;
@@ -899,81 +914,87 @@ const showLastLog = (log_data) => {
   const log_id = log_data.log_id;
   const component_name = log_data.component_name;
 
-  let existing_log_container = document.querySelector(`.js-component__container[data-component_id="${component_id}"]`);
+  const existing_log_container = document.querySelector(`.js-component__container[data-component_id="${component_id}"]`);
 
   if (existing_log_container) {
-    const level_element = existing_log_container.querySelector('.c-card__level');
+    update_existing_component(existing_log_container, component_id, value, value_unit, datetime, log_id);
+  } else {
+    create_new_component_in_room(component_id, component_name, value, value_unit, datetime, log_id, room_id);
+  }
+};
 
-    if (LIGHT_COMPONENT_IDS.includes(parseInt(component_id))) {
-      const is_on = parseInt(value) > 0;
-      const brightness_text = is_on ? `${value} ${value_unit}` : 'Off';
+const update_existing_component = (container, component_id, value, value_unit, datetime, log_id) => {
+  const level_element = container.querySelector('.c-card__level');
 
-      if (level_element) {
-        level_element.textContent = brightness_text;
-      }
+  if (LIGHT_COMPONENT_IDS.includes(parseInt(component_id))) {
+    const is_on = parseInt(value) > 0;
+    const brightness_text = is_on ? `${value} ${value_unit}` : 'Off';
 
-      existing_log_container.setAttribute('aria-pressed', is_on.toString());
-    } else if (SERVO_COMPONENT_IDS.includes(parseInt(component_id))) {
-      const is_unlocked = parseInt(value) > 0;
-      const servo_text = is_unlocked ? 'Unlocked' : 'Locked';
+    if (level_element) {
+      level_element.textContent = brightness_text;
+    }
+    container.setAttribute('aria-pressed', is_on.toString());
+  } else if (SERVO_COMPONENT_IDS.includes(parseInt(component_id))) {
+    const is_unlocked = parseInt(value) > 0;
+    const servo_text = is_unlocked ? 'Unlocked' : 'Locked';
 
-      if (level_element) {
-        level_element.textContent = servo_text;
-      }
+    if (level_element) {
+      level_element.textContent = servo_text;
+    }
+    container.setAttribute('aria-pressed', is_unlocked.toString());
+  } else {
+    const capacity_element = container.querySelector('.c-card__capacity');
+    const formatted_date = new Date(datetime);
 
-      existing_log_container.setAttribute('aria-pressed', is_unlocked.toString());
-    } else {
-      const capacity_element = existing_log_container.querySelector('.c-card__capacity');
-      const formatted_date = new Date(datetime);
+    if (level_element) {
+      level_element.textContent = `${value} ${value_unit}`;
+    }
+    if (capacity_element) {
+      capacity_element.textContent = format_date_time(formatted_date);
+    }
+  }
 
-      if (level_element) {
-        level_element.textContent = `${value} ${value_unit}`;
-      }
+  container.setAttribute('data-log_id', log_id);
+};
 
-      if (capacity_element) {
-        capacity_element.textContent = formatDateTime(formatted_date);
+const create_new_component_in_room = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
+  const room_container = document.querySelector(`.js-room__container[data-room_id="${room_id}"]`);
+  if (!room_container) return;
+
+  const components_container = room_container.querySelector('.c-room__components');
+  const dropdown_element = room_container.querySelector('.c-component-dropdown');
+
+  if (components_container) {
+    const component_card_html = generate_smart_component_card_html(component_id, component_name, value, value_unit, datetime, log_id, room_id);
+
+    components_container.insertAdjacentHTML('beforeend', component_card_html);
+
+    // Add to dropdown if not already there
+    if (dropdown_element) {
+      const existing_checkbox = dropdown_element.querySelector(`input[value="${component_id}"]`);
+      if (!existing_checkbox) {
+        const dropdown_menu = dropdown_element.querySelector('.c-dropdown-menu');
+        const new_option_html = generate_dropdown_option_html(component_id, component_name, room_id, false);
+        dropdown_menu.insertAdjacentHTML('beforeend', new_option_html);
       }
     }
 
-    existing_log_container.setAttribute('data-log_id', log_id);
-  } else {
-    const room_container = document.querySelector(`.js-room__container[data-room_id="${room_id}"]`);
-    if (room_container) {
-      const components_container = room_container.querySelector('.c-room__components');
-      const dropdown_element = room_container.querySelector('.c-component-dropdown');
-
-      if (components_container) {
-        const component_card_html = generateSmartComponentCardHtml(component_id, component_name, value, value_unit, datetime, log_id, room_id);
-
-        components_container.innerHTML += component_card_html;
-
-        if (dropdown_element) {
-          const existing_checkbox = dropdown_element.querySelector(`input[value="${component_id}"]`);
-          if (!existing_checkbox) {
-            const dropdown_menu = dropdown_element.querySelector('.c-dropdown-menu');
-            const new_option_html = generateDropdownOptionHtml(component_id, component_name, room_id, false);
-            dropdown_menu.insertAdjacentHTML('beforeend', new_option_html);
-          }
-        }
-
-        const new_log_container = components_container.querySelector(`.js-component__container[data-component_id="${component_id}"]`);
-        if (new_log_container) {
-          const room_id_num = parseInt(room_id);
-          if (room_id_num % 2 === 0) {
-            new_log_container.classList.add('c-white-background');
-          } else {
-            new_log_container.classList.add('c-grey-background');
-          }
-        }
+    // Apply background color to new component
+    const new_log_container = components_container.querySelector(`.js-component__container[data-component_id="${component_id}"]`);
+    if (new_log_container) {
+      const room_number = parseInt(room_container.dataset.room_number);
+      if (room_number % 2 === 0) {
+        new_log_container.classList.add('c-white-background');
+      } else {
+        new_log_container.classList.add('c-grey-background');
       }
     }
   }
 };
 // #endregion
 
-// #region ***  Callback-No Visualisation - callback___  ***********
-const formatDateTime = (iso_string) => {
-  const date_object = new Date(iso_string);
+// #region ***  Utility Functions                       ***********
+const format_date_time = (date_object) => {
   return date_object.toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'short',
@@ -983,47 +1004,67 @@ const formatDateTime = (iso_string) => {
 };
 // #endregion
 
-// #region ***  Data Access - get___                     ***********
-const getLastComponentLogs = async () => {
-  const url_parameters = new URLSearchParams(window.location.search);
-  const page_url_param = parseInt(url_parameters.get('page'));
-  let request_url = `${api_endpoint}/components/last/${page_url_param}/`;
-  let server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
-  const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
-  return json_data;
+// #region ***  Data Access Functions                   ***********
+const get_last_component_logs = async () => {
+  try {
+    const url_parameters = new URLSearchParams(window.location.search);
+    const page_url_param = parseInt(url_parameters.get('page'));
+    const request_url = `${api_endpoint}/components/last/${page_url_param}/`;
+    const server_response = await fetch(request_url);
+    const json_data = await server_response.json();
+    return json_data;
+  } catch (error) {
+    console.error('Error fetching component logs:', error);
+    return [];
+  }
 };
 
-const getAllComponents = async () => {
-  const request_url = `${api_endpoint}/components/`;
-  const server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
-  const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
-  return json_data;
+const get_all_components = async () => {
+  try {
+    const request_url = `${api_endpoint}/components/`;
+    const server_response = await fetch(request_url);
+    const json_data = await server_response.json();
+    return json_data;
+  } catch (error) {
+    console.error('Error fetching components:', error);
+    return [];
+  }
 };
 
-const getAllRooms = async () => {
-  const request_url = `${api_endpoint}/rooms/`;
-  const server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
-  const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
-  return json_data;
+const get_all_rooms = async () => {
+  try {
+    const request_url = `${api_endpoint}/rooms/`;
+    const server_response = await fetch(request_url);
+    const json_data = await server_response.json();
+    return json_data;
+  } catch (error) {
+    console.error('Error fetching rooms:', error);
+    return [];
+  }
 };
 
-const getComponentsInPage = async () => {
-  const url_parameters = new URLSearchParams(window.location.search);
-  const page_id = parseInt(url_parameters.get('page'));
-  const request_url = `${api_endpoint}/pages/${page_id}/components/`;
-  const server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
-  const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
-  return json_data;
+const get_components_in_page = async () => {
+  try {
+    const url_parameters = new URLSearchParams(window.location.search);
+    const page_id = parseInt(url_parameters.get('page'));
+    const request_url = `${api_endpoint}/pages/${page_id}/components/`;
+    const server_response = await fetch(request_url);
+    const json_data = await server_response.json();
+    return json_data;
+  } catch (error) {
+    console.error('Error fetching page components:', error);
+    return [];
+  }
 };
 
-const updateComponentInPage = async (component_id, is_component_selected) => {
+const update_component_in_page = async (component_id, is_component_selected) => {
   const url_parameters = new URLSearchParams(window.location.search);
   const page_id = parseInt(url_parameters.get('page'));
 
   try {
-    if (is_component_selected === true) {
+    if (is_component_selected) {
       const request_url = `${api_endpoint}/pages/${page_id}/components/`;
-      const server_response = await fetch(request_url, {
+      await fetch(request_url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1035,7 +1076,7 @@ const updateComponentInPage = async (component_id, is_component_selected) => {
       });
     } else {
       const request_url = `${api_endpoint}/pages/${page_id}/components/${component_id}/`;
-      const server_response = await fetch(request_url, {
+      await fetch(request_url, {
         method: 'DELETE',
       });
     }
@@ -1043,30 +1084,35 @@ const updateComponentInPage = async (component_id, is_component_selected) => {
   } catch (error) {
     console.error('Error updating component in page:', error);
 
+    // Revert checkbox state on error
     const checkbox_element = document.querySelector(`input[value="${component_id}"]`);
     if (checkbox_element) {
       checkbox_element.checked = !is_component_selected;
       const parent_dropdown = checkbox_element.closest('.c-component-dropdown');
       if (parent_dropdown) {
-        updateDropdownLabel(parent_dropdown);
-        updateCheckAllButton(parent_dropdown);
+        update_dropdown_label(parent_dropdown);
+        update_check_all_button(parent_dropdown);
       }
     }
     return false;
   }
 };
 
-const getInhabitantNameByCardId = async (card_id) => {
-  const request_url = api_endpoint + `/entered/${card_id}/last/`;
-  const server_response = await fetch(request_url).catch((err) => console.error('Fetch-error:', err));
-  const json = await server_response.json().catch((err) => console.error('JSON-error:', err));
-  return json;
+const get_inhabitant_name_by_card_id = async (card_id) => {
+  try {
+    const request_url = `${api_endpoint}/entered/${card_id}/last/`;
+    const server_response = await fetch(request_url);
+    const json_data = await server_response.json();
+    return json_data;
+  } catch (error) {
+    console.error('Error fetching inhabitant name:', error);
+    return 'Unknown';
+  }
 };
-
 // #endregion
 
-// #region ***  Event Listeners - listenTo___            ***********
-const listenToSocket = () => {
+// #region ***  Socket Event Listeners                  ***********
+const listen_to_socket = () => {
   socket_connection.on('connect', () => {
     console.log('Socket connected');
   });
@@ -1080,21 +1126,21 @@ const listenToSocket = () => {
   });
 
   socket_connection.on('B2F_new_log', (data) => {
-    showLastLog(data);
+    show_last_log(data);
   });
 
-  listenToLightControlFeedback();
-  listenToDoorControlFeedback();
+  listen_to_light_control_feedback();
+  listen_to_door_control_feedback();
 };
 // #endregion
 
-// #region ***  Init / DOMContentLoaded                  ***********
+// #region ***  Initialization                          ***********
 const init = () => {
   console.log('DOM loaded');
-  showDropdown();
-  showAllRoomsAndComponents();
-  listenToSocket();
-  initComponentCardEvents();
+  show_dropdown();
+  show_all_rooms_and_components();
+  listen_to_socket();
+  init_component_card_events();
 };
 
 document.addEventListener('DOMContentLoaded', init);
