@@ -546,9 +546,9 @@ class DataRepository:
         params = [str(card_id)]
         result = Database.get_one_row(sql, params)
 
-        if result:
+        if result and result.get("first_name") is not None:
             return result
-        return "Unknown"
+        return {"first_name": "Unknown"}
 
     @staticmethod
     def create_log(value, component_id):

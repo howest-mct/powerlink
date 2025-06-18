@@ -31,6 +31,7 @@ const component_icons = {
 };
 
 const LIGHT_COMPONENT_IDS = [11, 14, 20];
+const USAGE_IDS = [1, 2];
 // #endregion
 
 // #region ***  Enhanced HTML Generation Functions      ***********
@@ -58,7 +59,6 @@ const generateServoComponentCardHtml = (component_id, component_name, value, val
 };
 
 const generateRfidCardHtml = async (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
-  const formatted_date = new Date(datetime);
   const icon_path = component_icons[component_id];
   const inhabitant_name = await getInhabitantNameByCardId(String(value));
 
@@ -70,11 +70,10 @@ const generateRfidCardHtml = async (component_id, component_name, value, value_u
         </a>
         <h2 class="c-article__title">${component_name}</h2>
       </div>
-      <div class="c-card">
+      <div class="c-card c-card--light">
         <h3 class="c-card__level">${inhabitant_name}</h3>
-        <div class="c-card__meta">
-          <p class="c-card__status">Last entered</p>
-          <p class="c-card__capacity">Card: ${value}</p>
+        <div class="c-card__meta c-card__meta--light">
+          <button class="c-card__status c-card__status--toggle" type="button" role="button" tabindex="0">Edit Family</button>
         </div>
       </div>
     </article>
@@ -127,6 +126,30 @@ const generateRegularComponentCardHtml = (component_id, component_name, value, v
   `;
 };
 
+const generateUsageCardHtml = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
+  const formatted_date = new Date(datetime);
+  const icon_path = component_icons[component_id];
+  const today_value = '0';
+
+  return `
+    <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}">
+      <div class="c-article__header">
+        <a href="#" class="c-article__link">
+          <img src="${icon_path}" alt="Component icon" class="c-article__icon">
+        </a>
+        <h2 class="c-article__title">${component_name}</h2>
+      </div>
+      <div class="c-card">
+        <h3 class="c-card__level">${value} ${value_unit}</h3>
+        <div class="c-card__meta">
+          <p class="c-card__capacity">Today's Energy</p>
+          <p class="c-card__status">${today_value} Wh</p>
+        </div>
+      </div>
+    </article>
+  `;
+};
+
 const generateTempControlComponentCardHtml = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
   const icon_path = component_icons[component_id];
 
@@ -149,7 +172,9 @@ const generateTempControlComponentCardHtml = (component_id, component_name, valu
 };
 
 const generateSmartComponentCardHtml = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
-  if (LIGHT_COMPONENT_IDS.includes(parseInt(component_id))) {
+  if (USAGE_IDS.includes(parseInt(component_id))) {
+    return generateUsageCardHtml(component_id, component_name, value, value_unit, room_id, log_id);
+  } else if (LIGHT_COMPONENT_IDS.includes(parseInt(component_id))) {
     return generateLightComponentCardHtml(component_id, component_name, value, value_unit, room_id, log_id);
   } else if (component_id === 4) {
     return generateTempControlComponentCardHtml(component_id, component_name, value, value_unit, datetime, log_id, room_id);
@@ -1025,9 +1050,9 @@ const updateComponentInPage = async (component_id, is_component_selected) => {
 
 const getInhabitantNameByCardId = async (card_id) => {
   const request_url = api_endpoint + `/entered/${card_id}/last/`;
-  const server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
-  const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
-  return json_data;
+  const server_response = await fetch(request_url).catch((err) => console.error('Fetch-error:', err));
+  const json = await server_response.json().catch((err) => console.error('JSON-error:', err));
+  return json;
 };
 
 // #endregion

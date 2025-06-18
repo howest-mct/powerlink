@@ -1272,15 +1272,12 @@ async def get_energy_log_24h(component_id: int):
 @app.get(
     ENDPOINT + "/entered/{card_id}/last/",
     response_model=LastEntered,
-    summary="Retrieve a model_singular by ID",
-    response_description="The model_singular with the specified ID",
+    summary="Retrieve last entered person by card ID",
+    response_description="The last person who entered with the specified card ID",
     tags=["entered"],
 )
-async def get_model_singular_by_id(card_id: str):
+async def get_last_entered_by_card_id(card_id: str):
     data = DataRepository.read_last_entered(card_id)
-    print(data)
-    if data is None:
-        return {"first_name": "Unknown"}
     return data
 
 
