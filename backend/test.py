@@ -1,15 +1,8 @@
-#!/usr/bin/env python3
-"""
-Test program for RFIDReader class
-Tests both functionality and edge cases
-"""
-
 import time
 import logging
 from unittest.mock import Mock, patch
-from models.device_models import RFIDReader
+from models.device_models import RFIDReader, MCP3008
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
@@ -27,7 +20,7 @@ def test_basic_functionality():
 
             print("\nScanning for RFID cards... (Press Ctrl+C to stop)")
             scan_count = 0
-            max_scans = 20  # Prevent infinite loop in testing
+            max_scans = 20
 
             while scan_count < max_scans:
                 card_id = reader.read_no_block()
@@ -59,8 +52,11 @@ def test_multiple_reads():
     try:
         reader = RFIDReader()
         print("Testing multiple read operations...")
+        mpu = MCP3008(0, 1)
 
         for i in range(5):
+            value = mpu.read_channel(0)
+            print(f"MPU Channel 0 Value: {value}")
             print(f"Read attempt {i+1}:", end=" ")
             card_id = reader.read_no_block()
 
@@ -86,15 +82,12 @@ def test_cleanup_and_reactivation():
         reader = RFIDReader()
         print(f"Initial state - Active: {reader.is_active()}")
 
-        # Test read while active
         result = reader.read_no_block()
         print(f"Read result while active: {result is not None}")
 
-        # Test cleanup
         reader.cleanup()
         print(f"After cleanup - Active: {reader.is_active()}")
 
-        # Test read after cleanup (should return None)
         result = reader.read_no_block()
         print(f"Read result after cleanup: {result}")
 
@@ -125,9 +118,7 @@ def test_error_handling():
     print("\n=== Testing Error Handling ===")
 
     try:
-        # Mock the SimpleMFRC522 to simulate errors
         with patch("rfid_reader.SimpleMFRC522") as mock_reader_class:
-            # Create a mock instance that raises exceptions
             mock_instance = Mock()
             mock_instance.read_no_block.side_effect = Exception("Simulated read error")
             mock_reader_class.return_value = mock_instance
@@ -172,7 +163,7 @@ def continuous_monitoring_test(duration=30):
 
                     last_card_id = current_card_id
 
-                time.sleep(0.1)  # 10 Hz polling rate
+                time.sleep(0.1)
 
             print(f"\nMonitoring completed. Total detections: {detection_count}")
 
@@ -217,16 +208,12 @@ def main():
     """Main test function"""
     print("RFID Reader Test Program")
     print("=" * 40)
-
-    # Run all tests
     test_basic_functionality()
     test_multiple_reads()
     test_cleanup_and_reactivation()
     test_context_manager()
     test_error_handling()
     performance_test()
-
-    # Ask user if they want to run continuous monitoring
     response = input("\nRun continuous monitoring test? (y/n): ").lower().strip()
     if response == "y":
         try:

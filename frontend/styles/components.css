@@ -401,7 +401,6 @@ a {
     padding: 1rem;
     flex: 1;
     width: 100%;
-    height: 100%;
 }
 
 .c-card__level {
@@ -551,7 +550,29 @@ a {
     margin: 0;
 }
 
+.c-light-card {
+    cursor: pointer;
+}
 
+.c-light-card:focus {
+    outline: 0.125rem solid var(--main-color);
+    outline-offset: 0.125rem;
+}
+
+.c-light-disabled {
+    background-color: #f5f5f5 !important;
+    opacity: 0.7;
+    cursor: not-allowed !important;
+    transition: all 0.2s ease;
+}
+
+.c-grey-background .c-light-disabled {
+    background-color: #e8e8e8 !important;
+}
+
+.c-white-background .c-light-disabled {
+    background-color: #f5f5f5 !important;
+}
 
 @media (min-width: 30rem) {
     .c-room__components {

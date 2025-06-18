@@ -4,6 +4,8 @@ const lan_ip = `http://${window.location.hostname}:8000`;
 const socket_connection = io(lan_ip);
 const api_endpoint = `http://${window.location.hostname}:8000/api/v1`;
 
+const excluded_components = [10, 11, 14, 17, 20, 21];
+
 // #region ***  DOM references                           ***********
 const component_icons = {
   1: `img/svg/lightning.svg`,
@@ -34,13 +36,16 @@ const component_timeframes = {
   '24hline': [6, 7, 9, 12, 15, 22],
   '7dline': [7, 9, 12, 15],
   '14dline': [1, 2],
-  col: [8, 16, 10, 11, 13, 14, 17, 18, 21, 20],
+  col: [8, 16, 13, 18],
   dumbbell: [19],
   '7dblock': [3, 4, 5],
 };
 
 let dropdownEventsInitialized = false;
 
+const isComponentExcluded = (component_id) => {
+  return excluded_components.includes(component_id);
+};
 // #endregion
 
 // #region ***  HTML Generation Functions               ***********
@@ -86,7 +91,7 @@ const generateChartParams = async (component_id, component_name, component_value
         size: 0,
       },
       title: {
-        text: `${component_name} - 24H History`,
+        text: `${component_name}-24H`,
         align: 'left',
       },
       fill: {
@@ -101,7 +106,7 @@ const generateChartParams = async (component_id, component_name, component_value
       },
       yaxis: {
         labels: {
-          formatter: function (val) {
+          formatter: (val) => {
             return val.toFixed(1);
           },
         },
@@ -128,7 +133,7 @@ const generateChartParams = async (component_id, component_name, component_value
       tooltip: {
         shared: false,
         y: {
-          formatter: function (val) {
+          formatter: (val) => {
             return val.toFixed(1) + ' ' + component_value_unit;
           },
         },
@@ -177,7 +182,7 @@ const generateChartParams = async (component_id, component_name, component_value
         size: 0,
       },
       title: {
-        text: `${component_name} - 7D History`,
+        text: `${component_name}-7D`,
         align: 'left',
       },
       fill: {
@@ -192,7 +197,7 @@ const generateChartParams = async (component_id, component_name, component_value
       },
       yaxis: {
         labels: {
-          formatter: function (val) {
+          formatter: (val) => {
             return val.toFixed(1);
           },
         },
@@ -219,7 +224,7 @@ const generateChartParams = async (component_id, component_name, component_value
       tooltip: {
         shared: false,
         y: {
-          formatter: function (val) {
+          formatter: (val) => {
             return val.toFixed(1) + ' ' + component_value_unit;
           },
         },
@@ -268,7 +273,7 @@ const generateChartParams = async (component_id, component_name, component_value
         size: 0,
       },
       title: {
-        text: `${component_name} - 14D History`,
+        text: `${component_name}-14D`,
         align: 'left',
       },
       fill: {
@@ -283,12 +288,12 @@ const generateChartParams = async (component_id, component_name, component_value
       },
       yaxis: {
         labels: {
-          formatter: function (val) {
+          formatter: (val) => {
             return val.toFixed(1);
           },
         },
         title: {
-          text: component_value_unit,
+          text: 'Wh',
         },
       },
       xaxis: {
@@ -310,8 +315,8 @@ const generateChartParams = async (component_id, component_name, component_value
       tooltip: {
         shared: false,
         y: {
-          formatter: function (val) {
-            return val.toFixed(1) + ' ' + component_value_unit;
+          formatter: (val) => {
+            return val.toFixed(1) + ' ' + 'Wh';
           },
         },
       },
@@ -353,7 +358,7 @@ const generateChartParams = async (component_id, component_name, component_value
       },
       dataLabels: {
         enabled: true,
-        formatter: function (val) {
+        formatter: (val) => {
           return val.toFixed(1);
         },
         offsetY: -20,
@@ -364,7 +369,7 @@ const generateChartParams = async (component_id, component_name, component_value
       },
       colors: ['#4A90E2'],
       title: {
-        text: `${component_name} - 7D Log Count`,
+        text: `${component_name}-7D`,
         align: 'left',
       },
       grid: {
@@ -392,7 +397,7 @@ const generateChartParams = async (component_id, component_name, component_value
         },
         labels: {
           show: true,
-          formatter: function (val) {
+          formatter: (val) => {
             return val.toFixed(1);
           },
         },
@@ -496,7 +501,7 @@ const generateChartParams = async (component_id, component_name, component_value
           text: component_value_unit,
         },
         labels: {
-          formatter: function (val) {
+          formatter: (val) => {
             return val.toFixed(1);
           },
         },
@@ -570,7 +575,7 @@ const generateChartParams = async (component_id, component_name, component_value
           text: component_value_unit,
         },
         labels: {
-          formatter: function (val) {
+          formatter: (val) => {
             return val.toFixed(1);
           },
         },
@@ -581,7 +586,7 @@ const generateChartParams = async (component_id, component_name, component_value
       },
       tooltip: {
         y: {
-          formatter: function (val) {
+          formatter: (val) => {
             return val.toFixed(1) + ' ' + component_value_unit;
           },
         },
@@ -592,10 +597,22 @@ const generateChartParams = async (component_id, component_name, component_value
   }
 };
 
-// NEW: Function to generate combined chart for components 1 and 2
 const generateCombinedChartParams = async () => {
   try {
     const [component1_history, component2_history] = await Promise.all([getComponentHistory7d(1), getComponentHistory7d(2)]);
+
+    const all_components = await getAllComponents();
+    let component1_name = 'Component 1';
+    let component2_name = 'Component 2';
+
+    all_components.forEach((component) => {
+      if (component.component_id === 1) {
+        component1_name = component.component_name;
+      }
+      if (component.component_id === 2) {
+        component2_name = component.component_name;
+      }
+    });
 
     const component1_data = [];
     const component2_data = [];
@@ -624,12 +641,12 @@ const generateCombinedChartParams = async () => {
     const options = {
       series: [
         {
-          name: 'Component 1',
+          name: component1_name,
           data: component1_data,
           color: '#4A90E2',
         },
         {
-          name: 'Component 2',
+          name: component2_name,
           data: component2_data,
           color: '#E24A90',
         },
@@ -661,18 +678,18 @@ const generateCombinedChartParams = async () => {
         },
       },
       title: {
-        text: 'Components 1 & 2 - Combined 7D History',
+        text: `${component1_name} & ${component2_name} - Combined 7D History`,
         align: 'left',
       },
       colors: ['#4A90E2', '#E24A90'],
       yaxis: {
         labels: {
-          formatter: function (val) {
+          formatter: (val) => {
             return val.toFixed(1);
           },
         },
         title: {
-          text: 'Value',
+          text: 'Wh',
         },
       },
       xaxis: {
@@ -699,7 +716,7 @@ const generateCombinedChartParams = async () => {
         shared: true,
         intersect: false,
         y: {
-          formatter: function (val, opts) {
+          formatter: (val, opts) => {
             return val.toFixed(1);
           },
         },
@@ -805,7 +822,6 @@ const renderChart = async (component_id, component_name, component_value_unit) =
   chart_container.chart.render();
 };
 
-// NEW: Function to render combined chart
 const renderCombinedChart = async () => {
   const chart_element_id = 'chart_combined_1_2';
   const chart_container = document.getElementById(chart_element_id);
@@ -829,7 +845,6 @@ const renderCombinedChart = async () => {
   chart_container.chart.render();
 };
 
-// NEW: Function to check if components 1 and 2 are both selected
 const checkForCombinedChart = async () => {
   const component1_visible = document.querySelector('.js-component__container[data-component_id="1"]') && document.querySelector('.js-component__container[data-component_id="1"]').style.display !== 'none';
   const component2_visible = document.querySelector('.js-component__container[data-component_id="2"]') && document.querySelector('.js-component__container[data-component_id="2"]').style.display !== 'none';
@@ -917,7 +932,6 @@ const createComponentDropdown = (room_id, all_components, components_in_current_
 };
 
 const initDropdownEvents = () => {
-  // Prevent multiple initializations
   if (dropdownEventsInitialized) {
     return;
   }
@@ -988,7 +1002,6 @@ const initDropdownEvents = () => {
     }
   });
 
-  // Mark as initialized
   dropdownEventsInitialized = true;
 };
 
@@ -1048,7 +1061,6 @@ const sendComponentSelection = async (checkbox_element) => {
       }
     }
 
-    // NEW: Check for combined chart after any component selection change
     await checkForCombinedChart();
   }
 };
@@ -1195,8 +1207,12 @@ const showAllRoomsAndComponents = async () => {
     const all_component_logs = await getLastComponentLogs();
     const components_in_page = await getComponentsInPage();
 
+    const filtered_components = all_components.filter((component) => !isComponentExcluded(component.component_id));
+    const filtered_logs = all_component_logs.filter((log) => !isComponentExcluded(log.component_id));
+    const filtered_page_components = components_in_page.filter((component) => !isComponentExcluded(component.component_id));
+
     const components_grouped_by_room = {};
-    all_components.forEach((component) => {
+    filtered_components.forEach((component) => {
       if (!components_grouped_by_room[component.room_id]) {
         components_grouped_by_room[component.room_id] = [];
       }
@@ -1204,12 +1220,12 @@ const showAllRoomsAndComponents = async () => {
     });
 
     const logs_by_component_id = {};
-    all_component_logs.forEach((log) => {
+    filtered_logs.forEach((log) => {
       logs_by_component_id[log.component_id] = log;
     });
 
     const page_component_ids = [];
-    components_in_page.forEach((component) => {
+    filtered_page_components.forEach((component) => {
       page_component_ids.push(component.component_id);
     });
 
@@ -1218,6 +1234,11 @@ const showAllRoomsAndComponents = async () => {
 
     all_rooms.forEach((room, room_index) => {
       const room_components = components_grouped_by_room[room.room_id] || [];
+
+      if (room_components.length === 0) {
+        console.log(`Skipping room ${room.room_name} - no components after filtering`);
+        return;
+      }
 
       let components_html = '';
 
@@ -1236,7 +1257,7 @@ const showAllRoomsAndComponents = async () => {
         }
       });
 
-      const dropdown_html = createComponentDropdown(room.room_id, room_components, components_in_page);
+      const dropdown_html = createComponentDropdown(room.room_id, room_components, filtered_page_components);
 
       rooms_html += generateRoomContainerHtml(room.room_id, room.room_name, room_index, components_html, dropdown_html);
     });
@@ -1286,7 +1307,6 @@ const showAllRoomsAndComponents = async () => {
     initTimeframeButtons();
     updateAllDropdownLabels();
 
-    // NEW: Check for combined chart after initial load
     await checkForCombinedChart();
   } catch (error) {
     console.error('Error loading rooms and components:', error);
@@ -1305,8 +1325,10 @@ const showAllLastLogs = (json_data) => {
   let rooms_html = '';
   const main_container = document.querySelector('.js-main');
 
+  const filtered_data = json_data.filter((item) => !isComponentExcluded(item.component_id));
+
   const room_components = {};
-  json_data.forEach((schedule_item) => {
+  filtered_data.forEach((schedule_item) => {
     const room_id = schedule_item.room_id;
     if (!room_components[room_id]) {
       room_components[room_id] = [];
@@ -1358,6 +1380,11 @@ const showAllLastLogs = (json_data) => {
 
 const showLastLog = (log_data) => {
   const component_id = log_data.component_id;
+
+  if (isComponentExcluded(component_id)) {
+    return;
+  }
+
   const room_id = log_data.room_id;
   const value = log_data.value;
   const value_unit = log_data.value_unit;
@@ -1414,7 +1441,6 @@ const showLastLog = (log_data) => {
     }
   }
 
-  // NEW: Check for combined chart when new logs arrive
   checkForCombinedChart();
 };
 // #endregion

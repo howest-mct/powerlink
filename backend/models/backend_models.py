@@ -78,7 +78,7 @@ class Card(P1BaseModel):
 
 
 class EnergyLog(P1BaseModel):
-    total_kwh_today: float
+    total_kwh: float
 
 
 class HistoryLog(P1BaseModel):
@@ -95,6 +95,11 @@ class LogCountHistory(P1BaseModel):
     component_id: int
     chart_date: datetime
     log_count: int
+
+
+class LastEntered(P1BaseModel):
+    first_name: str
+    last_entered: datetime.datetime
 
 
 # endregion Models ********************************

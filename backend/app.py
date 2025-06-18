@@ -7,6 +7,8 @@ from RPi import GPIO
 import time
 import re
 import subprocess
+from datetime import datetime
+import threading
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
@@ -27,6 +29,7 @@ from models.backend_models import (
     HistoryLog,
     LogAmount,
     LogCountHistory,
+    LastEntered,
 )
 
 from models.device_models import (
@@ -72,7 +75,6 @@ async def log_and_emit_async(value, component_id):
 
     except Exception as e:
         logger.error(f"Error in log_and_emit_async: {e}")
-        errors += 1
         return
 
 
@@ -99,7 +101,6 @@ def log_and_emit_sync(value, component_id):
 
     except Exception as e:
         logger.error(f"Error in log_and_emit_sync: {e}")
-        errors += 1
         return
 
 
@@ -161,13 +162,12 @@ lights_button_pressed = False
 last_log_time_switch = 0
 previous_state_switch = False
 last_state_led = None
-light_duration = 5
+light_duration = 60
 prev_led_brightness = None
 ldr_value = None
 scanned_card = None
 door_state = None
 switch_state_power = False
-errors = 0
 sleep_lcd = 6
 sleep_fast = 0.25
 sleep_medium = 1
@@ -189,7 +189,6 @@ try:
 except Exception as e:
     logger.error(f"Error reading schedules from database: {e}")
     dict_schedules = {}
-    errors += 1
 
 try:
     GPIO.setmode(GPIO.BCM)
@@ -197,15 +196,12 @@ try:
 except RuntimeError as e:
     logger.error(f"Error setting GPIO mode: {e}")
     GPIO.cleanup()
-    errors += 1
 # endregion Globals ******************************
 
 # region Functions ---------------------------------
 
 
 def get_ip(interface):
-    global errors
-
     try:
         output = subprocess.check_output(["ip", "a", "show", interface]).decode()
         match = re.search(r"inet (\d+\.\d+\.\d+\.\d+)", output)
@@ -217,12 +213,11 @@ def get_ip(interface):
             return "Geen IP"
 
     except subprocess.CalledProcessError:
-        errors += 1
         return "Interface fout"
 
 
 def get_cpu_temperature():
-    global errors, cpu_temp, cpu_temp_sensor_id
+    global cpu_temp, cpu_temp_sensor_id
     try:
         with open("/sys/class/thermal/thermal_zone0/temp", "r") as f:
             temp_raw = f.read().strip()
@@ -231,7 +226,6 @@ def get_cpu_temperature():
             return cpu_temp
 
     except Exception as e:
-        errors += 1
         logger.error(f"Error reading CPU temperature: {e}")
         return "Temp Error"
 
@@ -249,36 +243,26 @@ def is_time_in_range(start_time, end_time, current_time):
 
 async def display_lcd():
     global LCD, current_usage, battery_level, eth0_ip, wlan0_ip
-    global errors, cpu_temp_sensor_id
-
-    LCD.string(f"Project loaded", 1)
-    LCD.string(f"{errors} error(s)", 2)
-    await asyncio.sleep(sleep_long)
+    global cpu_temp_sensor_id
 
     while True:
         try:
+            get_cpu_temperature()
             wlan0_ip = get_ip("wlan0")
-            cpu_temp = get_cpu_temperature()
 
             LCD.string("PowerLink IP:", 1)
             LCD.string(wlan0_ip, 2)
             await asyncio.sleep(sleep_lcd)
 
-            LCD.string("CPU temp:", 1)
-            LCD.string(f"{cpu_temp} degrees C", 2)
-            await asyncio.sleep(sleep_lcd)
-
-            LCD.string("Current Watt:", 1)
+            LCD.string("Current Usage:", 1)
             LCD.string(f"{round(current_usage, 3)}W", 2)
             await asyncio.sleep(sleep_lcd)
 
-            LCD.string("Battery level:", 1)
-            LCD.string(f"{battery_level}%", 2)
-            await asyncio.sleep(sleep_lcd)
+            # LCD.string("Battery level:", 1)
+            # LCD.string(f"{battery_level}%", 2)
+            # await asyncio.sleep(sleep_lcd)
 
         except Exception as e:
-            errors += 1
-            logger.error(f"Error in display_lcd: {e}")
             await asyncio.sleep(sleep_long)
 
 
@@ -292,11 +276,10 @@ def initialize_power_monitoring():
     except Exception as e:
         logger.error(f"Failed to initialize power monitoring: {e}")
         power_monitor = None
-        errors += 1
 
 
 async def get_wattage():
-    global power_monitor, current_usage, battery_level, errors
+    global power_monitor, current_usage, battery_level
     global kw_led_bottom, kw_led_top, kw_heating, kw_airco
 
     prev_values = {
@@ -361,7 +344,6 @@ async def get_wattage():
 
         except Exception as e:
             logger.error(f"Error in get_wattage: {e}")
-            errors += 1
             if power_monitor:
                 try:
                     power_monitor.close()
@@ -375,12 +357,12 @@ async def get_wattage():
 
 async def climate_control(temp_id):
     global HEATING, AIRCO, temp, temp_sensor_id, pot_id, MCP, TEMP_SENSOR, dict_schedules
-    global errors, heater_id, fan_id, sleep_medium, temp_control_id
+    global heater_id, fan_id, sleep_medium, temp_control_id
 
-    hysteresis = 1.0
+    hysteresis = 0.75
     max_range = 1.0
     fan_active = False
-    min_heater_power = 50
+    min_heater_power = 25
 
     prev_values = {
         "pot_temp": None,
@@ -501,8 +483,6 @@ async def climate_control(temp_id):
             await asyncio.sleep(sleep_medium)
 
         except Exception as e:
-            logger.error(f"Error in climate_control: {e}")
-            errors += 1
             await asyncio.sleep(1)
 
 
@@ -513,7 +493,7 @@ def lights_button(pin):
 
 
 async def do_lights_button():
-    global lights_button_pressed, switch_state, lights_button_pressed, errors
+    global lights_button_pressed, switch_state, lights_button_pressed
 
     while True:
         try:
@@ -528,12 +508,11 @@ async def do_lights_button():
             logger.error(f"Error in do_lights_button: {e}")
             lights_button_pressed = False
             await asyncio.sleep(sleep_slow)
-            errors += 1
 
 
 async def lights_bottom():
     global LED_BOTTOM, switch_state, last_log_time_switch, previous_state_switch, dict_schedules
-    global prev_led_brightness, errors, led_bottom_id, sleep_fast, sleep_slow
+    global prev_led_brightness, led_bottom_id, sleep_fast, sleep_slow
 
     prev_led_brightness = 0
     previous_state_switch = False
@@ -589,14 +568,13 @@ async def lights_bottom():
 
         except Exception as e:
             logger.error(f"Error in lights_bottom: {e}")
-            errors += 1
             prev_led_brightness = None
             await asyncio.sleep(sleep_slow)
 
 
 async def lights_top():
     global LED_TOP, led_top_id, motion_sensor_id, MOTION_SENSOR, light_duration, dict_schedules
-    global last_motion, errors, sleep_fast, sleep_slow
+    global last_motion, sleep_fast, sleep_slow
 
     last_motion = 0
 
@@ -671,7 +649,6 @@ async def lights_top():
             last_motion = 0
             prev_values["motion_sensor"] = None
             prev_values["led_brightness"] = None
-            errors += 1
             await asyncio.sleep(sleep_slow)
 
 
@@ -679,9 +656,19 @@ def cut_card(card_id):
     return card_id[:6] + "000000"
 
 
-async def front_door():
+def keep_alive():
+    while True:
+        try:
+            front_door()
+            time.sleep(1)
+        except Exception as e:
+            logger.error(f"Error in keep_alive: {e}")
+            time.sleep(5)
+
+
+def front_door():
     global DOOR_LOCK, REED_SWITCH, CARD_READER, scanned_card
-    global servo_lock_id, reed_switch_id, card_reader_id, errors
+    global servo_lock_id, reed_switch_id, card_reader_id
 
     while True:
         try:
@@ -690,7 +677,7 @@ async def front_door():
             if scanned_card is not None:
                 scanned_card = str(scanned_card)
                 snipped_card = cut_card(scanned_card)
-                await log_and_emit_async(snipped_card, card_reader_id)
+                log_and_emit_sync(snipped_card, card_reader_id)
 
                 try:
                     checked_card = DataRepository.read_card_by_id(snipped_card)
@@ -699,7 +686,7 @@ async def front_door():
                         continue
 
                     DOOR_LOCK.unlock()
-                    await log_and_emit_async(1, servo_lock_id)
+                    log_and_emit_sync(1, servo_lock_id)
 
                     start_time = time.time()
 
@@ -710,13 +697,13 @@ async def front_door():
                             )
                             DOOR_LOCK.lock()
 
-                            await log_and_emit_async(0, servo_lock_id)
+                            log_and_emit_sync(0, servo_lock_id)
                             continue
 
-                        await asyncio.sleep(sleep_fast)
+                        time.sleep(sleep_fast)
 
                     else:
-                        await log_and_emit_async(1, reed_switch_id)
+                        log_and_emit_sync(1, reed_switch_id)
                         start_time = time.time()
 
                         while GPIO.input(REED_SWITCH) == 0:
@@ -727,32 +714,30 @@ async def front_door():
 
                                 continue
 
-                            await asyncio.sleep(sleep_fast)
+                            time.sleep(sleep_fast)
 
-                        await log_and_emit_async(0, reed_switch_id)
+                        log_and_emit_sync(0, reed_switch_id)
                         DOOR_LOCK.lock()
-                        await log_and_emit_async(0, servo_lock_id)
+                        log_and_emit_sync(0, servo_lock_id)
 
                 except Exception as e:
                     logger.error(f"Error processing card: {e}")
-                    errors += 1
                     try:
                         DOOR_LOCK.lock()
-                        await log_and_emit_async(0, servo_lock_id)
+                        log_and_emit_sync(0, servo_lock_id)
 
                     except Exception as lock_error:
                         logger.error(f"Error locking door: {lock_error}")
 
-            await asyncio.sleep(sleep_fast)
+            time.sleep(sleep_fast)
 
         except Exception as e:
             logger.error(f"Error in front_door: {e}")
-            errors += 1
-            await asyncio.sleep(sleep_slow)
+            time.sleep(sleep_slow)
 
 
 async def lights_outdoors():
-    global LED_OUTDOORS, MCP, last_state_led, ldr_value, light_sensor_id, led_outdoors_id, errors
+    global LED_OUTDOORS, MCP, last_state_led, ldr_value, light_sensor_id, led_outdoors_id
 
     prev_values = {
         "ldr_value": None,
@@ -802,12 +787,11 @@ async def lights_outdoors():
             last_state_led = None
             prev_values["ldr_value"] = None
             prev_values["led_brightness"] = None
-            errors += 1
             await asyncio.sleep(sleep_slow)
 
 
 def power_button(pin):
-    global switch_state_power, button_power_id, errors
+    global switch_state_power, button_power_id
 
     try:
         switch_state_power = not switch_state_power
@@ -815,7 +799,6 @@ def power_button(pin):
 
     except Exception as e:
         logger.error(f"Error in power_button: {e}")
-        errors += 1
 
 
 # endregion Functions ****************************
@@ -856,13 +839,17 @@ async def lifespan_manager(app: FastAPI):
         # MCP = MCP3008(0, 1)
         # I2C_EXPANDER = TCA9548A()
 
+        # threading.Thread(
+        #     target=keep_alive,
+        #     daemon=True,
+        # ).start()
+
         # tasks = [
         #     asyncio.create_task(get_wattage()),
         #     asyncio.create_task(climate_control(temp_id)),
         #     asyncio.create_task(do_lights_button()),
         #     asyncio.create_task(lights_bottom()),
         #     asyncio.create_task(lights_top()),
-        #     asyncio.create_task(front_door()),
         #     asyncio.create_task(lights_outdoors()),
         #     asyncio.create_task(display_lcd()),
         # ]
@@ -1166,10 +1153,7 @@ async def get_all_history_24h(component_id: int):
 
 @app.get("/api/v1/history/{component_id}/7d/")
 async def get_component_history_7d(component_id: int, chart_type: str = "default"):
-    """
-    Get 7-day component history
-    chart_type can be 'default' for energy consumption or 'temperature' for hourly averages
-    """
+
     try:
         if chart_type == "temperature":
             history_data = DataRepository.read_temperature_history_7d(component_id)
@@ -1241,6 +1225,64 @@ async def get_log_count_history_7d_by_id(component_id: int):
     return data
 
 
+@app.get(
+    ENDPOINT + "/energy/{component_id}/24h/",
+    response_model=EnergyLog,
+    summary="Retrieve a energy_log by ID",
+    response_description="The energy_log with the specified ID",
+    tags=["energy"],
+)
+async def get_energy_log_by_id(component_id: int):
+    data = DataRepository.read_energy_24h(component_id)
+    if data is None:
+        raise HTTPException(
+            status_code=404, detail=f"energy_log with ID {component_id} not found"
+        )
+    return data
+
+
+@app.get(
+    ENDPOINT + "/energy/{component_id}/7d/",
+    response_model=EnergyLog,
+    summary="Retrieve an energy_log by ID",
+    response_description="The energy_log with the specified ID",
+    tags=["energy"],
+)
+async def get_energy_log_7d(component_id: int):
+    data = DataRepository.read_energy_7d(component_id)
+    if data is None:
+        return {"total_kwh": 0}
+    return data
+
+
+@app.get(
+    ENDPOINT + "/energy/{component_id}/24h/",
+    response_model=EnergyLog,
+    summary="Retrieve an energy_log by ID",
+    response_description="The energy_log with the specified ID",
+    tags=["energy"],
+)
+async def get_energy_log_24h(component_id: int):
+    data = DataRepository.read_energy_24h(component_id)
+    if data is None:
+        return {"total_kwh": 0}
+    return data
+
+
+@app.get(
+    ENDPOINT + "/entered/{component_id}/last",
+    response_model=LastEntered,
+    summary="Retrieve a model_singular by ID",
+    response_description="The model_singular with the specified ID",
+    tags=["entered"],
+)
+async def get_model_singular_by_id(component_id: int):
+    data = DataRepository.read_last_entered(component_id)
+    if data is None:
+        return {"name": "Unknown", "last_entered": datetime.now()}
+    return data
+
+
 # endregion FastAPI Endpoints *************************
 
 
@@ -1256,9 +1298,151 @@ async def schedule_handler(sid, data):
     dict_schedules[data["schedule_id"]] = data
 
 
-@sio.on("BF2_component_selection")
-async def component_selection_handler(sid, data):
-    pass
+@sio.on("BF2_manual_door_control")
+async def manual_door_control_handler(sid, data):
+    global DOOR_LOCK, servo_lock_id
+
+    try:
+        component_id = data.get("component_id")
+        action = data.get("action")
+        manual_override = data.get("manual_override", False)
+
+        if not DOOR_LOCK:
+            await sio.emit(
+                "B2F_door_control_error",
+                {"error": "Door lock not available", "component_id": component_id},
+            )
+            return
+
+        if component_id != servo_lock_id:
+            await sio.emit(
+                "B2F_door_control_error",
+                {"error": "Invalid component ID", "component_id": component_id},
+            )
+            return
+
+        if action == "unlock":
+            DOOR_LOCK.unlock()
+            new_state = 1
+        elif action == "lock":
+            DOOR_LOCK.lock()
+            new_state = 0
+        else:
+            await sio.emit(
+                "B2F_door_control_error",
+                {"error": "Invalid action", "component_id": component_id},
+            )
+            return
+
+        await log_and_emit_async(new_state, servo_lock_id)
+
+        await sio.emit(
+            "B2F_door_control_success",
+            {
+                "component_id": component_id,
+                "action": action,
+                "new_state": new_state,
+                "manual_override": manual_override,
+            },
+        )
+
+    except Exception as e:
+        logger.error(f"Error in manual door control handler: {e}")
+        await sio.emit(
+            "B2F_door_control_error",
+            {"error": str(e), "component_id": data.get("component_id")},
+        )
+
+
+@sio.on("BF2_manual_light_control")
+async def manual_light_control_handler(sid, data):
+    global LED_BOTTOM, LED_TOP, LED_OUTDOORS
+    global led_bottom_id, led_top_id, led_outdoors_id
+    global switch_state
+
+    try:
+        component_id = data.get("component_id")
+        new_value = data.get("value", 0)
+        manual_override = data.get("manual_override", False)
+
+        logger.info(
+            f"Manual light control: Component {component_id}, Value: {new_value}"
+        )
+
+        if component_id == led_bottom_id:
+            if LED_BOTTOM:
+                if new_value > 0:
+                    LED_BOTTOM.set_brightness(new_value)
+                    switch_state = True
+                else:
+                    LED_BOTTOM.off()
+                    switch_state = False
+
+                await log_and_emit_async(new_value, led_bottom_id)
+
+                await sio.emit(
+                    "B2F_light_control_success",
+                    {
+                        "component_id": component_id,
+                        "new_value": new_value,
+                        "manual_override": manual_override,
+                    },
+                )
+            else:
+                raise Exception("LED_BOTTOM not available")
+
+        elif component_id == led_top_id:
+            if LED_TOP:
+                if new_value > 0:
+                    LED_TOP.set_brightness(new_value)
+                else:
+                    LED_TOP.off()
+
+                await log_and_emit_async(new_value, led_top_id)
+
+                await sio.emit(
+                    "B2F_light_control_success",
+                    {
+                        "component_id": component_id,
+                        "new_value": new_value,
+                        "manual_override": manual_override,
+                    },
+                )
+            else:
+                raise Exception("LED_TOP not available")
+
+        elif component_id == led_outdoors_id:
+            if LED_OUTDOORS:
+                if new_value > 0:
+                    GPIO.output(LED_OUTDOORS, GPIO.HIGH)
+                else:
+                    GPIO.output(LED_OUTDOORS, GPIO.LOW)
+
+                await log_and_emit_async(new_value, led_outdoors_id)
+
+                await sio.emit(
+                    "B2F_light_control_success",
+                    {
+                        "component_id": component_id,
+                        "new_value": new_value,
+                        "manual_override": manual_override,
+                    },
+                )
+            else:
+                raise Exception("LED_OUTDOORS not available")
+        else:
+            raise Exception(f"Invalid light component ID: {component_id}")
+
+    except Exception as e:
+        logger.error(f"Error in manual light control handler: {e}")
+        await sio.emit(
+            "B2F_light_control_error",
+            {
+                "error": str(e),
+                "component_id": data.get("component_id"),
+                "requested_value": data.get("value"),
+            },
+        )
 
 
 # endregion Socket.IO Handlers *************************

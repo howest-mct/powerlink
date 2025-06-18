@@ -5,7 +5,6 @@ const socket_connection = io(lan_ip);
 const api_endpoint = `http://${window.location.hostname}:8000/api/v1`;
 
 // #region ***  DOM references                           ***********
-
 const schedule_icons = {
   1: 'img/svg/sun-dim.svg',
   2: 'img/svg/moon-stars.svg',
@@ -18,11 +17,23 @@ const schedule_icons = {
 
 // #region ***  HTML Generation Functions               ***********
 const generateTemperatureControlHtml = (schedule_item) => {
-  const { schedule_id, schedule_name, start_time, end_time, value, value_unit, enabled, type_id, component_id, room_id, type_name } = schedule_item;
+  const schedule_id = schedule_item.schedule_id;
+  const schedule_name = schedule_item.schedule_name;
+  const start_time = schedule_item.start_time;
+  const end_time = schedule_item.end_time;
+  const value = schedule_item.value;
+  const value_unit = schedule_item.value_unit;
+  const enabled = schedule_item.enabled;
+  const type_id = schedule_item.type_id;
+  const component_id = schedule_item.component_id;
+  const room_id = schedule_item.room_id;
+  const type_name = schedule_item.type_name;
+
   const icon_path = schedule_icons[schedule_id];
+  const opacity = enabled ? '' : 'c-opacity-disabled';
 
   return `
-    <div class="c-temperature-control js-schedule__container js-temperature-control c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
+    <div class="c-temperature-control js-schedule__container js-temperature-control c-hover--shadow ${opacity}" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
       <div class="c-schedule-card__header">
         <div class="c-schedule-card__header">
           <img src="${icon_path}" alt="${type_name}" class="c-schedule-icon">
@@ -68,11 +79,23 @@ const generateTemperatureControlHtml = (schedule_item) => {
 };
 
 const generateLightingControlHtml = (schedule_item) => {
-  const { schedule_id, schedule_name, start_time, end_time, value, value_unit, enabled, type_id, component_id, room_id, type_name } = schedule_item;
+  const schedule_id = schedule_item.schedule_id;
+  const schedule_name = schedule_item.schedule_name;
+  const start_time = schedule_item.start_time;
+  const end_time = schedule_item.end_time;
+  const value = schedule_item.value;
+  const value_unit = schedule_item.value_unit;
+  const enabled = schedule_item.enabled;
+  const type_id = schedule_item.type_id;
+  const component_id = schedule_item.component_id;
+  const room_id = schedule_item.room_id;
+  const type_name = schedule_item.type_name;
+
   const icon_path = schedule_icons[schedule_id];
+  const opacity = enabled ? '' : 'c-opacity-disabled';
 
   return `
-    <div class="c-lighting-card js-schedule__container c-hover--shadow" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
+    <div class="c-lighting-card js-schedule__container c-hover--shadow ${opacity}" data-schedule_id="${schedule_id}" data-component_id="${component_id}" data-room_id="${room_id}">
       <div class="c-schedule-card__header">
         <div class="c-schedule-card__header">
           <img src="${icon_path}" alt="${type_name}" class="c-schedule-icon">
@@ -114,8 +137,10 @@ const generateLightingControlHtml = (schedule_item) => {
 };
 
 const generateChartParams = (schedule_id, value) => {
+  const percentage = ((value - 16) / (30 - 16)) * 100;
+
   return {
-    series: [((value - 16) / (30 - 16)) * 100],
+    series: [percentage],
     chart: {
       type: 'radialBar',
       offsetY: 0,
@@ -171,8 +196,37 @@ const generateChartParams = (schedule_id, value) => {
 };
 // #endregion
 
-// #region ***  Callback-Visualisation - show___         ***********
-const showSliders = async (light_slider_id, value_display_id, bulb_icon_id) => {
+// #region ***  Chart Functions                         ***********
+const createChart = (chart_element_id, chart_options) => {
+  const chart_container = document.getElementById(chart_element_id);
+
+  if (chart_container) {
+    chart_container.chart = new ApexCharts(chart_container, chart_options);
+    chart_container.chart.render().then(() => {
+      setTimeout(() => {
+        const current_series_value = chart_container.chart.w.config.series[0];
+        chart_container.chart.updateSeries([current_series_value - 0.001]);
+
+        setTimeout(() => {
+          chart_container.chart.updateSeries([current_series_value]);
+        }, 1);
+      }, 1);
+    });
+  }
+};
+
+const updateChart = (schedule_id, new_temperature) => {
+  const chart_container = document.getElementById(`chart_${schedule_id}`);
+
+  if (chart_container && chart_container.chart) {
+    const new_percentage = ((new_temperature - 16) / (30 - 16)) * 100;
+    chart_container.chart.updateSeries([new_percentage]);
+  }
+};
+// #endregion
+
+// #region ***  Slider Functions                        ***********
+const setupSlider = (light_slider_id, value_display_id, bulb_icon_id) => {
   const slider_element = document.getElementById(light_slider_id);
   const value_display_element = document.getElementById(value_display_id);
   const bulb_icon_element = document.getElementById(bulb_icon_id);
@@ -206,8 +260,10 @@ const showSliders = async (light_slider_id, value_display_id, bulb_icon_id) => {
   const initial_slider_value = parseInt(slider_element.value, 10);
   updateSliderVisuals(initial_slider_value);
 };
+// #endregion
 
-const showDropdown = () => {
+// #region ***  Mobile Navigation Functions             ***********
+const setupMobileNavigation = () => {
   const hamburger_button = document.querySelector('.c-hamburger');
   const navigation_popup = document.querySelector('.c-nav-popup');
   const page_overlay = document.querySelector('.c-overlay');
@@ -276,14 +332,44 @@ const showDropdown = () => {
     }
   });
 };
+// #endregion
 
-const showAllSchedules = (all_schedules) => {
+// #region ***  Opacity Toggle Functions                ***********
+const toggleScheduleOpacity = (schedule_container, is_enabled) => {
+  if (is_enabled) {
+    schedule_container.classList.remove('c-opacity-disabled');
+  } else {
+    schedule_container.classList.add('c-opacity-disabled');
+  }
+};
+
+const setupCheckboxHandlers = () => {
+  const all_checkboxes = document.querySelectorAll('.js-schedule__checkbox');
+
+  for (let i = 0; i < all_checkboxes.length; i++) {
+    const checkbox = all_checkboxes[i];
+
+    checkbox.addEventListener('change', (event) => {
+      const schedule_container = event.target.closest('.js-schedule__container');
+      const is_enabled = event.target.checked;
+
+      toggleScheduleOpacity(schedule_container, is_enabled);
+    });
+  }
+};
+// #endregion
+
+// #region ***  Display Functions                       ***********
+const displayAllSchedules = (all_schedules) => {
   let rooms_html = '';
   const main_container = document.querySelector('.js-main');
 
   let schedules_by_room = {};
-  for (const schedule_item of all_schedules) {
+
+  for (let i = 0; i < all_schedules.length; i++) {
+    const schedule_item = all_schedules[i];
     const room_id = schedule_item.room_id;
+
     if (!schedules_by_room[room_id]) {
       schedules_by_room[room_id] = [];
     }
@@ -305,8 +391,11 @@ const showAllSchedules = (all_schedules) => {
           <div class="c-schedules__container">
     `;
 
-    for (const schedule_item of room_schedule_data) {
-      const { type_id, schedule_id, value } = schedule_item;
+    for (let i = 0; i < room_schedule_data.length; i++) {
+      const schedule_item = room_schedule_data[i];
+      const type_id = schedule_item.type_id;
+      const schedule_id = schedule_item.schedule_id;
+      const value = schedule_item.value;
 
       if (type_id === 1) {
         schedules_html += generateTemperatureControlHtml(schedule_item);
@@ -333,27 +422,18 @@ const showAllSchedules = (all_schedules) => {
 
   main_container.innerHTML = rooms_html;
 
-  charts_to_render.forEach(({ id, options }) => {
-    const chart_container = document.getElementById(id);
-    if (chart_container) {
-      chart_container.chart = new ApexCharts(chart_container, options);
-      chart_container.chart.render().then(() => {
-        setTimeout(() => {
-          const current_series_value = chart_container.chart.w.config.series[0];
-          chart_container.chart.updateSeries([current_series_value - 0.001]);
+  for (let i = 0; i < charts_to_render.length; i++) {
+    const chart_info = charts_to_render[i];
+    createChart(chart_info.id, chart_info.options);
+  }
 
-          setTimeout(() => {
-            chart_container.chart.updateSeries([current_series_value]);
-          }, 1);
-        }, 1);
-      });
-    }
-  });
-
-  listenToTemperatureControl();
+  setupTemperatureControls();
+  setupCheckboxHandlers();
 
   const all_room_containers = document.querySelectorAll('.js-room__container');
-  all_room_containers.forEach((room_container) => {
+
+  for (let i = 0; i < all_room_containers.length; i++) {
+    const room_container = all_room_containers[i];
     const display_number = parseInt(room_container.dataset.display_number);
     const schedule_containers = room_container.querySelectorAll('.js-schedule__container');
     const input_containers = room_container.querySelectorAll('.js-input_container');
@@ -361,53 +441,55 @@ const showAllSchedules = (all_schedules) => {
 
     if (display_number % 2 === 0) {
       room_container.classList.add('c-grey-background');
-      schedule_containers.forEach((schedule_container) => {
-        schedule_container.classList.add('c-white-background');
-      });
-      input_containers.forEach((input_container) => {
-        input_container.classList.add('c-white-background');
-      });
-      save_button_containers.forEach((save_container) => {
-        save_container.classList.add('c-white-background');
-      });
+
+      for (let j = 0; j < schedule_containers.length; j++) {
+        schedule_containers[j].classList.add('c-white-background');
+      }
+      for (let j = 0; j < input_containers.length; j++) {
+        input_containers[j].classList.add('c-white-background');
+      }
+      for (let j = 0; j < save_button_containers.length; j++) {
+        save_button_containers[j].classList.add('c-white-background');
+      }
     } else {
       room_container.classList.add('c-white-background');
-      schedule_containers.forEach((schedule_container) => {
-        schedule_container.classList.add('c-grey-background');
-      });
-      input_containers.forEach((input_container) => {
-        input_container.classList.add('c-grey-background');
-      });
-      save_button_containers.forEach((save_container) => {
-        save_container.classList.add('c-grey-background');
-      });
+
+      for (let j = 0; j < schedule_containers.length; j++) {
+        schedule_containers[j].classList.add('c-grey-background');
+      }
+      for (let j = 0; j < input_containers.length; j++) {
+        input_containers[j].classList.add('c-grey-background');
+      }
+      for (let j = 0; j < save_button_containers.length; j++) {
+        save_button_containers[j].classList.add('c-grey-background');
+      }
     }
 
     const lighting_cards = room_container.querySelectorAll('.c-lighting-card');
-    lighting_cards.forEach((lighting_card) => {
+    for (let j = 0; j < lighting_cards.length; j++) {
+      const lighting_card = lighting_cards[j];
       const schedule_id = lighting_card.dataset.schedule_id;
-      showSliders(`light_slider_${schedule_id}`, `value_display_${schedule_id}`, `bulb_icon_${schedule_id}`);
-    });
-  });
+      setupSlider(`light_slider_${schedule_id}`, `value_display_${schedule_id}`, `bulb_icon_${schedule_id}`);
+    }
+  }
 
-  listenToSubmitSchedule();
+  setupSaveButtons();
 };
 // #endregion
 
-// #region ***  Callback-No Visualisation - callback___  ***********
-// #endregion
-
-// #region ***  Data Access - get___                     ***********
+// #region ***  Data Access Functions                   ***********
 const getAllSchedules = async () => {
   const url_parameters = new URLSearchParams(window.location.search);
   const page_url_parameter = url_parameters.get('page');
   const request_url = api_endpoint + `/schedules/${page_url_parameter}/`;
+
   const server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
   const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
-  showAllSchedules(json_data);
+
+  displayAllSchedules(json_data);
 };
 
-const getPutSchedule = async (schedule_id, start_time, end_time, value, enabled) => {
+const updateSchedule = async (schedule_id, start_time, end_time, value, enabled) => {
   const request_url = api_endpoint + `/schedule/${schedule_id}/`;
   const schedule_data = {
     start_time: start_time,
@@ -437,16 +519,8 @@ const getPutSchedule = async (schedule_id, start_time, end_time, value, enabled)
 };
 // #endregion
 
-// #region ***  Event Listeners - listenTo___            ***********
-const listenToSubmitSchedule = () => {
-  const all_save_buttons = document.querySelectorAll('.js-card__schedule-save');
-  all_save_buttons.forEach((save_button) => {
-    save_button.removeEventListener('click', listenToSaveClicked);
-    save_button.addEventListener('click', listenToSaveClicked);
-  });
-};
-
-const listenToSaveClicked = (click_event) => {
+// #region ***  Event Handler Functions                 ***********
+const handleSaveButtonClick = (click_event) => {
   const clicked_button = click_event.target;
   const schedule_container = clicked_button.closest('.js-schedule__container');
   const schedule_id = parseInt(schedule_container.dataset.schedule_id);
@@ -478,11 +552,13 @@ const listenToSaveClicked = (click_event) => {
     clicked_button.timeoutId = null;
   }, 3000);
 
-  getPutSchedule(schedule_id, start_time, end_time, current_value, is_enabled);
+  updateSchedule(schedule_id, start_time, end_time, current_value, is_enabled);
 
   const room_container = schedule_container.closest('.js-room__container');
   const all_schedules_in_room = room_container.querySelectorAll('.js-schedule__container');
-  all_schedules_in_room.forEach((other_schedule) => {
+
+  for (let i = 0; i < all_schedules_in_room.length; i++) {
+    const other_schedule = all_schedules_in_room[i];
     const other_schedule_id = parseInt(other_schedule.dataset.schedule_id, 10);
     const other_component_id = parseInt(other_schedule.dataset.component_id, 10);
     const current_component_id = parseInt(schedule_container.dataset.component_id, 10);
@@ -500,49 +576,73 @@ const listenToSaveClicked = (click_event) => {
 
       const other_schedule_enabled = other_schedule.querySelector('.js-schedule__checkbox').checked ? 1 : 0;
 
-      getPutSchedule(other_schedule_id, inverse_start_time, inverse_end_time, other_schedule_value, other_schedule_enabled);
+      updateSchedule(other_schedule_id, inverse_start_time, inverse_end_time, other_schedule_value, other_schedule_enabled);
 
       const other_time_inputs = other_schedule.querySelectorAll('.js-input_container');
       other_time_inputs[0].value = inverse_start_time;
       other_time_inputs[1].value = inverse_end_time;
     }
-  });
+  }
 };
 
-const listenToTemperatureControl = () => {
+const handleTemperatureDecrease = (schedule_id) => {
+  const temperature_control = document.querySelector(`[data-schedule_id="${schedule_id}"]`);
+  const progress_element = temperature_control.querySelector('.c-circular-progress');
+
+  let current_temperature = parseFloat(progress_element.getAttribute('data-value'));
+  current_temperature -= 0.5;
+  if (current_temperature < 16) current_temperature = 16;
+
+  progress_element.setAttribute('data-value', current_temperature);
+  updateChart(schedule_id, current_temperature);
+};
+
+const handleTemperatureIncrease = (schedule_id) => {
+  const temperature_control = document.querySelector(`[data-schedule_id="${schedule_id}"]`);
+  const progress_element = temperature_control.querySelector('.c-circular-progress');
+
+  let current_temperature = parseFloat(progress_element.getAttribute('data-value'));
+  current_temperature += 0.5;
+  if (current_temperature > 30) current_temperature = 30;
+
+  progress_element.setAttribute('data-value', current_temperature);
+  updateChart(schedule_id, current_temperature);
+};
+// #endregion
+
+// #region ***  Setup Functions                         ***********
+const setupSaveButtons = () => {
+  const all_save_buttons = document.querySelectorAll('.js-card__schedule-save');
+
+  for (let i = 0; i < all_save_buttons.length; i++) {
+    const save_button = all_save_buttons[i];
+    save_button.removeEventListener('click', handleSaveButtonClick);
+    save_button.addEventListener('click', handleSaveButtonClick);
+  }
+};
+
+const setupTemperatureControls = () => {
   const temperature_controls = document.querySelectorAll('.js-temperature-control');
-  temperature_controls.forEach((temperature_control) => {
+
+  for (let i = 0; i < temperature_controls.length; i++) {
+    const temperature_control = temperature_controls[i];
     const schedule_id = temperature_control.dataset.schedule_id;
     const decrease_button = temperature_control.querySelector(`#decrease_btn_${schedule_id}`);
     const increase_button = temperature_control.querySelector(`#increase_btn_${schedule_id}`);
-    const progress_element = temperature_control.querySelector('.c-circular-progress');
-    const chart_container = temperature_control.querySelector(`#chart_${schedule_id}`);
 
-    if (decrease_button && increase_button && progress_element && chart_container && chart_container.chart) {
+    if (decrease_button && increase_button) {
       decrease_button.addEventListener('click', () => {
-        let current_temperature = parseFloat(progress_element.getAttribute('data-value'));
-        current_temperature -= 0.5;
-        if (current_temperature < 16) current_temperature = 16;
-
-        progress_element.setAttribute('data-value', current_temperature);
-        const new_percentage = ((current_temperature - 16) / (30 - 16)) * 100;
-        chart_container.chart.updateSeries([new_percentage]);
+        handleTemperatureDecrease(schedule_id);
       });
 
       increase_button.addEventListener('click', () => {
-        let current_temperature = parseFloat(progress_element.getAttribute('data-value'));
-        current_temperature += 0.5;
-        if (current_temperature > 30) current_temperature = 30;
-
-        progress_element.setAttribute('data-value', current_temperature);
-        const new_percentage = ((current_temperature - 16) / (30 - 16)) * 100;
-        chart_container.chart.updateSeries([new_percentage]);
+        handleTemperatureIncrease(schedule_id);
       });
     }
-  });
+  }
 };
 
-const listenToSocketIo = () => {
+const setupSocketConnection = () => {
   socket_connection.on('connect', () => {
     console.log('Socket.IO connected');
   });
@@ -557,12 +657,12 @@ const listenToSocketIo = () => {
 };
 // #endregion
 
-// #region ***  Init / DOMContentLoaded                  ***********
+// #region ***  Init Functions                          ***********
 const init = () => {
   console.log('DOM loaded');
-  showDropdown();
+  setupMobileNavigation();
   getAllSchedules();
-  listenToSocketIo();
+  setupSocketConnection();
 };
 
 document.addEventListener('DOMContentLoaded', init);

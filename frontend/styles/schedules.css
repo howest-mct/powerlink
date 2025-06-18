@@ -424,6 +424,9 @@ body {
     text-decoration: underline;
 }
 
+.c-opacity-disabled {
+    opacity: 0.65;
+}
 
 .c-value-display {
     position: absolute;

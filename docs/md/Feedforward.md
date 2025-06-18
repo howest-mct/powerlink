@@ -87,8 +87,47 @@ Dit is de feedback op mijn vragen.
   Dynamische website idee is pas 2de jaar
   Mag het doen als je wilt, maar maak het niet te complex
 
-  ## Toermoment 2 (Datum: 10/06/2025)
+## Toermoment 2 (Datum: 10/06/2025)
 
 - Temperatuur waardes samen zetten waar nodig, huidige waarde & ingestelde waarde
 - Tijdschema voor snachts & dat je er meerdere op 1 dag kunt hebben
 - Mogelijkheid om persoon aan huishouden toe te voegen
+
+## Toermoment 3 (Datum: 17/06/2025)
+
+- Als je de schedule afzet disabelen of in grijs zetten zodat het duidelijk wordt dat het afstaat
+- De setting is niet duidelijk dat het naar de potentiometer overgaat als je het aflegt
+- Boven de schedule een melding 'manual control active'
+- Verlichting via website aan en uit zetten?
+- Uit knop?
+- Website finetunen als er tijd is
+- Feature/#id in titel van issues zetten
+- Backup video nog maken
+- Schema niet in projectfiche zetten, website wel
+- Of ipv schema een foto van binnenkant huis
+- Woorden highlighten in tekst projectfiche
+- Foto uitzoomen zodat het kleiner is in de banner
+- Meer feedback op website tonen & kleine dingen verbeteren
+- In schedule vooral meer duidelijkheid
+- Gewone gebruiker proberen te overtuigen
+
+## Gesprek 3 (Datum: x/06/2025)
+
+Lector:
+
+Vragen voor dit gesprek:
+
+- vraag 1:
+
+Dit is de feedback op mijn vragen.
+
+- feedback 1
+
+  ## Gesprek 4 (Datum: x/06/2025)
+
+Lector:
+
+Vragen voor dit gesprek:
+
+- vraag 1:
+- feedback 1:

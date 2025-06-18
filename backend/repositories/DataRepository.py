@@ -1,3 +1,4 @@
+import mysql
 from .Database import Database
 import pandas as pd
 from datetime import datetime, timedelta
@@ -139,7 +140,7 @@ class DataRepository:
                 AND DATE(datetime) = CURDATE()
             )
             SELECT 
-                ROUND(SUM(value * TIMESTAMPDIFF(SECOND, datetime, next_datetime) / 3600), 2) AS total_kwh_today
+                ROUND(SUM(value * TIMESTAMPDIFF(SECOND, datetime, next_datetime) / 3600), 2) AS total_kwh
             FROM ordered_logs
             WHERE next_datetime IS NOT NULL;
         """
@@ -160,7 +161,7 @@ class DataRepository:
                 AND datetime >= CURDATE() - INTERVAL 7 DAY
             )
             SELECT 
-                ROUND(SUM(value * TIMESTAMPDIFF(SECOND, datetime, next_datetime) / 3600), 2) AS total_kwh_week
+                ROUND(SUM(value * TIMESTAMPDIFF(SECOND, datetime, next_datetime) / 3600), 2) AS total_kwh
             FROM ordered_logs
             WHERE next_datetime IS NOT NULL;
         """
@@ -530,6 +531,25 @@ class DataRepository:
         """
         params = [component_id]
         return Database.get_rows(sql, params)
+
+    @staticmethod
+    def read_last_entered(component_id):
+        sql = """
+            SELECT i.first_name, cl.datetime as last_entered
+            FROM component_logs cl
+            JOIN inhabitants i ON cl.value = i.card_id
+            WHERE cl.component_id = %s
+            ORDER BY cl.datetime DESC 
+            LIMIT 1;
+        """
+        params = [component_id]
+        result = Database.get_one_row(sql, params)
+
+        if result and "datetime" in result:
+            result["last_entered"] = result["datetime"]
+            del result["datetime"]
+
+        return result
 
     @staticmethod
     def create_log(value, component_id):

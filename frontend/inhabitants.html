@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <title>PowerLink - Insights</title>
+    <title>PowerLink - My Family</title>
     <meta name="description" content="This is my HTML5 boilerplate.">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,16 +14,15 @@
         rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles/global.css">
+    <link rel="stylesheet" href="styles/home.css">
     <link rel="stylesheet" href="styles/footer.css">
-    <link rel="stylesheet" href="styles/insights.css">
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"
         integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
         crossorigin="anonymous"></script>
-    <script src="script/insights.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="script/home.js" defer></script>
 </head>
 
-<body class="c-body js-insights">
+<body class="c-body js-home">
     <header class="c-header">
         <div class="c-header__nav-container">
             <a href="index.html" class="c-header__logo c-hover-underline">PowerLink</a>
@@ -51,19 +50,27 @@
         <div class="c-overlay" aria-hidden="true" id="overlay"></div>
     </header>
 
+
     <main class="c-main js-main">
-        <p class="c-loading-message">Loading Graphs...</p>
+        <div class="c-form__container">
+            <form action="/action_page.php">
+                <label for="fname">First name:</label>
+                <input type="text" id="fname" name="fname"><br><br>
+                <label for="lname">Last name:</label>
+                <input type="text" id="lname" name="lname"><br><br>
+                <input type="submit" value="Submit">
+            </form>
+        </div>
     </main>
 
-    <footer class="c-footer">
+    <footer class="c-footer c-grey-background">
         <div class="c-footer-content">
             <div class="c-footer-grid">
                 <div class="c-project-info">
                     <h3>PowerLink</h3>
                     <p class="c-project-tagline">Multimedia & Creatieve Technologie Project One</p>
                     <p class="c-project-description">
-                        A smart home control system built on a microcontroller, enabling manual and automated management
-                        of
+                        A smart home control system built on a microcontroller, enabling manual and automated management of
                         residential
                         devices for enhanced energy efficiency. Features include sensor-driven lighting, temperature
                         regulation, secure
@@ -75,9 +82,8 @@
                         <a href="https://www.instagram.com/michielgekiere" class="c-social-link">Instagram</a>
                     </div>
                 </div>
-
                 <div class="c-footer-section">
-                    <h4>Technologies Used</h4>
+                    <h4>Main Technologies Used</h4>
                     <ul class="c-footer-list">
                         <li class="c-footer-list-item"><a href="https://www.python.org"
                                 class="c-footer-list-link">Python</a></li>
@@ -89,14 +95,11 @@
                                 class="c-footer-list-link">CSS</a></li>
                         <li class="c-footer-list-item"><a href="https://fastapi.tiangolo.com"
                                 class="c-footer-list-link">FastAPI</a></li>
-                        <li class="c-footer-list-item"><a href="https://socket.io"
-                                class="c-footer-list-link">Socket.IO</a>
+                        <li class="c-footer-list-item"><a href="https://socket.io" class="c-footer-list-link">Socket.IO</a>
                         </li>
                         <li class="c-footer-list-item"><a href="https://www.raspberrypi.org"
-                                class="c-footer-list-link">Raspberry Pi</a>
-                        </li>
-                        <li class="c-footer-list-item"><a href="https://www.mysql.com"
-                                class="c-footer-list-link">MySQL</a>
+                                class="c-footer-list-link">Raspberry Pi</a></li>
+                        <li class="c-footer-list-item"><a href="https://www.mysql.com" class="c-footer-list-link">MySQL</a>
                         </li>
                         <li class="c-footer-list-item"><a href="https://www.uvicorn.org"
                                 class="c-footer-list-link">Uvicorn</a></li>
