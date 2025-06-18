@@ -129,7 +129,15 @@ const generateRegularComponentCardHtml = (component_id, component_name, value, v
 const generateUsageCardHtml = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
   const formatted_date = new Date(datetime);
   const icon_path = component_icons[component_id];
-  const today_value = '0';
+  const today_value = 0;
+  let color_class = '';
+  if (today_value > 7) {
+    color_class = 'c-card--warning';
+  } else if (today_value > 3) {
+    color_class = 'c-card--mainblue';
+  } else {
+    color_class = 'c-card--active';
+  }
 
   return `
     <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}">
@@ -143,7 +151,7 @@ const generateUsageCardHtml = (component_id, component_name, value, value_unit, 
         <h3 class="c-card__level">${value} ${value_unit}</h3>
         <div class="c-card__meta">
           <p class="c-card__capacity">Today's Energy</p>
-          <p class="c-card__status">${today_value} Wh</p>
+          <p class="c-card__status ${color_class}">${today_value} Wh</p>
         </div>
       </div>
     </article>

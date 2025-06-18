@@ -608,7 +608,16 @@ a {
     font-size: .75rem;
 }
 
+.c-card--mainblue{
+    color: black;
+}
 
+.c-card--green {
+    color: green;
+}
+.c-card--red {
+    color: red;
+}
 
 @media (min-width: 30rem) {
     .c-room__components {
