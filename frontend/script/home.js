@@ -31,8 +31,6 @@ const component_icons = {
 };
 
 const LIGHT_COMPONENT_IDS = [11, 14, 20];
-const TEMP_CONTROL_COMPONENT_IDS = [4];
-const SERVO_COMPONENT_IDS = [18];
 // #endregion
 
 // #region ***  Enhanced HTML Generation Functions      ***********
@@ -49,10 +47,34 @@ const generateServoComponentCardHtml = (component_id, component_name, value, val
         </a>
         <h2 class="c-article__title">${component_name}</h2>
       </div>
-      <div class="c-card">
+      <div class="c-card c-card--light">
         <h3 class="c-card__level">${servo_text}</h3>
+        <div class="c-card__meta c-card__meta--light">
+          <button class="c-card__status c-card__status--toggle" type="button" role="button" tabindex="0">Tap to toggle</button>
+        </div>
+      </div>
+    </article>
+  `;
+};
+
+const generateRfidCardHtml = async (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
+  const formatted_date = new Date(datetime);
+  const icon_path = component_icons[component_id];
+  const inhabitant_name = await getInhabitantNameByCardId(String(value));
+
+  return `
+    <article class="c-article c-hover--shadow js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}">
+      <div class="c-article__header">
+        <a href="#" class="c-article__link">
+          <img src="${icon_path}" alt="Component icon" class="c-article__icon">
+        </a>
+        <h2 class="c-article__title">${component_name}</h2>
+      </div>
+      <div class="c-card">
+        <h3 class="c-card__level">${inhabitant_name}</h3>
         <div class="c-card__meta">
-          <p class="c-card__status">Tap to toggle</p>
+          <p class="c-card__status">Last entered</p>
+          <p class="c-card__capacity">Card: ${value}</p>
         </div>
       </div>
     </article>
@@ -63,10 +85,6 @@ const generateLightComponentCardHtml = (component_id, component_name, value, val
   const icon_path = component_icons[component_id];
   const is_on = parseInt(value) > 0;
   const brightness_text = is_on ? `${value} ${value_unit}` : 'Off';
-  let schedule_text = '';
-  if (component_id === 11 || component_id === 14) {
-    schedule_text = `<a href="schedules.html?page=2" class="c-card__capacity c-card--blue">EDIT SCHEDULES</a>`;
-  }
 
   return `
     <article class="c-article c-hover--shadow c-light-card js-component__container" data-component_id="${component_id}" data-room_id="${room_id}" data-log_id="${log_id}" role="button" tabindex="0" aria-label="Toggle ${component_name}" aria-pressed="${is_on}">
@@ -79,8 +97,7 @@ const generateLightComponentCardHtml = (component_id, component_name, value, val
       <div class="c-card c-card--light">
         <h3 class="c-card__level">${brightness_text}</h3>
         <div class="c-card__meta c-card__meta--light">
-          <p class="c-card__status c-card__status--toggle">Tap to toggle</p>
-          ${schedule_text}
+          <button class="c-card__status c-card__status--toggle" type="button" role="button" tabindex="0">Tap to toggle</button>
         </div>
       </div>
     </article>
@@ -124,7 +141,7 @@ const generateTempControlComponentCardHtml = (component_id, component_name, valu
       <div class="c-card">
         <h3 class="c-card__level">${value} ${value_unit}</h3>
         <div class="c-card__meta">
-          <a href="schedules.html?page=2" class="c-card__capacity c-card--blue">EDIT SCHEDULES</a>
+          <a href="schedules.html?page=2" class="c-card__capacity c-card--blue">EDIT SCHEDULE</a>
         </div>
       </div>
     </article>
@@ -134,10 +151,12 @@ const generateTempControlComponentCardHtml = (component_id, component_name, valu
 const generateSmartComponentCardHtml = (component_id, component_name, value, value_unit, datetime, log_id, room_id) => {
   if (LIGHT_COMPONENT_IDS.includes(parseInt(component_id))) {
     return generateLightComponentCardHtml(component_id, component_name, value, value_unit, room_id, log_id);
-  } else if (TEMP_CONTROL_COMPONENT_IDS.includes(parseInt(component_id))) {
+  } else if (component_id === 4) {
     return generateTempControlComponentCardHtml(component_id, component_name, value, value_unit, datetime, log_id, room_id);
-  } else if (SERVO_COMPONENT_IDS.includes(parseInt(component_id))) {
+  } else if (component_id === 18) {
     return generateServoComponentCardHtml(component_id, component_name, value, value_unit, room_id, log_id);
+  } else if (component_id === 16) {
+    return generateRfidCardHtml(component_id, component_name, value, value_unit, datetime, log_id, room_id);
   } else {
     return generateRegularComponentCardHtml(component_id, component_name, value, value_unit, datetime, log_id, room_id);
   }
@@ -395,52 +414,56 @@ const createComponentCard = async (component_id, room_id) => {
 // #region ***  Component Control Functions             ***********
 const initComponentCardEvents = () => {
   document.addEventListener('click', (event) => {
-    const component_card = event.target.closest('.js-component__container');
+    const toggle_button = event.target.closest('.c-card__status--toggle');
 
-    if (component_card) {
-      const component_id = parseInt(component_card.dataset.component_id);
+    if (toggle_button) {
+      const component_card = toggle_button.closest('.js-component__container');
 
-      if (LIGHT_COMPONENT_IDS.includes(component_id)) {
-        event.preventDefault();
-        event.stopPropagation();
+      if (component_card) {
+        const component_id = parseInt(component_card.dataset.component_id);
 
-        if (component_card.classList.contains('c-light-disabled')) {
-          return;
-        }
+        if (LIGHT_COMPONENT_IDS.includes(component_id)) {
+          event.preventDefault();
+          event.stopPropagation();
 
-        const level_element = component_card.querySelector('.c-card__level');
-        if (level_element) {
-          const current_text = level_element.textContent.trim();
-          let current_value = 0;
-
-          if (current_text.toLowerCase() === 'off') {
-            current_value = 0;
-          } else {
-            current_value = parseInt(current_text.split(' ')[0]) || 0;
+          if (component_card.classList.contains('c-light-disabled')) {
+            return;
           }
 
-          const new_value = current_value > 0 ? 0 : 100;
-          addLoadingState(component_card);
-          toggleLight(component_id, new_value, component_card);
+          const level_element = component_card.querySelector('.c-card__level');
+          if (level_element) {
+            const current_text = level_element.textContent.trim();
+            let current_value = 0;
+
+            if (current_text.toLowerCase() === 'off') {
+              current_value = 0;
+            } else {
+              current_value = parseInt(current_text.split(' ')[0]) || 0;
+            }
+
+            const new_value = current_value > 0 ? 0 : 100;
+            addLoadingState(component_card);
+            toggleLight(component_id, new_value, component_card);
+          }
         }
-      }
 
-      if (SERVO_COMPONENT_IDS.includes(component_id)) {
-        event.preventDefault();
-        event.stopPropagation();
+        if (SERVO_COMPONENT_IDS.includes(component_id)) {
+          event.preventDefault();
+          event.stopPropagation();
 
-        if (component_card.classList.contains('c-servo-disabled')) {
-          return;
-        }
+          if (component_card.classList.contains('c-servo-disabled')) {
+            return;
+          }
 
-        const level_element = component_card.querySelector('.c-card__level');
-        if (level_element) {
-          const current_text = level_element.textContent.trim();
-          const is_unlocked = current_text.toLowerCase() === 'unlocked';
-          const action = is_unlocked ? 'lock' : 'unlock';
+          const level_element = component_card.querySelector('.c-card__level');
+          if (level_element) {
+            const current_text = level_element.textContent.trim();
+            const is_unlocked = current_text.toLowerCase() === 'unlocked';
+            const action = is_unlocked ? 'lock' : 'unlock';
 
-          addServoLoadingState(component_card);
-          toggleDoorLock(component_id, action, component_card);
+            addServoLoadingState(component_card);
+            toggleDoorLock(component_id, action, component_card);
+          }
         }
       }
     }
@@ -999,6 +1022,14 @@ const updateComponentInPage = async (component_id, is_component_selected) => {
     return false;
   }
 };
+
+const getInhabitantNameByCardId = async (card_id) => {
+  const request_url = api_endpoint + `/entered/${card_id}/last/`;
+  const server_response = await fetch(request_url).catch((error) => console.error('Fetch-error:', error));
+  const json_data = await server_response.json().catch((error) => console.error('JSON-error:', error));
+  return json_data;
+};
+
 // #endregion
 
 // #region ***  Event Listeners - listenTo___            ***********

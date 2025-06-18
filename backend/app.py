@@ -172,6 +172,7 @@ sleep_fast = 0.25
 sleep_medium = 1
 sleep_slow = 2
 sleep_long = 5
+battery_percentage = 100.0
 
 try:
     all_schedules = DataRepository.read_all_schedules()
@@ -1269,16 +1270,17 @@ async def get_energy_log_24h(component_id: int):
 
 
 @app.get(
-    ENDPOINT + "/entered/{component_id}/last",
+    ENDPOINT + "/entered/{card_id}/last/",
     response_model=LastEntered,
     summary="Retrieve a model_singular by ID",
     response_description="The model_singular with the specified ID",
     tags=["entered"],
 )
-async def get_model_singular_by_id(component_id: int):
-    data = DataRepository.read_last_entered(component_id)
+async def get_model_singular_by_id(card_id: str):
+    data = DataRepository.read_last_entered(card_id)
+    print(data)
     if data is None:
-        return {"name": "Unknown", "last_entered": datetime.now()}
+        return {"first_name": "Unknown"}
     return data
 
 

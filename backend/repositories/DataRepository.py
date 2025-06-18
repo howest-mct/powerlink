@@ -533,23 +533,22 @@ class DataRepository:
         return Database.get_rows(sql, params)
 
     @staticmethod
-    def read_last_entered(component_id):
+    def read_last_entered(card_id):
         sql = """
-            SELECT i.first_name, cl.datetime as last_entered
+            SELECT i.first_name
             FROM component_logs cl
-            JOIN inhabitants i ON cl.value = i.card_id
-            WHERE cl.component_id = %s
-            ORDER BY cl.datetime DESC 
+            LEFT JOIN inhabitants i 
+            ON CAST(cl.value AS CHAR) = CAST(i.card_id AS CHAR)
+            WHERE CAST(cl.value AS CHAR) = %s
+            ORDER BY cl.datetime DESC
             LIMIT 1;
         """
-        params = [component_id]
+        params = [str(card_id)]
         result = Database.get_one_row(sql, params)
 
-        if result and "datetime" in result:
-            result["last_entered"] = result["datetime"]
-            del result["datetime"]
-
-        return result
+        if result:
+            return result
+        return "Unknown"
 
     @staticmethod
     def create_log(value, component_id):

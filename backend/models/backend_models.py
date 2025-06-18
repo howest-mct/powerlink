@@ -99,7 +99,6 @@ class LogCountHistory(P1BaseModel):
 
 class LastEntered(P1BaseModel):
     first_name: str
-    last_entered: datetime.datetime
 
 
 # endregion Models ********************************
