@@ -2,8 +2,8 @@
 `Description=ProjectOne Project`  
 `After=network.target`  
 `[Service]`  
-`ExecStart=/home/student/project/<repo>/<venv>/bin/python -u /home/student/project/<repo>/backend/app.py`  
-`WorkingDirectory=/home/student/project/<repo>/backend`  
+`ExecStart=/home/student/project/https://github.com/howest-mct/2024-2025-projectone-mct-MichielGekiere.git/venv_project_one/bin/python -u /home/student/project/https://github.com/howest-mct/2024-2025-projectone-mct-MichielGekiere.git/backend/app.py`  
+`WorkingDirectory=/home/student/project/https://github.com/howest-mct/2024-2025-projectone-mct-MichielGekiere.git/backend`  
 `StandardOutput=inherit`  
 `StandardError=inherit`  
 `Restart=always`  
