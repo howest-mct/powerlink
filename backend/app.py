@@ -185,7 +185,7 @@ sleep_fast = 0.25
 sleep_medium = 1
 sleep_slow = 2
 sleep_long = 5
-powerbank_capacity = 0.055
+powerbank_capacity = 55.0
 battery_efficiency = 0.85
 total_energy_in = 0.0
 total_energy_out = 0.0
@@ -297,16 +297,6 @@ def initialize_power_monitoring():
         power_monitor = None
 
 
-def reset_battery_tracking():
-
-    global total_energy_in, total_energy_out, last_time, battery_level
-
-    total_energy_in = 0.0
-    total_energy_out = 0.0
-    last_time = None
-    battery_level = 100.0
-
-
 def update_battery_level(power_in, power_out):
     global total_energy_in, total_energy_out, battery_level, last_time
     global powerbank_capacity, battery_efficiency
@@ -316,12 +306,15 @@ def update_battery_level(power_in, power_out):
 
         if last_time is None:
             last_time = current_time
+            initial_energy = (battery_level / 100) * powerbank_capacity
+            total_energy_in = initial_energy / battery_efficiency
+            total_energy_out = 0.0
             return
 
         hours_passed = (current_time - last_time) / 3600.0
 
-        energy_in_this_period = power_in * hours_passed / 1000.0
-        energy_out_this_period = power_out * hours_passed / 1000.0
+        energy_in_this_period = power_in * hours_passed
+        energy_out_this_period = power_out * hours_passed
 
         total_energy_in += energy_in_this_period
         total_energy_out += energy_out_this_period
@@ -340,17 +333,12 @@ def update_battery_level(power_in, power_out):
                     {
                         "battery_level": round(battery_level, 1),
                         "previous_level": round(old_battery_level, 1),
-                        "total_energy_in": round(total_energy_in, 3),
-                        "total_energy_out": round(total_energy_out, 3),
+                        "total_energy_in": round(total_energy_in, 1),
+                        "total_energy_out": round(total_energy_out, 1),
                         "timestamp": current_time,
                     },
                 )
             )
-            logger.debug(
-                f"Battery level: {battery_level:.1f}% (was {old_battery_level:.1f}%)"
-            )
-        else:
-            battery_level = new_battery_level
 
         last_time = current_time
 
