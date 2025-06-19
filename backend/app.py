@@ -747,77 +747,77 @@ def cut_card(card_id):
 #             print(f"Error reading card: {e}")
 
 
-# async def front_door():
-#     global DOOR_LOCK, REED_SWITCH, CARD_READER
-#     global servo_lock_id, reed_switch_id, card_reader_id
-#     scanned_card = None
+async def front_door():
+    global DOOR_LOCK, REED_SWITCH, CARD_READER
+    global servo_lock_id, reed_switch_id, card_reader_id
+    scanned_card = None
 
-#     while True:
-#         try:
-#             scanned_card = CARD_READER.read_no_block()
-#             print(f"Scanned card: {scanned_card}")
-#             await asyncio.sleep(0)
+    while True:
+        try:
+            scanned_card = CARD_READER.read_no_block()
+            print(f"Scanned card: {scanned_card}")
+            await asyncio.sleep(0)
 
-#             if scanned_card is not None:
-#                 scanned_card = str(scanned_card)
-#                 snipped_card = cut_card(scanned_card)
-#                 log_and_emit_async(snipped_card, card_reader_id)
+            if scanned_card is not None:
+                scanned_card = str(scanned_card)
+                snipped_card = cut_card(scanned_card)
+                log_and_emit_async(snipped_card, card_reader_id)
 
-#                 try:
-#                     checked_card = DataRepository.read_card_by_id(snipped_card)
+                try:
+                    checked_card = DataRepository.read_card_by_id(snipped_card)
 
-#                     if checked_card is None:
-#                         continue
+                    if checked_card is None:
+                        continue
 
-#                     DOOR_LOCK.unlock()
-#                     log_and_emit_async(1, servo_lock_id)
+                    DOOR_LOCK.unlock()
+                    log_and_emit_async(1, servo_lock_id)
 
-#                     start_time = time.time()
+                    start_time = time.time()
 
-#                     while GPIO.input(REED_SWITCH) == 1:
-#                         if time.time() - start_time > 5:
-#                             logger.info(
-#                                 "Door did not open in time (5 seconds) - locking again"
-#                             )
-#                             DOOR_LOCK.lock()
+                    while GPIO.input(REED_SWITCH) == 1:
+                        if time.time() - start_time > 5:
+                            logger.info(
+                                "Door did not open in time (5 seconds) - locking again"
+                            )
+                            DOOR_LOCK.lock()
 
-#                             log_and_emit_async(0, servo_lock_id)
-#                             continue
+                            log_and_emit_async(0, servo_lock_id)
+                            continue
 
-#                         time.sleep(sleep_fast)
+                        time.sleep(sleep_fast)
 
-#                     else:
-#                         log_and_emit_async(1, reed_switch_id)
-#                         start_time = time.time()
+                    else:
+                        log_and_emit_async(1, reed_switch_id)
+                        start_time = time.time()
 
-#                         while GPIO.input(REED_SWITCH) == 0:
-#                             if time.time() - start_time > 10:
-#                                 logger.info(
-#                                     "Door did not close in time (10 seconds) - locking anyway"
-#                                 )
+                        while GPIO.input(REED_SWITCH) == 0:
+                            if time.time() - start_time > 10:
+                                logger.info(
+                                    "Door did not close in time (10 seconds) - locking anyway"
+                                )
 
-#                                 continue
+                                continue
 
-#                             time.sleep(sleep_fast)
+                            time.sleep(sleep_fast)
 
-#                         log_and_emit_async(0, reed_switch_id)
-#                         DOOR_LOCK.lock()
-#                         log_and_emit_async(0, servo_lock_id)
+                        log_and_emit_async(0, reed_switch_id)
+                        DOOR_LOCK.lock()
+                        log_and_emit_async(0, servo_lock_id)
 
-#                 except Exception as e:
-#                     logger.error(f"Error processing card: {e}")
-#                     try:
-#                         DOOR_LOCK.lock()
-#                         log_and_emit_async(0, servo_lock_id)
+                except Exception as e:
+                    logger.error(f"Error processing card: {e}")
+                    try:
+                        DOOR_LOCK.lock()
+                        log_and_emit_async(0, servo_lock_id)
 
-#                     except Exception as lock_error:
-#                         logger.error(f"Error locking door: {lock_error}")
+                    except Exception as lock_error:
+                        logger.error(f"Error locking door: {lock_error}")
 
-#             time.sleep(sleep_fast)
+            time.sleep(sleep_fast)
 
-#         except Exception as e:
-#             logger.error(f"Error in front_door: {e}")
-#             time.sleep(sleep_slow)
+        except Exception as e:
+            logger.error(f"Error in front_door: {e}")
+            time.sleep(sleep_slow)
 
 
 async def lights_outdoors():
