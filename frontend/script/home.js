@@ -100,7 +100,7 @@ const generate_servo_component_card_html = (component_id, component_name, value,
       <div class="c-card c-card--light">
         <h3 class="c-card__level">${servo_text}</h3>
         <div class="c-card__meta c-card__meta--light">
-          <button class="c-card__status c-card__status--toggle" type="button">Tap to toggle</button>
+          <button class="c-card__status c-card__status--toggle" type="button">Toggle Door Lock</button>
         </div>
       </div>
     </article>
@@ -162,7 +162,7 @@ const generate_light_component_card_html = (component_id, component_name, value,
       <div class="c-card c-card--light">
         <h3 class="c-card__level">${brightness_text}</h3>
         <div class="c-card__meta c-card__meta--light">
-          <button class="c-card__status c-card__status--toggle" type="button">Tap to toggle</button>
+          <button class="c-card__status c-card__status--toggle" type="button">Toggle Lights</button>
         </div>
       </div>
     </article>
@@ -215,7 +215,7 @@ const generate_power_switch_html = (component_id, component_name, datetime, log_
       <div class="c-card c-card--light">
         <h3 class="c-card__level">Active</h3>
         <div class="c-card__meta c-card__meta--light">
-          <button class="c-card__status c-card__status--toggle" type="button">Tap to turn off PowerLink</button>
+          <button class="c-card__status c-card__status--toggle" type="button">Turn Off PowerLink</button>
         </div>
       </div>
     </article>

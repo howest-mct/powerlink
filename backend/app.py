@@ -8,6 +8,9 @@ import time
 import re
 import subprocess
 from datetime import datetime
+import signal
+import sys
+import os
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
@@ -182,6 +185,7 @@ total_energy_in = 0.0
 total_energy_out = 0.0
 last_time = None
 powerlink_password = "powerlink"
+shutdown_requested = False
 
 try:
     all_schedules = DataRepository.read_all_schedules()
@@ -207,7 +211,19 @@ except RuntimeError as e:
     GPIO.cleanup()
 # endregion Globals ******************************
 
+
 # region Functions ---------------------------------
+def signal_handler(signum, frame):
+    global shutdown_requested
+    logger.info(f"Received signal {signum}. Initiating graceful shutdown...")
+    shutdown_requested = True
+
+
+async def trigger_shutdown():
+    global shutdown_requested
+    logger.info("Programmatic shutdown requested")
+    shutdown_requested = True
+    os.kill(os.getpid(), signal.SIGTERM)
 
 
 def get_ip(interface):
@@ -871,6 +887,9 @@ def power_button(pin):
 # region App Setup ---------------------------------
 @asynccontextmanager
 async def lifespan_manager(app: FastAPI):
+    global shutdown_requested
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     logger.info("Starting application...")
     GPIO.setmode(GPIO.BCM)
     tasks = []
@@ -992,6 +1011,35 @@ async def lifespan_manager(app: FastAPI):
         if GPIO:
             GPIO.cleanup()
         logger.info("GPIO cleaned up. Bye!")
+
+        if shutdown_requested:
+            logger.info(
+                "Shutdown was requested. Waiting 3 seconds before powering off..."
+            )
+            await asyncio.sleep(3)
+
+            try:
+                logger.info("Executing system shutdown...")
+                result = subprocess.run(
+                    ["sudo", "shutdown", "now"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+
+                if result.returncode == 0:
+                    logger.info("Shutdown command executed successfully")
+                else:
+                    logger.error(f"Shutdown command failed: {result.stderr}")
+
+            except subprocess.TimeoutExpired:
+                logger.error("Shutdown command timed out")
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Shutdown command failed with error: {e}")
+            except Exception as e:
+                logger.error(f"Unexpected error during shutdown: {e}")
+        else:
+            logger.info("Normal application shutdown completed")
 
 
 app = FastAPI(lifespan=lifespan_manager)
@@ -1489,18 +1537,36 @@ async def manual_light_control_handler(sid, data):
 
 @sio.on("BF2_manual_powerlink_control")
 async def manual_powerlink_control_handler(sid, data):
+    global shutdown_requested
     component_id = data.get("component_id")
     action = data.get("action")
 
     await log_and_emit_async(0 if action == "off" else 1, component_id)
 
-    await sio.emit(
-        "B2F_powerlink_control_success",
-        {
-            "component_id": component_id,
-            "action": action,
-        },
-    )
+    if action == "off":
+        logger.info("PowerLink shutdown initiated - system will power off")
+        shutdown_requested = True
+
+        await sio.emit(
+            "B2F_powerlink_control_success",
+            {
+                "component_id": component_id,
+                "action": action,
+                "message": "System shutdown initiated",
+            },
+        )
+
+        await asyncio.sleep(1)
+
+        os.kill(os.getpid(), signal.SIGTERM)
+    else:
+        await sio.emit(
+            "B2F_powerlink_control_success",
+            {
+                "component_id": component_id,
+                "action": action,
+            },
+        )
 
 
 @sio.on("BF2_reset_battery_tracking")

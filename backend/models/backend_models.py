@@ -116,7 +116,7 @@ class DTOInhabitant(P1BaseModel):
 
 class PasswordVerificationRequest(BaseModel):
     password: str
-    component_id: str
+    component_id: int
 
 
 class PasswordVerificationResponse(BaseModel):

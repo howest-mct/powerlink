@@ -160,8 +160,8 @@
         grid-template-columns: repeat(2, 1fr);
         grid-template-areas:
             "fname lname"
-            "card card"
-            "submit submit";
+            "card ."
+            "submit .";
     }
 
     .c-form__group--fname {
