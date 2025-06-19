@@ -1,0 +1,14 @@
+`[Unit]`  
+`Description=ProjectOne Project`  
+`After=network.target`  
+`[Service]`  
+`ExecStart=/home/student/project/<repo>/<venv>/bin/python -u /home/student/project/<repo>/backend/app.py`  
+`WorkingDirectory=/home/student/project/<repo>/backend`  
+`StandardOutput=inherit`  
+`StandardError=inherit`  
+`Restart=always`  
+`User=student`  
+`CPUSchedulingPolicy=rr`  
+`CPUSchedulingPriority=99`  
+`[Install]`  
+`WantedBy=multi-user.target`
