@@ -358,6 +358,56 @@ def update_battery_level(power_in, power_out):
         logger.error(f"Error updating battery level: {e}")
 
 
+async def shutdown_powerlink_system():
+    """
+    Gracefully shutdown the PowerLink system by stopping the service and shutting down the Pi
+    """
+    global powerlink_shutdown_requested
+
+    try:
+        logger.info("=== INITIATING POWERLINK SYSTEM SHUTDOWN ===")
+        powerlink_shutdown_requested = True
+
+        # Give some time for any final operations
+        await asyncio.sleep(1)
+
+        # Stop the powerlink service
+        logger.info("Stopping powerlink.service...")
+        try:
+            subprocess.run(
+                ["sudo", "systemctl", "stop", "powerlink.service"],
+                check=True,
+                timeout=10,
+            )
+            logger.info("PowerLink service stopped successfully")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to stop powerlink service: {e}")
+        except subprocess.TimeoutExpired:
+            logger.error("Timeout while stopping powerlink service")
+
+        # Wait a moment for service to fully stop
+        await asyncio.sleep(2)
+
+        # Shutdown the Raspberry Pi
+        logger.info("Shutting down Raspberry Pi...")
+        try:
+            subprocess.run(["sudo", "shutdown", "-h", "now"], check=True, timeout=5)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to shutdown Pi: {e}")
+            # Fallback to alternative shutdown command
+            try:
+                subprocess.run(["sudo", "halt"], check=True, timeout=5)
+            except subprocess.CalledProcessError as e2:
+                logger.error(f"Fallback shutdown also failed: {e2}")
+        except subprocess.TimeoutExpired:
+            logger.error("Timeout while shutting down Pi")
+
+    except Exception as e:
+        logger.error(f"Error during system shutdown: {e}")
+        # Emergency fallback - just kill the current process
+        os.kill(os.getpid(), signal.SIGTERM)
+
+
 async def get_wattage():
     global power_monitor, current_usage, battery_level
     global kw_led_bottom, kw_led_top, kw_heating, kw_airco, kw_bat_out
@@ -916,11 +966,8 @@ async def monitor_power_button():
                     log_and_emit_sync(switch_state_power, button_power_id)
 
                     if not switch_state_power:
-                        powerlink_shutdown_requested = True
-                        logger.info(
-                            "=== TRIGGERING SYSTEM SHUTDOWN VIA POWER BUTTON ==="
-                        )
-                        os.kill(os.getpid(), signal.SIGTERM)
+                        # Use the new shutdown function
+                        await shutdown_powerlink_system()
 
             await asyncio.sleep(0.1)
 
@@ -1546,8 +1593,7 @@ async def manual_powerlink_control_handler(sid, data):
     await log_and_emit_async(0 if action == "off" else 1, component_id)
 
     if action == "off":
-        logger.info("=== POWERLINK SHUTDOWN INITIATED ===")
-        powerlink_shutdown_requested = True
+        logger.info("=== POWERLINK SHUTDOWN INITIATED VIA MANUAL CONTROL ===")
 
         await sio.emit(
             "B2F_powerlink_control_success",
@@ -1558,10 +1604,11 @@ async def manual_powerlink_control_handler(sid, data):
             },
         )
 
+        # Give the frontend time to receive the message
         await asyncio.sleep(2)
 
-        logger.info("=== TRIGGERING GRACEFUL SHUTDOWN ===")
-        os.kill(os.getpid(), signal.SIGTERM)
+        # Use the new shutdown function
+        await shutdown_powerlink_system()
 
     else:
         await sio.emit(
@@ -1570,22 +1617,6 @@ async def manual_powerlink_control_handler(sid, data):
                 "component_id": component_id,
                 "action": action,
             },
-        )
-
-
-@sio.on("BF2_reset_battery_tracking")
-async def reset_battery_tracking_handler(sid, data):
-    try:
-        reset_battery_tracking()
-        await sio.emit(
-            "B2F_battery_tracking_reset",
-            {"success": True, "message": "Battery tracking reset to 100%"},
-        )
-        logger.info("Battery tracking reset via Socket.IO")
-    except Exception as e:
-        logger.error(f"Error resetting battery tracking: {e}")
-        await sio.emit(
-            "B2F_battery_tracking_reset", {"success": False, "error": str(e)}
         )
 
 

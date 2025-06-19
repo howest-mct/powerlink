@@ -59,14 +59,14 @@
   `CPUSchedulingPriority=99`  
   `[Install]`  
   `WantedBy=multi-user.target`
-- Kopieer dit bestand als root user naar _/etc/systemd/system_ met het commando `sudo cp mijnproject.service /etc/systemd/system/mijnproject.service`
+- Kopieer dit bestand als root user naar _/etc/systemd/system_ met het commando `sudo cp powerlink.service /etc/systemd/system/powerlink.service`
 - Nu kan je het bestand testen door het op te starten:
-  `sudo systemctl start mijnproject.service`
+  `sudo systemctl start powerlink.service`
 - Het bestand stoppen kan door het commando:
-  `sudo systemctl stop mijnproject.service` in te geven
+  `sudo systemctl stop powerlink.service` in te geven
 - Indien alles goed werkt kan je het script automatisch laten opstarten na het booten:
-  `sudo systemctl enable mijnproject.service`
+  `sudo systemctl enable powerlink.service`
 - De status van je service kan je bekijken via:
-  `sudo service mijnproject status`
+  `sudo service powerlink status`
 - De logs kan je bekijken via:
-  `sudo journalctl -u mijnproject`
+  `sudo journalctl -u powerlink`
