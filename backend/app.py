@@ -11,6 +11,7 @@ from datetime import datetime
 import signal
 import sys
 import os
+import threading
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
@@ -1440,7 +1441,6 @@ async def get_last_entered_by_card_id(card_id: str):
     tags=["powerlink"],
 )
 async def verify_powerlink_password(password: PasswordVerificationRequest):
-    print(password)
     if password.password == powerlink_password:
         return {"valid": True, "message": "Password verified."}
     else:
