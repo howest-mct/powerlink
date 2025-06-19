@@ -113,6 +113,7 @@ const generate_rfid_card_html = async (component_id, component_name, value, log_
   let inhabitant_name;
   try {
     inhabitant_name = await get_inhabitant_name_by_card_id(String(value));
+    console.log('Inhabitant name:', inhabitant_name);
   } catch (error) {
     console.error('Error getting inhabitant name:', error);
     inhabitant_name = 'Unknown';
@@ -1177,6 +1178,7 @@ const get_inhabitant_name_by_card_id = async (card_id) => {
     const request_url = api_endpoint + `/entered/${card_id}/last/`;
     const server_response = await fetch(request_url);
     const json_data = await server_response.json();
+    console.log('Inhabitant name data:', json_data);
     return json_data.first_name;
   } catch (error) {
     console.error('Error fetching inhabitant name:', error);

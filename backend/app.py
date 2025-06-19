@@ -51,6 +51,8 @@ from models.device_models import (
     ServoLock,
 )
 
+from mfrc522 import SimpleMFRC522
+
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -216,6 +218,7 @@ except RuntimeError as e:
 
 
 # region Functions ---------------------------------
+
 
 def get_ip(interface):
     try:
@@ -454,8 +457,7 @@ async def climate_control(temp_id):
             if scanned_card is not None:
                 print(f"Card {scanned_card} detected at the front door.")
 
-
-########
+            ########
             current_time = time.strftime("%H:%M", time.localtime())
 
             current_pot = MCP.read_channel(0)
@@ -736,24 +738,23 @@ def cut_card(card_id):
     return card_id[:6] + "000000"
 
 
-async def front_door():
-    global CARD_READER
-    scanned_card = None
+# async def front_door():
+#     global CARD_READER
+#     scanned_card = None
 
-    while True:
-        try:
-            scanned_card = CARD_READER.read_no_block()
-            print(f"Scanned card: {scanned_card}")
-            await asyncio.sleep(0)
+#     while True:
+#         try:
+#             scanned_card = CARD_READER.read_no_block()
+#             print(f"Scanned card: {scanned_card}")
+#             await asyncio.sleep(0)
 
-            if scanned_card is not None:
-                print(f"Card {scanned_card} detected at the front door.")
+#             if scanned_card is not None:
+#                 print(f"Card {scanned_card} detected at the front door.")
+
+#         except Exception as e:
+#             print(f"Error reading card: {e}")
 
 
-        except Exception as e:
-            print(f"Error reading card: {e}")
-
-            
 # async def front_door():
 #     global DOOR_LOCK, REED_SWITCH, CARD_READER
 #     global servo_lock_id, reed_switch_id, card_reader_id
@@ -965,7 +966,7 @@ async def lifespan_manager(app: FastAPI):
         GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         TEMP_SENSOR = DS18B20()
         temp_id = TEMP_SENSOR.get_id()
-        CARD_READER = RFIDReader()
+        CARD_READER = SimpleMFRC522()
         LCD = LCD_Display(0x38, 5, 6)
         DOOR_LOCK = ServoLock(12)
         LED_OUTDOORS = 13
@@ -1032,8 +1033,8 @@ async def lifespan_manager(app: FastAPI):
                 AIRCO.cleanup()
             if DOOR_LOCK:
                 DOOR_LOCK.cleanup()
-            if CARD_READER:
-                CARD_READER.cleanup()
+            # if CARD_READER:
+            #     CARD_READER.cleanup()
             if LCD:
                 LCD.close()
             if MCP:

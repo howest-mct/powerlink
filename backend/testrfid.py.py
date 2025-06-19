@@ -1,6 +1,5 @@
 import threading
 import time
-import asyncio
 
 from mfrc522 import SimpleMFRC522
 
@@ -20,15 +19,14 @@ def front_door():
             if scanned_card is not None:
                 print(f"Card {scanned_card} detected at the front door.")
 
-
         except Exception as e:
             print(f"Error reading card: {e}")
             # await asyncio.sleep(1)
 
 
 threading.Thread(
-        target=front_door,
-        daemon=True,
+    target=front_door,
+    daemon=True,
 ).start()
 
 try:
