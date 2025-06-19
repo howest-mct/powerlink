@@ -35,11 +35,11 @@ const SERVO_COMPONENT_IDS = [18];
 const POWERLINK_COMPONENT_IDS = [21];
 const USAGE_IDS = [1, 2];
 
-// Global variables to store energy data
 let energy_data = {
   1: 0,
   2: 0,
 };
+let current_battery_level = 100.0;
 // #endregion
 
 // #region ***  Energy Data Functions                   ***********
@@ -292,6 +292,8 @@ const generate_smart_component_card_html = async (component_id, component_name, 
 };
 
 const generate_room_container_html = (room_id, room_name, room_number, components_html, dropdown_html) => {
+  const battery_display = room_name === 'Home battery' ? `<span class="c-battery-level">${Math.round(current_battery_level)}%</span>` : '';
+
   return `
     <div class="c-room__container js-room__container" 
          data-room_id="${room_id}" 
@@ -299,7 +301,7 @@ const generate_room_container_html = (room_id, room_name, room_number, component
          data-room_number="${room_number}">
       <section class="c-room">
         <div class="c-room__header">
-          <h2 class="c-section__title">${room_name}</h2>
+          <h2 class="c-section__title">${room_name} ${battery_display}</h2>
           ${dropdown_html}
         </div>
         <div class="c-room__components">
@@ -1194,6 +1196,18 @@ const get_energy_24h = async (component_id) => {
   }
 };
 
+const get_battery_level = async () => {
+  try {
+    const url = api_endpoint + `/battery/level/`;
+    const response = await fetch(url);
+    const json = await response.json();
+    current_battery_level = json.battery_level;
+    return json.battery_level;
+  } catch (error) {
+    console.error('Error fetching battery level:', error);
+    return 100.0;
+  }
+};
 // #endregion
 
 // #region ***  Socket Event Listeners                  ***********
@@ -1214,13 +1228,22 @@ const listen_to_socket = () => {
     show_last_log(data);
   });
 };
+
+socket_connection.on('B2F_battery_level', (data) => {
+  current_battery_level = data.battery_level;
+
+  const battery_level_span = document.querySelector('.c-battery-level');
+  if (battery_level_span) {
+    battery_level_span.textContent = `${Math.round(current_battery_level)}%`;
+  }
+});
 // #endregion
 
 // #region ***  Initialization                          ***********
 const init = async () => {
   console.log('DOM loaded');
 
-  // Load energy data first, before showing components
+  await get_battery_level();
   await load_energy_data();
 
   show_dropdown();

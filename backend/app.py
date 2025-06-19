@@ -150,7 +150,7 @@ AIRCO = None
 MCP = None
 I2C_EXPANDER = None
 
-battery_level = 100.0
+battery_level = 98.0
 kw_led_bottom = 0.0
 kw_led_top = 0.0
 kw_heating = 0.0
