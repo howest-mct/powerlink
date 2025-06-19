@@ -3,14 +3,14 @@ import asyncio
 import socketio
 import uvicorn
 import logging
-from RPi import GPIO
-import time
-import re
-import subprocess
-from datetime import datetime
 import threading
 import os
 import signal
+import subprocess
+import time
+import re
+from RPi import GPIO
+from datetime import datetime
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
@@ -224,69 +224,77 @@ def signal_handler(signum, frame):
 
 
 async def cleanup_and_shutdown():
-    logger.info("=== STARTING CLEANUP BEFORE SHUTDOWN ===")
-
     try:
-        log_and_emit_sync(0, wh_bat_in_id)
-        log_and_emit_sync(0, wh_bat_out_id)
-        log_and_emit_sync(0, heater_id)
-        log_and_emit_sync(0, wh_heater_id)
-        log_and_emit_sync(0, fan_id)
-        log_and_emit_sync(0, wh_fan_id)
-        log_and_emit_sync(0, button_lights_id)
-        log_and_emit_sync(0, led_bottom_id)
-        log_and_emit_sync(0, wh_led_bottom_id)
-        log_and_emit_sync(0, motion_sensor_id)
-        log_and_emit_sync(0, led_top_id)
-        log_and_emit_sync(0, wh_led_top_id)
-        log_and_emit_sync(0, reed_switch_id)
-        log_and_emit_sync(0, servo_lock_id)
-        log_and_emit_sync(0, light_sensor_id)
-        log_and_emit_sync(0, led_outdoors_id)
-        log_and_emit_sync(0, button_power_id)
-        log_and_emit_sync(0, cpu_temp_sensor_id)
-
-        logger.info("All component shutdown states logged")
-
-        await asyncio.sleep(1)
-
-    except Exception as e:
-        logger.error(f"Error logging shutdown states: {e}")
-
-    global LED_TOP, LED_BOTTOM, HEATING, AIRCO, DOOR_LOCK, CARD_READER
-    global LCD, MCP, I2C_EXPANDER, power_monitor
-
-    try:
-        if LED_TOP:
-            LED_TOP.cleanup()
-        if LED_BOTTOM:
-            LED_BOTTOM.cleanup()
-        if HEATING:
-            HEATING.cleanup()
-        if AIRCO:
-            AIRCO.cleanup()
-        if DOOR_LOCK:
-            DOOR_LOCK.cleanup()
-        if CARD_READER:
-            CARD_READER.cleanup()
-        if LCD:
-            LCD.close()
-        if MCP:
-            MCP.close()
-        if I2C_EXPANDER:
-            I2C_EXPANDER.close()
-        if power_monitor:
-            power_monitor.close()
         if GPIO:
             GPIO.cleanup()
+    except Exception:
+        pass
 
-        logger.info("=== HARDWARE CLEANUP COMPLETED ===")
+    shutdown_commands = [
+        ["sudo", "shutdown", "now"],
+        ["sudo", "poweroff"],
+        ["sudo", "halt"],
+    ]
 
-    except Exception as e:
-        logger.error(f"Error during hardware cleanup: {e}")
+    for cmd in shutdown_commands:
+        try:
+            subprocess.Popen(cmd)
+            return
+        except Exception:
+            pass
 
-    logger.info("=== EXECUTING SYSTEM SHUTDOWN ===")
-    subprocess.run(["sudo", "shutdown", "now"])
+    os._exit(0)
+
+
+@sio.on("BF2_manual_powerlink_control")
+async def manual_powerlink_control_handler(sid, data):
+    global powerlink_shutdown_requested
+    component_id = data.get("component_id")
+    action = data.get("action")
+
+    await log_and_emit_async(0 if action == "off" else 1, component_id)
+
+    if action == "off":
+        logger.info("=== POWERLINK SHUTDOWN INITIATED ===")
+        powerlink_shutdown_requested = True
+
+        await sio.emit(
+            "B2F_powerlink_control_success",
+            {
+                "component_id": component_id,
+                "action": action,
+                "message": "System shutdown initiated",
+            },
+        )
+
+        logger.info("Response sent, waiting 2 seconds...")
+        await asyncio.sleep(2)
+
+        logger.info("=== TRIGGERING GRACEFUL SHUTDOWN ===")
+        try:
+            import getpass
+
+            logger.info(f"Current user: {getpass.getuser()}")
+        except:
+            pass
+
+        try:
+            import pwd
+
+            logger.info(f"Process UID: {os.getuid()}")
+        except:
+            pass
+
+        os.kill(os.getpid(), signal.SIGTERM)
+
+    else:
+        await sio.emit(
+            "B2F_powerlink_control_success",
+            {
+                "component_id": component_id,
+                "action": action,
+            },
+        )
 
 
 def get_ip(interface):
