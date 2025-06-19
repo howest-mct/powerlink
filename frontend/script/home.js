@@ -109,6 +109,7 @@ const generate_servo_component_card_html = (component_id, component_name, value,
 
 const generate_rfid_card_html = async (component_id, component_name, value, log_id, room_id) => {
   const icon_path = component_icons[component_id];
+  console.log('Generating RFID card HTML for component:', component_id, 'with value:', value);
 
   let inhabitant_name;
   try {
@@ -133,6 +134,7 @@ const generate_rfid_card_html = async (component_id, component_name, value, log_
       <div class="c-card c-card--light">
         <h3 class="c-card__level">${inhabitant_name}</h3>
         <div class="c-card__meta c-card__meta--light">
+          <p class="c-card__status">Last entered</p>
           <a href="family.html" class="c-card__status c-card__status--toggle" type="button">Edit Family</a>
         </div>
       </div>

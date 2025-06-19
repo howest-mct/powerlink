@@ -160,7 +160,7 @@ AIRCO = None
 MCP = None
 I2C_EXPANDER = None
 
-battery_level = 98.0
+battery_level = 100.0
 kw_led_bottom = 0.0
 kw_led_top = 0.0
 kw_heating = 0.0
@@ -359,19 +359,13 @@ def update_battery_level(power_in, power_out):
 
 
 async def shutdown_powerlink_system():
-    """
-    Gracefully shutdown the PowerLink system by stopping the service and shutting down the Pi
-    """
     global powerlink_shutdown_requested
 
     try:
         logger.info("=== INITIATING POWERLINK SYSTEM SHUTDOWN ===")
         powerlink_shutdown_requested = True
-
-        # Give some time for any final operations
         await asyncio.sleep(1)
 
-        # Stop the powerlink service
         logger.info("Stopping powerlink.service...")
         try:
             subprocess.run(
@@ -385,16 +379,13 @@ async def shutdown_powerlink_system():
         except subprocess.TimeoutExpired:
             logger.error("Timeout while stopping powerlink service")
 
-        # Wait a moment for service to fully stop
-        await asyncio.sleep(2)
+        await asyncio.sleep(20)
 
-        # Shutdown the Raspberry Pi
         logger.info("Shutting down Raspberry Pi...")
         try:
             subprocess.run(["sudo", "shutdown", "-h", "now"], check=True, timeout=5)
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to shutdown Pi: {e}")
-            # Fallback to alternative shutdown command
             try:
                 subprocess.run(["sudo", "halt"], check=True, timeout=5)
             except subprocess.CalledProcessError as e2:
@@ -404,7 +395,6 @@ async def shutdown_powerlink_system():
 
     except Exception as e:
         logger.error(f"Error during system shutdown: {e}")
-        # Emergency fallback - just kill the current process
         os.kill(os.getpid(), signal.SIGTERM)
 
 
@@ -995,46 +985,46 @@ async def lifespan_manager(app: FastAPI):
         global HEATING, AIRCO, MCP, CARD_READER
         global temp_id, POWER_BUTTON, I2C_EXPANDER
 
-        MOTION_SENSOR = 17
-        GPIO.setup(MOTION_SENSOR, GPIO.IN)
-        LED_BUTTON = 21
-        GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        POWER_BUTTON = 27
-        GPIO.setup(POWER_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        REED_SWITCH = 22
-        GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        TEMP_SENSOR = DS18B20()
-        temp_id = TEMP_SENSOR.get_id()
-        CARD_READER = SimpleMFRC522()
-        LCD = LCD_Display(0x38, 5, 6)
-        DOOR_LOCK = ServoLock(12)
-        LED_OUTDOORS = 13
-        GPIO.setup(LED_OUTDOORS, GPIO.OUT)
-        LED_BOTTOM = LED(24)
-        LED_TOP = LED(19)
-        HEATING = HeatingPad(20)
-        AIRCO = DCMotor(18)
-        MCP = MCP3008(0, 1)
-        I2C_EXPANDER = TCA9548A()
+        # MOTION_SENSOR = 17
+        # GPIO.setup(MOTION_SENSOR, GPIO.IN)
+        # LED_BUTTON = 21
+        # GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        # POWER_BUTTON = 27
+        # GPIO.setup(POWER_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        # REED_SWITCH = 22
+        # GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        # TEMP_SENSOR = DS18B20()
+        # temp_id = TEMP_SENSOR.get_id()
+        # CARD_READER = SimpleMFRC522()
+        # LCD = LCD_Display(0x38, 5, 6)
+        # DOOR_LOCK = ServoLock(12)
+        # LED_OUTDOORS = 13
+        # GPIO.setup(LED_OUTDOORS, GPIO.OUT)
+        # LED_BOTTOM = LED(24)
+        # LED_TOP = LED(19)
+        # HEATING = HeatingPad(20)
+        # AIRCO = DCMotor(18)
+        # MCP = MCP3008(0, 1)
+        # I2C_EXPANDER = TCA9548A()
 
-        tasks = [
-            # asyncio.create_task(front_door()),
-            asyncio.create_task(get_wattage()),
-            asyncio.create_task(climate_control(temp_id)),
-            asyncio.create_task(do_lights_button()),
-            asyncio.create_task(lights_bottom()),
-            asyncio.create_task(lights_top()),
-            asyncio.create_task(lights_outdoors()),
-            asyncio.create_task(display_lcd()),
-            asyncio.create_task(monitor_power_button()),
-        ]
+        # tasks = [
+        # asyncio.create_task(front_door()),
+        #     asyncio.create_task(get_wattage()),
+        #     asyncio.create_task(climate_control(temp_id)),
+        #     asyncio.create_task(do_lights_button()),
+        #     asyncio.create_task(lights_bottom()),
+        #     asyncio.create_task(lights_top()),
+        #     asyncio.create_task(lights_outdoors()),
+        #     asyncio.create_task(display_lcd()),
+        #     asyncio.create_task(monitor_power_button()),
+        # ]
 
-        GPIO.add_event_detect(
-            LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=250
-        )
-        GPIO.add_event_detect(
-            POWER_BUTTON, GPIO.BOTH, callback=power_button, bouncetime=50
-        )
+        # GPIO.add_event_detect(
+        #     LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=250
+        # )
+        # GPIO.add_event_detect(
+        #     POWER_BUTTON, GPIO.BOTH, callback=power_button, bouncetime=50
+        # )
 
         yield
 
