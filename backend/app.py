@@ -450,14 +450,6 @@ async def climate_control(temp_id):
 
     while True:
         try:
-            scanned_card = CARD_READER.read_no_block()
-            print(f"Scanned card: {scanned_card}")
-            await asyncio.sleep(0)
-
-            if scanned_card is not None:
-                print(f"Card {scanned_card} detected at the front door.")
-
-            ########
             current_time = time.strftime("%H:%M", time.localtime())
 
             current_pot = MCP.read_channel(0)
