@@ -8,10 +8,9 @@ import time
 import re
 import subprocess
 from datetime import datetime
-import signal
-import sys
-import os
 import threading
+import os
+import signal
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
@@ -137,6 +136,11 @@ led_outdoors_id = 20
 button_power_id = 21
 cpu_temp_sensor_id = 22
 
+powerlink_shutdown_requested = False
+
+power_button_hold_start = None
+power_button_held = False
+
 
 MOTION_SENSOR = None
 LED_BUTTON = None
@@ -186,7 +190,6 @@ total_energy_in = 0.0
 total_energy_out = 0.0
 last_time = None
 powerlink_password = "powerlink"
-shutdown_requested = False
 
 try:
     all_schedules = DataRepository.read_all_schedules()
@@ -215,16 +218,75 @@ except RuntimeError as e:
 
 # region Functions ---------------------------------
 def signal_handler(signum, frame):
-    global shutdown_requested
+    global powerlink_shutdown_requested
     logger.info(f"Received signal {signum}. Initiating graceful shutdown...")
-    shutdown_requested = True
+    powerlink_shutdown_requested = True
 
 
-async def trigger_shutdown():
-    global shutdown_requested
-    logger.info("Programmatic shutdown requested")
-    shutdown_requested = True
-    os.kill(os.getpid(), signal.SIGTERM)
+async def cleanup_and_shutdown():
+    logger.info("=== STARTING CLEANUP BEFORE SHUTDOWN ===")
+
+    try:
+        log_and_emit_sync(0, wh_bat_in_id)
+        log_and_emit_sync(0, wh_bat_out_id)
+        log_and_emit_sync(0, heater_id)
+        log_and_emit_sync(0, wh_heater_id)
+        log_and_emit_sync(0, fan_id)
+        log_and_emit_sync(0, wh_fan_id)
+        log_and_emit_sync(0, button_lights_id)
+        log_and_emit_sync(0, led_bottom_id)
+        log_and_emit_sync(0, wh_led_bottom_id)
+        log_and_emit_sync(0, motion_sensor_id)
+        log_and_emit_sync(0, led_top_id)
+        log_and_emit_sync(0, wh_led_top_id)
+        log_and_emit_sync(0, reed_switch_id)
+        log_and_emit_sync(0, servo_lock_id)
+        log_and_emit_sync(0, light_sensor_id)
+        log_and_emit_sync(0, led_outdoors_id)
+        log_and_emit_sync(0, button_power_id)
+        log_and_emit_sync(0, cpu_temp_sensor_id)
+
+        logger.info("All component shutdown states logged")
+
+        await asyncio.sleep(1)
+
+    except Exception as e:
+        logger.error(f"Error logging shutdown states: {e}")
+
+    global LED_TOP, LED_BOTTOM, HEATING, AIRCO, DOOR_LOCK, CARD_READER
+    global LCD, MCP, I2C_EXPANDER, power_monitor
+
+    try:
+        if LED_TOP:
+            LED_TOP.cleanup()
+        if LED_BOTTOM:
+            LED_BOTTOM.cleanup()
+        if HEATING:
+            HEATING.cleanup()
+        if AIRCO:
+            AIRCO.cleanup()
+        if DOOR_LOCK:
+            DOOR_LOCK.cleanup()
+        if CARD_READER:
+            CARD_READER.cleanup()
+        if LCD:
+            LCD.close()
+        if MCP:
+            MCP.close()
+        if I2C_EXPANDER:
+            I2C_EXPANDER.close()
+        if power_monitor:
+            power_monitor.close()
+        if GPIO:
+            GPIO.cleanup()
+
+        logger.info("=== HARDWARE CLEANUP COMPLETED ===")
+
+    except Exception as e:
+        logger.error(f"Error during hardware cleanup: {e}")
+
+    logger.info("=== EXECUTING SYSTEM SHUTDOWN ===")
+    subprocess.run(["sudo", "shutdown", "now"])
 
 
 def get_ip(interface):
@@ -872,14 +934,60 @@ async def lights_outdoors():
 
 
 def power_button(pin):
-    global switch_state_power, button_power_id
+    global power_button_hold_start, power_button_held
 
     try:
-        switch_state_power = not switch_state_power
-        log_and_emit_sync(switch_state_power, button_power_id)
+        current_state = GPIO.input(pin)
+
+        if current_state == 0 and power_button_hold_start is None:
+            power_button_hold_start = time.time()
+            logger.info("Power button pressed - starting 3-second hold timer")
 
     except Exception as e:
         logger.error(f"Error in power_button: {e}")
+
+
+async def monitor_power_button():
+    global POWER_BUTTON, power_button_hold_start, power_button_held
+    global switch_state_power, button_power_id, powerlink_shutdown_requested
+
+    while True:
+        try:
+            if POWER_BUTTON and power_button_hold_start is not None:
+                current_state = GPIO.input(POWER_BUTTON)
+                hold_duration = time.time() - power_button_hold_start
+
+                if current_state == 1:
+                    if hold_duration < 3.0:
+                        logger.info(
+                            f"Power button released after {hold_duration:.1f}s - too short"
+                        )
+                    power_button_hold_start = None
+                    power_button_held = False
+
+                elif hold_duration >= 3.0 and not power_button_held:
+                    power_button_held = True
+                    logger.info(
+                        "=== POWER BUTTON HELD FOR 3 SECONDS - SHUTDOWN INITIATED ==="
+                    )
+
+                    switch_state_power = not switch_state_power
+                    log_and_emit_sync(switch_state_power, button_power_id)
+
+                    if not switch_state_power:
+                        powerlink_shutdown_requested = True
+                        logger.info(
+                            "=== TRIGGERING SYSTEM SHUTDOWN VIA POWER BUTTON ==="
+                        )
+                        os.kill(os.getpid(), signal.SIGTERM)
+
+            await asyncio.sleep(0.1)
+
+        except Exception as e:
+            logger.error(f"Error in monitor_power_button: {e}")
+            power_button_hold_start = None
+            power_button_held = False
+            await asyncio.sleep(1)
 
 
 # endregion Functions ****************************
@@ -888,9 +996,10 @@ def power_button(pin):
 # region App Setup ---------------------------------
 @asynccontextmanager
 async def lifespan_manager(app: FastAPI):
-    global shutdown_requested
-    signal.signal(signal.SIGINT, signal_handler)
+    global powerlink_shutdown_requested
     signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+
     logger.info("Starting application...")
     GPIO.setmode(GPIO.BCM)
     tasks = []
@@ -936,13 +1045,15 @@ async def lifespan_manager(app: FastAPI):
         #     asyncio.create_task(lights_top()),
         #     asyncio.create_task(lights_outdoors()),
         #     asyncio.create_task(display_lcd()),
+        #     asyncio.create_task(monitor_power_button()),  # Add power button monitoring
         # ]
 
         # GPIO.add_event_detect(
         #     LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=250
         # )
+        # # Note: Power button now uses monitoring loop instead of interrupt
         # GPIO.add_event_detect(
-        #     POWER_BUTTON, GPIO.FALLING, callback=power_button, bouncetime=250
+        #     POWER_BUTTON, GPIO.BOTH, callback=power_button, bouncetime=50
         # )
 
         yield
@@ -950,97 +1061,41 @@ async def lifespan_manager(app: FastAPI):
     finally:
         logger.info("Shutting down application...")
 
-        try:
-            log_and_emit_sync(0, wh_bat_in_id)
-            log_and_emit_sync(0, wh_bat_out_id)
-            log_and_emit_sync(0, heater_id)
-            log_and_emit_sync(0, wh_heater_id)
-            log_and_emit_sync(0, fan_id)
-            log_and_emit_sync(0, wh_fan_id)
-            log_and_emit_sync(0, button_lights_id)
-            log_and_emit_sync(0, led_bottom_id)
-            log_and_emit_sync(0, wh_led_bottom_id)
-            log_and_emit_sync(0, motion_sensor_id)
-            log_and_emit_sync(0, led_top_id)
-            log_and_emit_sync(0, wh_led_top_id)
-            log_and_emit_sync(0, reed_switch_id)
-            log_and_emit_sync(0, servo_lock_id)
-            log_and_emit_sync(0, light_sensor_id)
-            log_and_emit_sync(0, led_outdoors_id)
-            log_and_emit_sync(0, button_power_id)
-            log_and_emit_sync(0, cpu_temp_sensor_id)
-
-            logger.info("All component shutdown states logged")
-
-        except Exception as e:
-            logger.error(f"Error logging shutdown states: {e}")
-
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
 
-        if LED_TOP:
-            LED_TOP.cleanup()
-
-        if LED_BOTTOM:
-            LED_BOTTOM.cleanup()
-
-        if HEATING:
-            HEATING.cleanup()
-
-        if AIRCO:
-            AIRCO.cleanup()
-
-        if DOOR_LOCK:
-            DOOR_LOCK.cleanup()
-
-        if CARD_READER:
-            CARD_READER.cleanup()
-
-        if LCD:
-            LCD.close()
-
-        if MCP:
-            MCP.close()
-
-        if I2C_EXPANDER:
-            I2C_EXPANDER.close()
-
-        if power_monitor:
-            power_monitor.close()
-
-        if GPIO:
-            GPIO.cleanup()
-        logger.info("GPIO cleaned up. Bye!")
-
-        if shutdown_requested:
-            logger.info(
-                "Shutdown was requested. Waiting 3 seconds before powering off..."
-            )
-            await asyncio.sleep(3)
-
-            try:
-                logger.info("Executing system shutdown...")
-                result = subprocess.run(
-                    ["sudo", "shutdown", "now"],
-                    capture_output=True,
-                    text=True,
-                    timeout=10,
-                )
-
-                if result.returncode == 0:
-                    logger.info("Shutdown command executed successfully")
-                else:
-                    logger.error(f"Shutdown command failed: {result.stderr}")
-
-            except subprocess.TimeoutExpired:
-                logger.error("Shutdown command timed out")
-            except subprocess.CalledProcessError as e:
-                logger.error(f"Shutdown command failed with error: {e}")
-            except Exception as e:
-                logger.error(f"Unexpected error during shutdown: {e}")
+        if powerlink_shutdown_requested:
+            await cleanup_and_shutdown()
         else:
-            logger.info("Normal application shutdown completed")
+            try:
+                if LED_TOP:
+                    LED_TOP.cleanup()
+                if LED_BOTTOM:
+                    LED_BOTTOM.cleanup()
+                if HEATING:
+                    HEATING.cleanup()
+                if AIRCO:
+                    AIRCO.cleanup()
+                if DOOR_LOCK:
+                    DOOR_LOCK.cleanup()
+                if CARD_READER:
+                    CARD_READER.cleanup()
+                if LCD:
+                    LCD.close()
+                if MCP:
+                    MCP.close()
+                if I2C_EXPANDER:
+                    I2C_EXPANDER.close()
+                if power_monitor:
+                    power_monitor.close()
+                if GPIO:
+                    GPIO.cleanup()
+
+                logger.info("GPIO cleaned up. Normal shutdown completed.")
+
+            except Exception as e:
+                logger.error(f"Error during normal cleanup: {e}")
 
 
 app = FastAPI(lifespan=lifespan_manager)
@@ -1501,6 +1556,7 @@ async def manual_door_control_handler(sid, data):
 
 @sio.on("BF2_manual_light_control")
 async def manual_light_control_handler(sid, data):
+    global switch_state
     component_id = data.get("component_id")
     new_value = data.get("value", 0)
 
@@ -1537,15 +1593,15 @@ async def manual_light_control_handler(sid, data):
 
 @sio.on("BF2_manual_powerlink_control")
 async def manual_powerlink_control_handler(sid, data):
-    global shutdown_requested
+    global powerlink_shutdown_requested
     component_id = data.get("component_id")
     action = data.get("action")
 
     await log_and_emit_async(0 if action == "off" else 1, component_id)
 
     if action == "off":
-        logger.info("PowerLink shutdown initiated - system will power off")
-        shutdown_requested = True
+        logger.info("=== POWERLINK SHUTDOWN INITIATED ===")
+        powerlink_shutdown_requested = True
 
         await sio.emit(
             "B2F_powerlink_control_success",
@@ -1556,9 +1612,11 @@ async def manual_powerlink_control_handler(sid, data):
             },
         )
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
 
+        logger.info("=== TRIGGERING GRACEFUL SHUTDOWN ===")
         os.kill(os.getpid(), signal.SIGTERM)
+
     else:
         await sio.emit(
             "B2F_powerlink_control_success",
