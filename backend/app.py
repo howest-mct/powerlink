@@ -173,10 +173,9 @@ lights_button_pressed = False
 last_log_time_switch = 0
 previous_state_switch = False
 last_state_led = None
-light_duration = 60
+light_duration = 15
 prev_led_brightness = None
 ldr_value = None
-scanned_card = None
 door_state = None
 switch_state_power = False
 sleep_lcd = 6
@@ -217,85 +216,6 @@ except RuntimeError as e:
 
 
 # region Functions ---------------------------------
-def signal_handler(signum, frame):
-    global powerlink_shutdown_requested
-    logger.info(f"Received signal {signum}. Initiating graceful shutdown...")
-    powerlink_shutdown_requested = True
-
-
-async def cleanup_and_shutdown():
-    try:
-        if GPIO:
-            GPIO.cleanup()
-    except Exception:
-        pass
-
-    shutdown_commands = [
-        ["sudo", "shutdown", "now"],
-        ["sudo", "poweroff"],
-        ["sudo", "halt"],
-    ]
-
-    for cmd in shutdown_commands:
-        try:
-            subprocess.Popen(cmd)
-            return
-        except Exception:
-            pass
-
-    os._exit(0)
-
-
-@sio.on("BF2_manual_powerlink_control")
-async def manual_powerlink_control_handler(sid, data):
-    global powerlink_shutdown_requested
-    component_id = data.get("component_id")
-    action = data.get("action")
-
-    await log_and_emit_async(0 if action == "off" else 1, component_id)
-
-    if action == "off":
-        logger.info("=== POWERLINK SHUTDOWN INITIATED ===")
-        powerlink_shutdown_requested = True
-
-        await sio.emit(
-            "B2F_powerlink_control_success",
-            {
-                "component_id": component_id,
-                "action": action,
-                "message": "System shutdown initiated",
-            },
-        )
-
-        logger.info("Response sent, waiting 2 seconds...")
-        await asyncio.sleep(2)
-
-        logger.info("=== TRIGGERING GRACEFUL SHUTDOWN ===")
-        try:
-            import getpass
-
-            logger.info(f"Current user: {getpass.getuser()}")
-        except:
-            pass
-
-        try:
-            import pwd
-
-            logger.info(f"Process UID: {os.getuid()}")
-        except:
-            pass
-
-        os.kill(os.getpid(), signal.SIGTERM)
-
-    else:
-        await sio.emit(
-            "B2F_powerlink_control_success",
-            {
-                "component_id": component_id,
-                "action": action,
-            },
-        )
-
 
 def get_ip(interface):
     try:
@@ -509,6 +429,8 @@ async def get_wattage():
 async def climate_control(temp_id):
     global HEATING, AIRCO, temp, temp_sensor_id, pot_id, MCP, TEMP_SENSOR, dict_schedules
     global heater_id, fan_id, sleep_medium, temp_control_id
+    global CARD_READER, scanned_card
+    scanned_card = None
 
     hysteresis = 0.75
     max_range = 1.0
@@ -525,6 +447,15 @@ async def climate_control(temp_id):
 
     while True:
         try:
+            scanned_card = CARD_READER.read_no_block()
+            print(f"Scanned card: {scanned_card}")
+            await asyncio.sleep(0)
+
+            if scanned_card is not None:
+                print(f"Card {scanned_card} detected at the front door.")
+
+
+########
             current_time = time.strftime("%H:%M", time.localtime())
 
             current_pot = MCP.read_channel(0)
@@ -741,10 +672,8 @@ async def lights_top():
             if motion_now == 1 and last_motion == 0:
                 current_time = time.strftime("%H:%M", time.localtime())
 
-                day_schedule = dict_schedules.get("Lights Upstairs Schedule", {})
-                night_schedule = dict_schedules.get(
-                    "Lights Upstairs Night Schedule", {}
-                )
+                day_schedule = dict_schedules.get(5, {})
+                night_schedule = dict_schedules.get(6, {})
 
                 day_enabled = day_schedule.get("enabled", False)
                 day_start = day_schedule.get("start_time", "07:00")
@@ -807,84 +736,95 @@ def cut_card(card_id):
     return card_id[:6] + "000000"
 
 
-def keep_alive():
-    while True:
-        try:
-            front_door()
-            time.sleep(1)
-        except Exception as e:
-            logger.error(f"Error in keep_alive: {e}")
-            time.sleep(5)
-
-
-def front_door():
-    global DOOR_LOCK, REED_SWITCH, CARD_READER, scanned_card
-    global servo_lock_id, reed_switch_id, card_reader_id
+async def front_door():
+    global CARD_READER
+    scanned_card = None
 
     while True:
         try:
             scanned_card = CARD_READER.read_no_block()
+            print(f"Scanned card: {scanned_card}")
+            await asyncio.sleep(0)
 
             if scanned_card is not None:
-                scanned_card = str(scanned_card)
-                snipped_card = cut_card(scanned_card)
-                log_and_emit_sync(snipped_card, card_reader_id)
+                print(f"Card {scanned_card} detected at the front door.")
 
-                try:
-                    checked_card = DataRepository.read_card_by_id(snipped_card)
-
-                    if checked_card is None:
-                        continue
-
-                    DOOR_LOCK.unlock()
-                    log_and_emit_sync(1, servo_lock_id)
-
-                    start_time = time.time()
-
-                    while GPIO.input(REED_SWITCH) == 1:
-                        if time.time() - start_time > 5:
-                            logger.info(
-                                "Door did not open in time (5 seconds) - locking again"
-                            )
-                            DOOR_LOCK.lock()
-
-                            log_and_emit_sync(0, servo_lock_id)
-                            continue
-
-                        time.sleep(sleep_fast)
-
-                    else:
-                        log_and_emit_sync(1, reed_switch_id)
-                        start_time = time.time()
-
-                        while GPIO.input(REED_SWITCH) == 0:
-                            if time.time() - start_time > 10:
-                                logger.info(
-                                    "Door did not close in time (10 seconds) - locking anyway"
-                                )
-
-                                continue
-
-                            time.sleep(sleep_fast)
-
-                        log_and_emit_sync(0, reed_switch_id)
-                        DOOR_LOCK.lock()
-                        log_and_emit_sync(0, servo_lock_id)
-
-                except Exception as e:
-                    logger.error(f"Error processing card: {e}")
-                    try:
-                        DOOR_LOCK.lock()
-                        log_and_emit_sync(0, servo_lock_id)
-
-                    except Exception as lock_error:
-                        logger.error(f"Error locking door: {lock_error}")
-
-            time.sleep(sleep_fast)
 
         except Exception as e:
-            logger.error(f"Error in front_door: {e}")
-            time.sleep(sleep_slow)
+            print(f"Error reading card: {e}")
+
+            
+# async def front_door():
+#     global DOOR_LOCK, REED_SWITCH, CARD_READER
+#     global servo_lock_id, reed_switch_id, card_reader_id
+#     scanned_card = None
+
+#     while True:
+#         try:
+#             scanned_card = CARD_READER.read_no_block()
+#             print(f"Scanned card: {scanned_card}")
+#             await asyncio.sleep(0)
+
+#             if scanned_card is not None:
+#                 scanned_card = str(scanned_card)
+#                 snipped_card = cut_card(scanned_card)
+#                 log_and_emit_async(snipped_card, card_reader_id)
+
+#                 try:
+#                     checked_card = DataRepository.read_card_by_id(snipped_card)
+
+#                     if checked_card is None:
+#                         continue
+
+#                     DOOR_LOCK.unlock()
+#                     log_and_emit_async(1, servo_lock_id)
+
+#                     start_time = time.time()
+
+#                     while GPIO.input(REED_SWITCH) == 1:
+#                         if time.time() - start_time > 5:
+#                             logger.info(
+#                                 "Door did not open in time (5 seconds) - locking again"
+#                             )
+#                             DOOR_LOCK.lock()
+
+#                             log_and_emit_async(0, servo_lock_id)
+#                             continue
+
+#                         time.sleep(sleep_fast)
+
+#                     else:
+#                         log_and_emit_async(1, reed_switch_id)
+#                         start_time = time.time()
+
+#                         while GPIO.input(REED_SWITCH) == 0:
+#                             if time.time() - start_time > 10:
+#                                 logger.info(
+#                                     "Door did not close in time (10 seconds) - locking anyway"
+#                                 )
+
+#                                 continue
+
+#                             time.sleep(sleep_fast)
+
+#                         log_and_emit_async(0, reed_switch_id)
+#                         DOOR_LOCK.lock()
+#                         log_and_emit_async(0, servo_lock_id)
+
+#                 except Exception as e:
+#                     logger.error(f"Error processing card: {e}")
+#                     try:
+#                         DOOR_LOCK.lock()
+#                         log_and_emit_async(0, servo_lock_id)
+
+#                     except Exception as lock_error:
+#                         logger.error(f"Error locking door: {lock_error}")
+
+#             time.sleep(sleep_fast)
+
+#         except Exception as e:
+#             logger.error(f"Error in front_door: {e}")
+#             time.sleep(sleep_slow)
 
 
 async def lights_outdoors():
@@ -1004,9 +944,6 @@ async def monitor_power_button():
 # region App Setup ---------------------------------
 @asynccontextmanager
 async def lifespan_manager(app: FastAPI):
-    global powerlink_shutdown_requested
-    signal.signal(signal.SIGTERM, signal_handler)
-    signal.signal(signal.SIGINT, signal_handler)
 
     logger.info("Starting application...")
     GPIO.setmode(GPIO.BCM)
@@ -1018,92 +955,100 @@ async def lifespan_manager(app: FastAPI):
         global HEATING, AIRCO, MCP, CARD_READER
         global temp_id, POWER_BUTTON, I2C_EXPANDER
 
-        # MOTION_SENSOR = 17
-        # GPIO.setup(MOTION_SENSOR, GPIO.IN)
-        # LED_BUTTON = 21
-        # GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        # POWER_BUTTON = 27
-        # GPIO.setup(POWER_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        # REED_SWITCH = 22
-        # GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        # TEMP_SENSOR = DS18B20()
-        # temp_id = TEMP_SENSOR.get_id()
-        # CARD_READER = RFIDReader()
-        # LCD = LCD_Display(0x38, 5, 6)
-        # DOOR_LOCK = ServoLock(12)
-        # LED_OUTDOORS = 13
-        # GPIO.setup(LED_OUTDOORS, GPIO.OUT)
-        # LED_BOTTOM = LED(24)
-        # LED_TOP = LED(19)
-        # HEATING = HeatingPad(20)
-        # AIRCO = DCMotor(18)
-        # MCP = MCP3008(0, 1)
-        # I2C_EXPANDER = TCA9548A()
+        MOTION_SENSOR = 17
+        GPIO.setup(MOTION_SENSOR, GPIO.IN)
+        LED_BUTTON = 21
+        GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        POWER_BUTTON = 27
+        GPIO.setup(POWER_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        REED_SWITCH = 22
+        GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        TEMP_SENSOR = DS18B20()
+        temp_id = TEMP_SENSOR.get_id()
+        CARD_READER = RFIDReader()
+        LCD = LCD_Display(0x38, 5, 6)
+        DOOR_LOCK = ServoLock(12)
+        LED_OUTDOORS = 13
+        GPIO.setup(LED_OUTDOORS, GPIO.OUT)
+        LED_BOTTOM = LED(24)
+        LED_TOP = LED(19)
+        HEATING = HeatingPad(20)
+        AIRCO = DCMotor(18)
+        MCP = MCP3008(0, 1)
+        I2C_EXPANDER = TCA9548A()
 
-        # threading.Thread(
-        #     target=keep_alive,
-        #     daemon=True,
-        # ).start()
+        tasks = [
+            # asyncio.create_task(front_door()),
+            asyncio.create_task(get_wattage()),
+            asyncio.create_task(climate_control(temp_id)),
+            asyncio.create_task(do_lights_button()),
+            asyncio.create_task(lights_bottom()),
+            asyncio.create_task(lights_top()),
+            asyncio.create_task(lights_outdoors()),
+            asyncio.create_task(display_lcd()),
+            asyncio.create_task(monitor_power_button()),
+        ]
 
-        # tasks = [
-        #     asyncio.create_task(get_wattage()),
-        #     asyncio.create_task(climate_control(temp_id)),
-        #     asyncio.create_task(do_lights_button()),
-        #     asyncio.create_task(lights_bottom()),
-        #     asyncio.create_task(lights_top()),
-        #     asyncio.create_task(lights_outdoors()),
-        #     asyncio.create_task(display_lcd()),
-        #     asyncio.create_task(monitor_power_button()),  # Add power button monitoring
-        # ]
-
-        # GPIO.add_event_detect(
-        #     LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=250
-        # )
-        # # Note: Power button now uses monitoring loop instead of interrupt
-        # GPIO.add_event_detect(
-        #     POWER_BUTTON, GPIO.BOTH, callback=power_button, bouncetime=50
-        # )
+        GPIO.add_event_detect(
+            LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=250
+        )
+        GPIO.add_event_detect(
+            POWER_BUTTON, GPIO.BOTH, callback=power_button, bouncetime=50
+        )
 
         yield
 
     finally:
         logger.info("Shutting down application...")
 
+        log_and_emit_sync(0, wh_bat_in_id)
+        log_and_emit_sync(0, wh_bat_out_id)
+        log_and_emit_sync(0, heater_id)
+        log_and_emit_sync(0, wh_heater_id)
+        log_and_emit_sync(0, fan_id)
+        log_and_emit_sync(0, wh_fan_id)
+        log_and_emit_sync(0, button_lights_id)
+        log_and_emit_sync(0, led_bottom_id)
+        log_and_emit_sync(0, wh_led_bottom_id)
+        log_and_emit_sync(0, motion_sensor_id)
+        log_and_emit_sync(0, led_top_id)
+        log_and_emit_sync(0, wh_led_top_id)
+        log_and_emit_sync(0, reed_switch_id)
+        log_and_emit_sync(0, servo_lock_id)
+        log_and_emit_sync(0, led_outdoors_id)
+        log_and_emit_sync(0, button_power_id)
+
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+        try:
+            if LED_TOP:
+                LED_TOP.cleanup()
+            if LED_BOTTOM:
+                LED_BOTTOM.cleanup()
+            if HEATING:
+                HEATING.cleanup()
+            if AIRCO:
+                AIRCO.cleanup()
+            if DOOR_LOCK:
+                DOOR_LOCK.cleanup()
+            if CARD_READER:
+                CARD_READER.cleanup()
+            if LCD:
+                LCD.close()
+            if MCP:
+                MCP.close()
+            if I2C_EXPANDER:
+                I2C_EXPANDER.close()
+            if power_monitor:
+                power_monitor.close()
+            if GPIO:
+                GPIO.cleanup()
 
-        if powerlink_shutdown_requested:
-            await cleanup_and_shutdown()
-        else:
-            try:
-                if LED_TOP:
-                    LED_TOP.cleanup()
-                if LED_BOTTOM:
-                    LED_BOTTOM.cleanup()
-                if HEATING:
-                    HEATING.cleanup()
-                if AIRCO:
-                    AIRCO.cleanup()
-                if DOOR_LOCK:
-                    DOOR_LOCK.cleanup()
-                if CARD_READER:
-                    CARD_READER.cleanup()
-                if LCD:
-                    LCD.close()
-                if MCP:
-                    MCP.close()
-                if I2C_EXPANDER:
-                    I2C_EXPANDER.close()
-                if power_monitor:
-                    power_monitor.close()
-                if GPIO:
-                    GPIO.cleanup()
+            logger.info("GPIO cleaned up. Normal shutdown completed.")
 
-                logger.info("GPIO cleaned up. Normal shutdown completed.")
-
-            except Exception as e:
-                logger.error(f"Error during normal cleanup: {e}")
+        except Exception as e:
+            logger.error(f"Error during normal cleanup: {e}")
 
 
 app = FastAPI(lifespan=lifespan_manager)

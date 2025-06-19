@@ -206,14 +206,14 @@ def performance_test():
 
 def main():
     """Main test function"""
-    print("RFID Reader Test Program")
-    print("=" * 40)
-    test_basic_functionality()
+    # print("RFID Reader Test Program")y
+    # print("=" * 40)
+    # test_basic_functionality()
     test_multiple_reads()
-    test_cleanup_and_reactivation()
-    test_context_manager()
-    test_error_handling()
-    performance_test()
+    # test_cleanup_and_reactivation()
+    # test_context_manager()
+    # test_error_handling()
+    # performance_test()
     response = input("\nRun continuous monitoring test? (y/n): ").lower().strip()
     if response == "y":
         try:

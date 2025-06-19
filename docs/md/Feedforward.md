@@ -136,3 +136,15 @@ Dit is de feedback op mijn vragen.
 
 - feedback 1: .git file was corrupt, dus kopie genomen van de oude repo en de .git verwijderen. Clone nemen van de oude repo van op github.
   Dan de oude kopie plakken in de net geclone repo en dan committen en pushen.
+
+  ## Gesprek 5 (Datum: 18/06/2025)
+
+Lector: Pieter-Jan
+
+Vragen voor dit gesprek:
+
+- vraag 1: RFID werkt niet in de app, wat nu?
+
+Dit is de feedback op mijn vragen.
+
+- feedback 1: Nog op te lossen
