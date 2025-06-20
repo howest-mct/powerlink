@@ -973,46 +973,46 @@ async def lifespan_manager(app: FastAPI):
         global HEATING, AIRCO, MCP, CARD_READER
         global temp_id, POWER_BUTTON, I2C_EXPANDER
 
-        # MOTION_SENSOR = 17
-        # GPIO.setup(MOTION_SENSOR, GPIO.IN)
-        # LED_BUTTON = 21
-        # GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        # POWER_BUTTON = 27
-        # GPIO.setup(POWER_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        # REED_SWITCH = 22
-        # GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        # TEMP_SENSOR = DS18B20()
-        # temp_id = TEMP_SENSOR.get_id()
-        # CARD_READER = SimpleMFRC522()
-        # LCD = LCD_Display(0x38, 5, 6)
-        # DOOR_LOCK = ServoLock(12)
-        # LED_OUTDOORS = 13
-        # GPIO.setup(LED_OUTDOORS, GPIO.OUT)
-        # LED_BOTTOM = LED(24)
-        # LED_TOP = LED(19)
-        # HEATING = HeatingPad(20)
-        # AIRCO = DCMotor(18)
-        # MCP = MCP3008(0, 1)
-        # I2C_EXPANDER = TCA9548A()
+        MOTION_SENSOR = 17
+        GPIO.setup(MOTION_SENSOR, GPIO.IN)
+        LED_BUTTON = 21
+        GPIO.setup(LED_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        POWER_BUTTON = 27
+        GPIO.setup(POWER_BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        REED_SWITCH = 22
+        GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        TEMP_SENSOR = DS18B20()
+        temp_id = TEMP_SENSOR.get_id()
+        CARD_READER = SimpleMFRC522()
+        LCD = LCD_Display(0x38, 5, 6)
+        DOOR_LOCK = ServoLock(12)
+        LED_OUTDOORS = 13
+        GPIO.setup(LED_OUTDOORS, GPIO.OUT)
+        LED_BOTTOM = LED(24)
+        LED_TOP = LED(19)
+        HEATING = HeatingPad(20)
+        AIRCO = DCMotor(18)
+        MCP = MCP3008(0, 1)
+        I2C_EXPANDER = TCA9548A()
 
-        # tasks = [
-        # asyncio.create_task(front_door()),
-        #     asyncio.create_task(get_wattage()),
-        #     asyncio.create_task(climate_control(temp_id)),
-        #     asyncio.create_task(do_lights_button()),
-        #     asyncio.create_task(lights_bottom()),
-        #     asyncio.create_task(lights_top()),
-        #     asyncio.create_task(lights_outdoors()),
-        #     asyncio.create_task(display_lcd()),
-        #     asyncio.create_task(monitor_power_button()),
-        # ]
+        tasks = [
+            asyncio.create_task(front_door()),
+            asyncio.create_task(get_wattage()),
+            asyncio.create_task(climate_control(temp_id)),
+            asyncio.create_task(do_lights_button()),
+            asyncio.create_task(lights_bottom()),
+            asyncio.create_task(lights_top()),
+            asyncio.create_task(lights_outdoors()),
+            asyncio.create_task(display_lcd()),
+            asyncio.create_task(monitor_power_button()),
+        ]
 
-        # GPIO.add_event_detect(
-        #     LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=250
-        # )
-        # GPIO.add_event_detect(
-        #     POWER_BUTTON, GPIO.BOTH, callback=power_button, bouncetime=50
-        # )
+        GPIO.add_event_detect(
+            LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=250
+        )
+        GPIO.add_event_detect(
+            POWER_BUTTON, GPIO.BOTH, callback=power_button, bouncetime=50
+        )
 
         yield
 
