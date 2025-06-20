@@ -51,8 +51,6 @@ from models.device_models import (
     ServoLock,
 )
 
-from mfrc522 import SimpleMFRC522
-
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -758,23 +756,6 @@ def cut_card(card_id):
     return card_id[:6] + "000000"
 
 
-# async def front_door():
-#     global CARD_READER
-#     scanned_card = None
-
-#     while True:
-#         try:
-#             scanned_card = CARD_READER.read_no_block()
-#             print(f"Scanned card: {scanned_card}")
-#             await asyncio.sleep(0)
-
-#             if scanned_card is not None:
-#                 print(f"Card {scanned_card} detected at the front door.")
-
-#         except Exception as e:
-#             print(f"Error reading card: {e}")
-
-
 async def front_door():
     global DOOR_LOCK, REED_SWITCH, CARD_READER
     global servo_lock_id, reed_switch_id, card_reader_id
@@ -909,51 +890,10 @@ def power_button(pin):
         current_state = GPIO.input(pin)
 
         if current_state == 0 and power_button_hold_start is None:
-            power_button_hold_start = time.time()
-            logger.info("Power button pressed - starting 3-second hold timer")
+            shutdown_powerlink_system()
 
     except Exception as e:
         logger.error(f"Error in power_button: {e}")
-
-
-async def monitor_power_button():
-    global POWER_BUTTON, power_button_hold_start, power_button_held
-    global switch_state_power, button_power_id, powerlink_shutdown_requested
-
-    while True:
-        try:
-            if POWER_BUTTON and power_button_hold_start is not None:
-                current_state = GPIO.input(POWER_BUTTON)
-                hold_duration = time.time() - power_button_hold_start
-
-                if current_state == 1:
-                    if hold_duration < 3.0:
-                        logger.info(
-                            f"Power button released after {hold_duration:.1f}s - too short"
-                        )
-                    power_button_hold_start = None
-                    power_button_held = False
-
-                elif hold_duration >= 3.0 and not power_button_held:
-                    power_button_held = True
-                    logger.info(
-                        "=== POWER BUTTON HELD FOR 3 SECONDS - SHUTDOWN INITIATED ==="
-                    )
-
-                    switch_state_power = not switch_state_power
-                    log_and_emit_sync(switch_state_power, button_power_id)
-
-                    if not switch_state_power:
-                        # Use the new shutdown function
-                        await shutdown_powerlink_system()
-
-            await asyncio.sleep(0.1)
-
-        except Exception as e:
-            logger.error(f"Error in monitor_power_button: {e}")
-            power_button_hold_start = None
-            power_button_held = False
-            await asyncio.sleep(1)
 
 
 # endregion Functions ****************************
@@ -983,7 +923,7 @@ async def lifespan_manager(app: FastAPI):
         GPIO.setup(REED_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         TEMP_SENSOR = DS18B20()
         temp_id = TEMP_SENSOR.get_id()
-        CARD_READER = SimpleMFRC522()
+        CARD_READER = RFIDReader()
         LCD = LCD_Display(0x38, 5, 6)
         DOOR_LOCK = ServoLock(12)
         LED_OUTDOORS = 13
@@ -1004,14 +944,13 @@ async def lifespan_manager(app: FastAPI):
             asyncio.create_task(lights_top()),
             asyncio.create_task(lights_outdoors()),
             asyncio.create_task(display_lcd()),
-            asyncio.create_task(monitor_power_button()),
         ]
 
         GPIO.add_event_detect(
             LED_BUTTON, GPIO.FALLING, callback=lights_button, bouncetime=250
         )
         GPIO.add_event_detect(
-            POWER_BUTTON, GPIO.BOTH, callback=power_button, bouncetime=50
+            POWER_BUTTON, GPIO.BOTH, callback=power_button, bouncetime=300
         )
 
         yield
@@ -1581,11 +1520,8 @@ async def manual_powerlink_control_handler(sid, data):
                 "message": "System shutdown initiated",
             },
         )
-
-        # Give the frontend time to receive the message
         await asyncio.sleep(2)
 
-        # Use the new shutdown function
         await shutdown_powerlink_system()
 
     else:
